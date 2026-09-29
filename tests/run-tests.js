@@ -201,7 +201,7 @@ test("admin approval setting exists",()=>{
 test("admin social settings exist",()=>{
   assert(admin.includes("facebook"));
   assert(admin.includes("instagram"));
-  assert(admin.includes("whatsapp"));
+  assert(admin.includes("f('whatsapp','WhatsApp number')"));
 });
 
 test("database migration can create discount field",()=>{
@@ -287,10 +287,10 @@ test("subscription plans support images",()=>{
 });
 
 test("customer phone, WhatsApp, map and hours are configurable",()=>{
-  assert(admin.includes("f(\'phone\',\'Phone\'"));
-  assert(admin.includes("f(\'whatsapp\',\'WhatsApp number\'"));
-  assert(admin.includes("f(\'map_url\',\'Google Maps URL\'"));
-  assert(admin.includes("<textarea name=\"hours\""));
+  assert(admin.includes("f('phone','Phone')"));
+  assert(admin.includes("f('whatsapp','WhatsApp number')"));
+  assert(admin.includes("f('map_url','Google Maps URL')"));
+  assert(admin.includes('<textarea name="hours"'));
   assert(index.includes("href=\"tel:"));
   assert(index.includes("wa.me"));
   assert(index.includes("google.com/maps/search"));
