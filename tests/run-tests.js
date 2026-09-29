@@ -200,6 +200,64 @@ test("database migration can create discount field",()=>{
   db.close();
 });
 
+
+test("customer notification service exists",()=>{
+  assert(fs.existsSync(path.join(root,"lib","notifications.js")));
+  const notifications=fs.readFileSync(path.join(root,"lib","notifications.js"),"utf8");
+  assert(notifications.includes("notifyInquiryReceived"));
+  assert(notifications.includes("notifyInquiryReply"));
+  assert(notifications.includes("notifyNewsletterWelcome"));
+  assert(notifications.includes("sendNewsletterCampaign"));
+  assert(notifications.includes("notifyOrderStatus"));
+  assert(notifications.includes("notifySubscriptionStatus"));
+  assert(notifications.includes("sendPasswordResetEmail"));
+});
+
+test("inquiries trigger customer and admin email notifications",()=>{
+  assert(server.includes("notifyInquiryReceived(inquiry)"));
+  assert(server.includes("notifyAdminInquiry(inquiry)"));
+  assert(server.includes("notifyInquiryReply(inquiry,message)"));
+  assert(server.includes("emailQueued"));
+});
+
+test("newsletter has welcome email, campaign sending, and unsubscribe",()=>{
+  assert(server.includes("notifyNewsletterWelcome(e)"));
+  assert(server.includes("'/api/newsletter/unsubscribe'"));
+  assert(server.includes("'/api/admin/newsletter/send'"));
+  assert(server.includes("sendNewsletterCampaign"));
+});
+
+test("orders trigger receipt, admin, status, and payment email notifications",()=>{
+  assert(server.includes("notifyOrderReceived(savedOrder)"));
+  assert(server.includes("notifyAdminOrder(savedOrder)"));
+  assert(server.includes("notifyOrderStatus(after,before.status)"));
+  assert(server.includes("notifyPaymentStatus(after,before.payment_status)"));
+});
+
+test("subscriptions trigger confirmation and status/payment notifications",()=>{
+  assert(server.includes("notifySubscriptionReceived(savedSub)"));
+  assert(server.includes("notifySubscriptionStatus(after,before.status)"));
+  assert(server.includes("notifySubscriptionPaymentStatus(after,before.payment_status)"));
+});
+
+test("admin customer reset uses secure email reset instead of temporary passwords",()=>{
+  assert(server.includes("sendPasswordResetEmail"));
+  assert(server.includes("Password reset email sent."));
+  assert(!server.includes("r.json({temporaryPassword})"));
+  assert(admin.includes("secure password-reset email"));
+});
+
+test("admin inquiry UI reports email delivery",()=>{
+  assert(enh.includes("Reply saved and email sent"));
+  assert(enh.includes("sendInquiryReply"));
+});
+
+test("admin newsletter UI provides campaign composer and unsubscribe guidance",()=>{
+  assert(enh.includes("R.Newsletter=async function()"));
+  assert(enh.includes("sendNewsletterCampaign(event)"));
+  assert(enh.includes("Each email includes an unsubscribe link"));
+});
+
 if(process.exitCode){
   console.error("\\nTEST RESULT: FAIL");
   process.exit(1);
