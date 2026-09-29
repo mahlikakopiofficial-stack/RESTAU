@@ -50,7 +50,7 @@ chmod 600 "$APP/.env"
 chown -R resto:resto "$APP"
 echo "==> Installing dependencies + starting app"
 su - resto -c "cd $APP && npm install --omit=dev"
-su - resto -c "cd $APP && node --check server.js && node --check mailer.js && node --check public/app.js"
+su - resto -c "cd $APP && node --check server.js && node --check lib/gmail.js && node --check public/app.js"
 su - resto -c "cd $APP && (pm2 delete resto >/dev/null 2>&1 || true) && pm2 start server.js --name resto && pm2 save"
 env PATH="$PATH:/usr/bin" pm2 startup systemd -u resto --hp /home/resto >/dev/null 2>&1 || true
 echo "==> Nginx + firewall"
