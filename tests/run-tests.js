@@ -237,7 +237,7 @@ test("inquiries are manually replied and customer chat is supported",()=>{
   assert(server.includes("notifyInquiryReply(inquiry,message)"));
   assert(account.includes("Chat with PinoyAmbula"));
   assert(account.includes("No automatic replies"));
-  assert(enh.includes("No automatic customer reply"));
+  assert(enh.includes("Customer inquiries do not receive automatic replies"));
 });
 
 test("newsletter has welcome email, queued broadcast and unsubscribe",()=>{
@@ -287,10 +287,10 @@ test("subscription plans support images",()=>{
 });
 
 test("customer phone, WhatsApp, map and hours are configurable",()=>{
-  assert(admin.includes("name=\"phone\""));
-  assert(admin.includes("name=\"whatsapp\""));
-  assert(admin.includes("name=\"map_url\""));
-  assert(admin.includes("name=\"hours\""));
+  assert(admin.includes("f(\'phone\',\'Phone\'"));
+  assert(admin.includes("f(\'whatsapp\',\'WhatsApp number\'"));
+  assert(admin.includes("f(\'map_url\',\'Google Maps URL\'"));
+  assert(admin.includes("<textarea name=\"hours\""));
   assert(index.includes("href=\"tel:"));
   assert(index.includes("wa.me"));
   assert(index.includes("google.com/maps/search"));
@@ -304,7 +304,7 @@ test("system check is hidden from public homepage but available to admin",()=>{
 test("admin newsletter UI provides campaign composer and unsubscribe guidance",()=>{
   assert(enh.includes("R.Newsletter=async function()"));
   assert(enh.includes("sendNewsletterCampaign(event)"));
-  assert(enh.includes("Each broadcast includes an unsubscribe link"));
+  assert(enh.includes("Every broadcast includes an unsubscribe link"));
 });
 
 if(process.exitCode){
