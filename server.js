@@ -2,6 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
+const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
@@ -134,16 +135,39 @@ app.get('/api/plans',(q,r)=>r.json(db.prepare('SELECT id,name,price,descr AS "de
 app.get('/api/gallery',(q,r)=>r.json(db.prepare('SELECT * FROM gallery ORDER BY id').all()));
 app.get('/api/testimonials',(q,r)=>r.json(db.prepare('SELECT * FROM testimonials WHERE approved=1 ORDER BY id DESC').all()));
 app.post('/api/testimonials',lim(5),w((q,r)=>{need(q.body,'name','text');db.prepare('INSERT INTO testimonials(name,text,stars,approved) VALUES(?,?,?,0)').run(String(q.body.name).slice(0,60),String(q.body.text).slice(0,500),Math.min(5,Math.max(1,+q.body.stars||5)));r.json({ok:1})}));
-app.post('/api/newsletter',lim(20),w((q,r)=>{const e=String(q.body.email||'').trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error('Valid email required');db.prepare('INSERT OR IGNORE INTO newsletter(email) VALUES(?)').run(e);r.json({ok:1})}));
+app.post('/api/newsletter',lim(20),w((q,r)=>{
+  const e=String(q.body.email||'').trim().toLowerCase();
+  if(!/^\S+@\S+\.\S+$/.test(e))throw new Error('Valid email required');
+  const result=db.prepare('INSERT OR IGNORE INTO newsletter(email) VALUES(?)').run(e);
+  if(result.changes)notifyNewsletterWelcome(e);
+  r.json({ok:1});
+}));
+app.get('/api/newsletter/unsubscribe',lim(20),w((q,r)=>{
+  const email=String(q.query.email||'').trim().toLowerCase();
+  const token=String(q.query.token||'');
+  const expected=crypto.createHmac('sha256',SECRET).update('newsletter|'+email).digest('hex');
+  if(!/^\S+@\S+\.\S+$/.test(email)||token!==expected)return r.status(400).type('html').send('<h2>Invalid unsubscribe link</h2><p>Please use the unsubscribe link from your newsletter.</p>');
+  db.prepare('DELETE FROM newsletter WHERE email=?').run(email);
+  r.type('html').send('<h2>You are unsubscribed</h2><p>'+escHtml(email)+' has been removed from the PinoyAmbula newsletter.</p><p>You can subscribe again from the restaurant website at any time.</p>');
+}));
 app.post('/api/inquiry',lim(20),w((q,r)=>{
   const b=q.body;
   need(b,'name','msg');
   if(!b.email&&!b.phone)throw new Error('Email or phone required');
   if(b.email&&!/^\S+@\S+\.\S+$/.test(String(b.email)))throw new Error('Valid email required');
-  const id=db.prepare('INSERT INTO inquiries(name,email,phone,type,msg) VALUES(?,?,?,?,?)')
-    .run(String(b.name).slice(0,100),String(b.email||'').slice(0,200),String(b.phone||'').slice(0,40),String(b.type||'General').slice(0,80),String(b.msg).slice(0,4000)).lastInsertRowid;
-  db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(id,'customer',String(b.msg).slice(0,4000));
-  r.json({ok:1,id:Number(id)});
+  const inquiry={
+    id:Number(db.prepare('INSERT INTO inquiries(name,email,phone,type,msg) VALUES(?,?,?,?,?)')
+      .run(String(b.name).slice(0,100),String(b.email||'').slice(0,200),String(b.phone||'').slice(0,40),String(b.type||'General').slice(0,80),String(b.msg).slice(0,4000)).lastInsertRowid),
+    name:String(b.name).slice(0,100),
+    email:String(b.email||'').slice(0,200),
+    phone:String(b.phone||'').slice(0,40),
+    type:String(b.type||'General').slice(0,80),
+    msg:String(b.msg).slice(0,4000)
+  };
+  db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
+  notifyInquiryReceived(inquiry);
+  notifyAdminInquiry(inquiry);
+  r.json({ok:1,id:inquiry.id});
 }));
 app.post('/api/register',lim(8),w((q,r)=>{
   const b=q.body;
@@ -362,6 +386,9 @@ app.post('/api/order',lim(30),w((q,r)=>{
   return Number(id);
   });
   const id=saveOrder();
+  const savedOrder=one('SELECT * FROM orders WHERE id=?',id);
+  notifyOrderReceived(savedOrder);
+  notifyAdminOrder(savedOrder);
 
   r.json({
     id:Number(id),
@@ -393,18 +420,39 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
   const date=x=>x.toISOString().slice(0,10);
   const id=db.prepare('INSERT INTO subs(customer_id,name,phone,address,paci,plan,start,end,price,email,payment_method,payment_status,duration_days) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
     .run(custId(b,q),String(b.name).slice(0,100),String(b.phone).slice(0,40),String(b.address).slice(0,400),String(b.paci||'').slice(0,80),p.name,date(start),date(end),p.price,String(b.email).slice(0,200),payment,'Pending',duration).lastInsertRowid;
+  const savedSub=one('SELECT * FROM subs WHERE id=?',id);
+  notifySubscriptionReceived(savedSub);
   r.json({id:Number(id),start:date(start),end:date(end),duration_days:duration,price:p.price,payment_method:payment,payment_status:'Pending'});
 }));
 
 /* ---------- admin ---------- */
 app.post('/api/admin/login',lim(8),(q,r)=>safeEq(q.body.password,ADMIN_PW)?r.json({token:mk({r:'admin'})}):r.status(401).json({error:'Wrong password'}));
-app.post('/api/admin/customers/:id/reset-password',admin,w((q,r)=>{
-  const customer=one('SELECT id FROM customers WHERE id=?',q.params.id);
-  if(!customer)throw new Error('Customer not found');
-  const temporaryPassword=crypto.randomBytes(9).toString('base64url');
-  db.prepare('UPDATE customers SET pw=?,auth_version=auth_version+1 WHERE id=?').run(hash(temporaryPassword),q.params.id);
-  r.json({temporaryPassword});
-}));
+app.post('/api/admin/customers/:id/reset-password',admin,async(q,r)=>{
+  try{
+    const customer=one('SELECT id,name,email FROM customers WHERE id=?',q.params.id);
+    if(!customer)throw new Error('Customer not found');
+    if(!/^\S+@\S+\.\S+$/.test(String(customer.email||'')))throw new Error('Customer does not have a valid email address.');
+    db.prepare('DELETE FROM password_reset_tokens WHERE used_at IS NOT NULL OR expires_at<?').run(Date.now());
+    db.prepare('UPDATE password_reset_tokens SET used_at=? WHERE customer_id=? AND used_at IS NULL').run(Date.now(),customer.id);
+    const raw=crypto.randomBytes(32).toString('base64url');
+    const tokenHash=crypto.createHash('sha256').update(raw).digest('hex');
+    const expiresAt=Date.now()+30*60*1000;
+    db.prepare('INSERT INTO password_reset_tokens(customer_id,token_hash,expires_at,created_at) VALUES(?,?,?,?)').run(customer.id,tokenHash,expiresAt,Date.now());
+    const base=String(E.PUBLIC_BASE_URL||'').replace(/\/$/,'');
+    if(!base)throw new Error('PUBLIC_BASE_URL is not configured');
+    const resetUrl=base+'/reset-password.html?token='+encodeURIComponent(raw);
+    try{
+      await sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl});
+    }catch(mailError){
+      db.prepare('DELETE FROM password_reset_tokens WHERE token_hash=?').run(tokenHash);
+      throw mailError;
+    }
+    r.json({ok:1,message:'Password reset email sent.'});
+  }catch(error){
+    console.error('ADMIN_PASSWORD_RESET_FAILED',error.message);
+    r.status(400).json({error:error.message});
+  }
+});
 app.get('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   const inquiry=one('SELECT id,msg,created FROM inquiries WHERE id=?',q.params.id);
   if(!inquiry)return r.status(404).json({error:'Inquiry not found'});
@@ -412,7 +460,7 @@ app.get('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   r.json(messages.length?messages:[{id:0,author:'customer',message:inquiry.msg,created:inquiry.created}]);
 }));
 app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
-  const inquiry=one('SELECT id FROM inquiries WHERE id=?',q.params.id);
+  const inquiry=one('SELECT id,name,email,type,msg FROM inquiries WHERE id=?',q.params.id);
   if(!inquiry)return r.status(404).json({error:'Inquiry not found'});
   need(q.body,'message');
   const message=String(q.body.message).trim();
@@ -420,8 +468,22 @@ app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)')
     .run(q.params.id,'admin',message).lastInsertRowid;
   db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(q.params.id);
-  r.json({ok:1,id:Number(id)});
+  notifyInquiryReply(inquiry,message);
+  r.json({ok:1,id:Number(id),emailQueued:!!inquiry.email});
 }));
+app.post('/api/admin/newsletter/send',admin,async(q,r)=>{
+  try{
+    const subject=String(q.body.subject||'').trim();
+    const message=String(q.body.message||'').trim();
+    const subscribers=db.prepare('SELECT email FROM newsletter ORDER BY id').all();
+    if(subscribers.length>500)throw new Error('Newsletter send is limited to 500 subscribers per run.');
+    const result=await sendNewsletterCampaign(subscribers,subject,message);
+    r.json(result);
+  }catch(error){
+    console.error('NEWSLETTER_CAMPAIGN_FAILED',error.message);
+    r.status(400).json({error:error.message});
+  }
+});
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
 app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:new Date().toISOString().slice(0,10),orders=db.prepare("SELECT * FROM orders WHERE date(created)=? ORDER BY id").all(date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(created)=?",date).n,inquiries:one('SELECT COUNT(*) n FROM inquiries WHERE date(created)=?',date).n,newsletter:one('SELECT COUNT(*) n FROM newsletter WHERE date(created)=?',date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
 const T=['orders','customers','subs','inquiries','newsletter','testimonials','gallery','items','plans'],DEL=['items','gallery','testimonials','inquiries','newsletter','customers','plans'];
@@ -431,60 +493,50 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     throw new Error('bad table');
 
   const status=String(q.body.status||'');
+  const table=q.params.t;
 
-  if(q.params.t==='orders'){
-    const allowed=[
-      'Pending',
-      'New',
-      'Confirmed',
-      'Preparing',
-      'Out for delivery',
-      'Delivered',
-      'Cancelled',
-      'Completed'
-    ];
-
-    if(!allowed.includes(status))
-      throw new Error('Invalid order status');
-
+  if(table==='orders'){
+    const allowed=['Pending','New','Confirmed','Preparing','Out for delivery','Delivered','Cancelled','Completed'];
+    if(!allowed.includes(status))throw new Error('Invalid order status');
+    const before=one('SELECT * FROM orders WHERE id=?',q.params.id);
+    if(!before)throw new Error('Order not found');
     const sets=['status=?'];
     const vals=[status];
-
-    if(status==='Confirmed'){
-      sets.push('confirmed_at=?');
-      vals.push(new Date().toISOString());
-    }
-
-    if(status==='Delivered'){
-      sets.push('delivered_at=?');
-      vals.push(new Date().toISOString());
-    }
-
-    if(status==='Cancelled'){
-      sets.push('cancelled_at=?');
-      vals.push(new Date().toISOString());
-    }
-
+    if(status==='Confirmed'){sets.push('confirmed_at=?');vals.push(new Date().toISOString());}
+    if(status==='Delivered'){sets.push('delivered_at=?');vals.push(new Date().toISOString());}
+    if(status==='Cancelled'){sets.push('cancelled_at=?');vals.push(new Date().toISOString());}
     vals.push(q.params.id);
-
-    db.prepare(
-      'UPDATE orders SET '+sets.join(',')+' WHERE id=?'
-    ).run(...vals);
-
+    db.prepare('UPDATE orders SET '+sets.join(',')+' WHERE id=?').run(...vals);
+    const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
+    notifyOrderStatus(after,before.status);
     return r.json({ok:1,status});
   }
 
-  db.prepare(
-    'UPDATE '+q.params.t+' SET status=? WHERE id=?'
-  ).run(status,q.params.id);
+  if(table==='subs'){
+    const allowed=['Active','Paused','Completed','Cancelled'];
+    if(!allowed.includes(status))throw new Error('Invalid subscription status');
+    const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
+    if(!before)throw new Error('Subscription not found');
+    db.prepare('UPDATE subs SET status=? WHERE id=?').run(status,q.params.id);
+    const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
+    notifySubscriptionStatus(after,before.status);
+    return r.json({ok:1,status});
+  }
 
+  const allowed=['New','Read','Replied'];
+  if(!allowed.includes(status))throw new Error('Invalid inquiry status');
+  const result=db.prepare('UPDATE inquiries SET status=? WHERE id=?').run(status,q.params.id);
+  if(!result.changes)throw new Error('Inquiry not found');
   r.json({ok:1,status});
 }));
 app.put('/api/admin/payment/:id',admin,w((q,r)=>{
   const status=String(q.body.status||'');
   if(!['Pending','Paid','Failed','Refunded'].includes(status))throw new Error('Invalid payment status');
-  const result=db.prepare('UPDATE orders SET payment_status=? WHERE id=?').run(status,q.params.id);
-  if(!result.changes)throw new Error('Order not found');
+  const before=one('SELECT * FROM orders WHERE id=?',q.params.id);
+  if(!before)throw new Error('Order not found');
+  db.prepare('UPDATE orders SET payment_status=? WHERE id=?').run(status,q.params.id);
+  const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
+  notifyPaymentStatus(after,before.payment_status);
   r.json({ok:1,status});
 }));
 app.put('/api/admin/orders/:id',admin,w((q,r)=>{
@@ -516,9 +568,13 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
   if(!current)throw new Error('Subscription not found');
   const start=b.start||current.start,end=b.end||current.end;
   if(start>end)throw new Error('End date must be on or after start date');
+  const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
+  if(!before)throw new Error('Subscription not found');
   const result=db.prepare(`UPDATE subs SET ${keys.map(key=>key+'=?').join(',')} WHERE id=?`)
     .run(...keys.map(key=>key==='payment_method'?String(b[key]).toUpperCase():String(b[key]).slice(0,500)),q.params.id);
   if(!result.changes)throw new Error('Subscription not found');
+  const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
+  if(keys.includes('payment_status'))notifySubscriptionPaymentStatus(after,before.payment_status);
   r.json({ok:1});
 }));
 const validDate=value=>{
