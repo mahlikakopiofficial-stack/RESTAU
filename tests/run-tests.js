@@ -120,6 +120,17 @@ test("customer forgot-password uses secure email reset",()=>{
   assert(!account.includes('temporary password'));
 });
 
+test("Gmail password reset uses OAuth Gmail API instead of SMTP",()=>{
+  const gmail=fs.readFileSync(path.join(root,"lib","gmail.js"),"utf8");
+  assert(server.includes("getAuthorizationUrl"));
+  assert(server.includes("/api/gmail/oauth/start"));
+  assert(server.includes("/api/gmail/oauth/callback"));
+  assert(gmail.includes("gmail.send"));
+  assert(gmail.includes("gmail.googleapis.com/gmail/v1/users/me/messages/send"));
+  assert(gmail.includes("GMAIL_REFRESH_TOKEN"));
+  assert(!gmail.includes("smtp.gmail.com"));
+  assert(!gmail.includes("tls.connect"));
+});
 test("admin tables expose labeled mobile rows and customer access guidance",()=>{
   assert(admin.includes('data-label="${c[0]}"'));
   assert(style.includes('.tw td::before{content:attr(data-label)'));
