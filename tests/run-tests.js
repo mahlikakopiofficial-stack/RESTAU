@@ -106,14 +106,18 @@ test("customer cart stays reachable and account errors preserve valid sessions",
   assert(account.includes("if(x.message==='Login required')localStorage.removeItem('ct')"));
 });
 
-test("customer forgot-password requests are staff verified",()=>{
+test("customer forgot-password uses secure email reset",()=>{
   assert(account.includes('Forgot password?'));
+  assert(account.includes('type="email"'));
   assert(server.includes("app.post('/api/password-reset'"));
-  assert(server.includes("app.post('/api/admin/customers/:id/reset-password'"));
-  assert(!server.includes("app.put('/api/me/password'"));
-  assert(!account.includes('Change password'));
+  assert(server.includes("app.post('/api/password-reset/confirm'"));
+  assert(server.includes('password_reset_tokens'));
   assert(server.includes('auth_version'));
-  assert(admin.includes('issueReset('));
+  assert(server.includes('sendMail'));
+  assert(fs.existsSync(path.join(root,'lib','gmail.js')));
+  assert(fs.existsSync(path.join(root,'public','reset-password.html')));
+  assert(!account.includes('staff will verify'));
+  assert(!account.includes('temporary password'));
 });
 
 test("admin tables expose labeled mobile rows and customer access guidance",()=>{

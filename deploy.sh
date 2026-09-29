@@ -48,8 +48,6 @@ if ! grep -q '^PUBLIC_BASE_URL=' "$APP/.env"; then
 fi
 chmod 600 "$APP/.env"
 chown -R resto:resto "$APP"
-echo "==> Applying source patches"
-su - resto -c "cd $APP && node tools/patch-password-reset.js server.js"
 echo "==> Installing dependencies + starting app"
 su - resto -c "cd $APP && npm install --omit=dev"
 su - resto -c "cd $APP && node --check server.js && node --check lib/gmail.js && node --check public/app.js"
