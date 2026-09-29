@@ -11,6 +11,7 @@ const index=fs.readFileSync(path.join(root,"public","index.html"),"utf8");
 const account=fs.readFileSync(path.join(root,"public","account.html"),"utf8");
 const admin=fs.readFileSync(path.join(root,"public","admin.html"),"utf8");
 const enh=fs.readFileSync(path.join(root,"public","enhancements.js"),"utf8");
+const app=fs.readFileSync(path.join(root,"public","app.js"),"utf8");
 const style=fs.readFileSync(path.join(root,"public","style.css"),"utf8");
 const deploy=fs.readFileSync(path.join(root,"deploy.sh"),"utf8");
 
@@ -27,7 +28,7 @@ function test(name,fn){
 
 test("JavaScript syntax checks pass",()=>{
   for(const file of ["server.js","lib/gmail.js","lib/notifications.js","public/app.js","public/enhancements.js","public/admin.html","public/account.html"]){
-    if(/\\.js$/.test(file))execFileSync(process.execPath,["--check",path.join(root,file)],{stdio:"pipe"});
+    if(/\.js$/.test(file))execFileSync(process.execPath,["--check",path.join(root,file)],{stdio:"pipe"});
   }
 });
 test("server contains order API",()=>{
