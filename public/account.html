@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Account — PinoyAmbula</title><link rel="stylesheet" href="style.css"></head><body>
+<div class="banig"></div><nav><div class="wrap"><a class="logo" href="index.html">🌼 Lutong Bahay</a><ul class="row"><li><a href="index.html#menu">Menu</a></li><li><a href="index.html">Home</a></li></ul></div></nav>
+<div class="wrap"><div class="box" id="auth"><h2 id="ttl">Login</h2><form onsubmit="go(event)"><div id="reg-fields" hidden><label>Name</label><input name="name"><label>Email</label><input name="email" type="email" autocomplete="email"><label>Delivery address</label><textarea name="address" rows="2" autocomplete="street-address"></textarea><label>PACI number</label><input name="paci" inputmode="numeric"><label>Birthday</label><input name="birthday" type="date"><label>Nationality</label><input name="nationality" autocomplete="country-name"></div><label>Phone</label><input name="phone" type="tel" autocomplete="tel" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required minlength="6"><button class="btn" id="sb">Login</button> <button type="button" class="btn o" onclick="tog()" id="tg">Create account</button><button type="button" id="forgot-link" class="text-button" onclick="$('#recovery').showModal()">Forgot password?</button></form></div>
+<dialog id="recovery"><h3>Reset your password</h3><p>Enter your registered phone number. Staff will verify your identity and contact you with a temporary password.</p><form onsubmit="requestPasswordReset(event)"><label>Phone</label><input name="phone" type="tel" autocomplete="tel" required><label>Email (optional)</label><input name="email" type="email" autocomplete="email"><button class="btn">Request reset</button> <button type="button" class="btn o" onclick="$('#recovery').close()">Close</button></form></dialog>
+<div id="me" hidden style="padding:30px 0"><h2 id="hi"></h2><p><button class="btn s o" onclick="out()">Logout</button> <a class="btn s" href="index.html#menu">Order food</a></p><section id="loyalty" style="padding:12px 0"><h3>Loyalty</h3><p id="loyalty-progress"></p><div id="loyalty-rewards"></div></section><h3 style="margin:20px 0 8px">My orders</h3>
+<div id="order-tracker" style="margin:15px 0"><div id="orderStep"></div></div>
+<div class="tw"><table id="ot"></table></div><h3 style="margin:20px 0 8px">My 26-day subscriptions</h3><div class="tw"><table id="st"></table></div></div></div>
+<script src="app.js"></script><script>
+let reg=false;function tog(){reg=!reg;$('#reg-fields').hidden=!reg;$('#reg-fields [name=name]').required=reg;$('#forgot-link').hidden=reg;$('#ttl').textContent=$('#sb').textContent=reg?'Register':'Login';$('#tg').textContent=reg?'I have an account':'Create account'}
+async function go(e){e.preventDefault();try{const data=Object.fromEntries(new FormData(e.target));const r=await api(reg?'/register':'/login','POST',data);localStorage.setItem('ct',r.token);load()}catch(x){toast(x.message)}}
+async function requestPasswordReset(e){e.preventDefault();try{const result=await api('/password-reset','POST',Object.fromEntries(new FormData(e.target)));$('#recovery').close();e.target.reset();toast(result.message)}catch(error){toast(error.message)}}
+async function confirmReceipt(id){try{await api('/orders/'+id+'/received','POST',{});toast('Thanks for confirming delivery');load()}catch(error){toast(error.message)}}
+function out(){localStorage.removeItem('ct');location.reload()}
+async function load(){
+  if(!tk('ct'))return;
+
+  try{
+    const c=await api('/config');
+    CUR=c.currency;
+
+    const m=await api('/me');
+
+    $('#auth').hidden=true;
+    $('#me').hidden=false;
+    $('#hi').textContent='Mabuhay, '+m.name+'!';
+    $('#loyalty-progress').textContent=`${m.delivered} completed deliveries. Rewards unlock at 5 (20% off), 8 (free delivery), and 10 (one free meal).`;
+    $('#loyalty-rewards').textContent=m.rewards.length?`Available: ${m.rewards.map(reward=>reward.label).join(' · ')}`:'Keep ordering to unlock your next reward.';
+
+    const steps=[
+      'Pending',
+      'Confirmed',
+      'Preparing',
+      'Out for delivery',
+      'Delivered'
+    ];
+
+    $('#ot').innerHTML=
+      '<tr><th>Date</th><th>Items</th><th>Total</th><th>Delivery updates</th></tr>'+
+      (
+        m.orders.map(o=>{
+          const status=String(o.status||'Pending');
+          const current=steps.indexOf(status);
+
+          const tracker=steps.map((x,i)=>{
+            const done=current>=i;
+            const here=status===x;
+            return '<span style="display:inline-block;margin-right:8px;font-weight:'+
+              (here?'700':'400')+
+              '">'+
+              (done?'✓ ':'')+
+              esc(x)+
+              '</span>';
+          }).join('');
+
+          const delivery=[o.eta?'ETA '+esc(o.eta.replace('T',' ')):'',o.driver_name?'Driver: '+esc(o.driver_name):'',o.driver_phone?'Contact: <a href="tel:'+esc(o.driver_phone)+'">'+esc(o.driver_phone)+'</a>':'',o.status_message?esc(o.status_message):''].filter(Boolean).join('<br>');
+          const receipt=o.received_at?'Received confirmed':(['Delivered','Completed'].includes(status)?'<button class="btn s" onclick="confirmReceipt('+o.id+')">Confirm received</button>':'');
+          return '<tr>'+ 
+            '<td>'+esc(o.created)+'</td>'+
+            '<td>'+JSON.parse(o.items||'[]').map(i=>
+              i.qty+'× '+esc(i.name)
+            ).join(', ')+'</td>'+
+            '<td>'+money(o.total)+'</td>'+
+            '<td><b>'+esc(status)+'</b><div style="font-size:.78rem;margin-top:5px">'+tracker+'</div>'+(delivery?'<div style="margin-top:6px">'+delivery+'</div>':'')+'<div style="margin-top:6px">'+receipt+'</div></td>'+ 
+          '</tr>';
+        }).join('')||
+        '<tr><td colspan="4">No orders yet</td></tr>'
+      );
+
+    $('#order-tracker').innerHTML='<strong>Order status and delivery details are shown with each order.</strong>';
+
+    $('#st').innerHTML=
+      '<tr><th>#</th><th>Plan</th><th>Email</th><th>Start</th><th>End</th><th>Payment</th><th>Status</th></tr>'+
+      (
+        m.subs.map(s=>
+          '<tr><td>'+s.id+'</td>'+
+          '<td>'+esc(s.plan)+'</td>'+
+          '<td>'+esc(s.email||'')+'</td>'+
+          '<td>'+s.start+'</td>'+
+          '<td>'+s.end+'</td>'+
+          '<td>'+esc(s.payment_method||'COD')+' · '+esc(s.payment_status||'Pending')+'</td>'+
+          '<td>'+esc(s.status)+'</td></tr>'
+        ).join('')||
+        '<tr><td colspan="7">No subscriptions yet</td></tr>'
+      );
+
+  }catch(x){
+    if(x.message==='Login required')localStorage.removeItem('ct');
+    toast(x.message==='Login required'?'Please log in again to view your account.':'Your account could not load. Check your connection and try again.');
+  }
+}
+
+load()</script></body></html>
