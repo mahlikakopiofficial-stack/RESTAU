@@ -32,7 +32,7 @@ return`<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmi
 <input type="number" step="0.001" value="${i.discount_price||''}" onchange="ui(${i.id},'discount_price',this.value)" placeholder="Discount price"><select onchange="ui(${i.id},'cat',this.value)">${CATS.map(c=>`<option${c==i.cat?' selected':''}>${c}</option>`).join('')}</select><input value="${esc(i.region)}" onchange="ui(${i.id},'region',this.value)" placeholder="Country"><input value="${esc(i.descr)}" onchange="ui(${i.id},'descr',this.value)" placeholder="Description"><input value="${esc(i.emoji)}" onchange="ui(${i.id},'emoji',this.value)" style="width:80px"><label><input type="checkbox" style="width:auto" ${i.active?'checked':''} onchange="ui(${i.id},'active',this.checked?1:0)"> Available</label> ${del('items',i.id)}</div></div>`).join('')}</div>`},
 async Gallery(){const g=await A('/list/gallery');A_after=()=>{dz($('#gdz'),'target=gallery',1);$$('.gdz').forEach(el=>dz(el,'target=gallery&id='+el.dataset.id))};
 return`<div class="drop" id="gdz">⬆ Add gallery photos</div><form class="card mini" style="padding:14px;margin:14px 0" onsubmit="addGalleryVideo(event)"><b>Add a video embed</b><input name="caption" maxlength="200" placeholder="Caption"><input name="url" type="url" placeholder="YouTube, TikTok, or Facebook video URL" required><button class="btn s">Add video</button></form><div class="grid">${g.map(x=>`<div class="card">${x.media_type==='video'&&x.media_url?`<iframe class="gallery-embed" src="${esc(x.media_url)}" title="${esc(x.caption||'Gallery video')}" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`:`<div class="ph gdz" data-id="${x.id}" style="height:160px;cursor:pointer;${x.img?`background-image:url('${esc(x.img)}')`:''}">${x.img?'':'🍽️'}</div>`}<div class="p" style="padding:8px"><input aria-label="Gallery caption" value="${esc(x.caption)}" onchange="up2('gallery','${x.id}','caption',this.value)">${del('gallery',x.id)}</div></div>`).join('')}</div>`},
-async Customers(){return `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Use the secure password-reset email when a customer needs account access.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>`+tbl(await A('/list/customers'),[['#',r=>r.id],['Name',r=>esc(r.name)],['Phone',r=>esc(r.phone)],['Email',r=>esc(r.email)],['Orders',r=>r.orders],['Spent',r=>money(r.spent)],['Joined',r=>esc(r.created)],['Account access',r=>`<button class="btn s o" onclick="issueReset(${r.id})">Issue temporary password</button>`],['',r=>del('customers',r.id)]])},
+async Customers(){return `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Use the secure password-reset email when a customer needs account access.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>`+tbl(await A('/list/customers'),[['#',r=>r.id],['Name',r=>esc(r.name)],['Phone',r=>esc(r.phone)],['Email',r=>esc(r.email)],['Orders',r=>r.orders],['Spent',r=>money(r.spent)],['Joined',r=>esc(r.created)],['Account access',r=>`<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`],['',r=>del('customers',r.id)]])},
 async Subscriptions(){return `<button class="btn s o" onclick="exp('subs')">⬇ CSV</button><br><br>`+tbl(await A('/list/subs'),[['#',r=>r.id],['Customer',r=>`${esc(r.name)}<br>${esc(r.phone)}`],['Drop location',r=>esc(r.address)+(r.paci?`<br><b>PACI:</b> ${esc(r.paci)}`:'')],['Plan',r=>esc(r.plan)],['Start → End (26 days)',r=>`${r.start} → ${r.end}`],['Price',r=>money(r.price)],['Status',r=>sel('subs',r.id,r.status,['Active','Paused','Completed','Cancelled'])]])},
 async Inquiries(){return `<button class="btn s o" onclick="exp('inquiries')">⬇ CSV</button><br><br>`+tbl(await A('/list/inquiries'),[['Date',r=>esc(r.created)],['Name',r=>esc(r.name)],['Contact',r=>esc(r.phone)+'<br>'+esc(r.email)],['Topic',r=>esc(r.type)],['Message',r=>esc(r.msg)],['Status',r=>sel('inquiries',r.id,r.status||'New',['New','Read','Replied'])],['',r=>del('inquiries',r.id)]])},
 async Newsletter(){const n=await A('/list/newsletter');window._em=n.map(x=>x.email).join(', ');return`<button class="btn s" onclick="navigator.clipboard.writeText(_em).then(()=>toast('Emails copied'))">Copy all emails</button> <button class="btn s o" onclick="exp('newsletter')">⬇ CSV</button><br><br>`+tbl(n,[['Email',r=>esc(r.email)],['Date',r=>esc(r.created)],['',r=>del('newsletter',r.id)]])},
@@ -47,7 +47,8 @@ ${f('name','Restaurant name')}
 ${f('phone','Phone')}
 ${f('whatsapp','WhatsApp number')}
 ${f('location','Location')}
-${f('hours','Opening hours')}
+${f('map_url','Google Maps URL')}
+<label>Opening hours</label><textarea name="hours" rows="4" placeholder="Mon–Sat: 10:00–22:00\nSun: Closed">${esc(s.hours||'')}</textarea>
 ${f('facebook','Facebook URL')}
 ${f('instagram','Instagram URL')}
 ${f('currency','Currency code (e.g. KWD)')}
@@ -88,7 +89,7 @@ ${f('hero_title','Homepage headline')}
 <label>Homepage text</label>
 <textarea name="hero_text" rows="3">${esc(s.hero_text)}</textarea>
 
-<button class="btn">Save settings</button>
+<button class="btn">Save settings</button> <a class="btn o" href="check.html" target="_blank" rel="noopener">System check</a>
 </form>
 
 <p style="margin:14px 0 6px">Homepage banner photo:</p>
