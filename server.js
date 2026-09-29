@@ -136,13 +136,18 @@ app.get('/api/plans',(q,r)=>r.json(db.prepare('SELECT id,name,price,descr AS "de
 app.get('/api/gallery',(q,r)=>r.json(db.prepare('SELECT * FROM gallery ORDER BY id').all()));
 app.get('/api/testimonials',(q,r)=>r.json(db.prepare('SELECT * FROM testimonials WHERE approved=1 ORDER BY id DESC').all()));
 app.post('/api/testimonials',lim(5),w((q,r)=>{need(q.body,'name','text');db.prepare('INSERT INTO testimonials(name,text,stars,approved) VALUES(?,?,?,0)').run(String(q.body.name).slice(0,60),String(q.body.text).slice(0,500),Math.min(5,Math.max(1,+q.body.stars||5)));r.json({ok:1})}));
-app.post('/api/newsletter',lim(20),w((q,r)=>{
-  const e=String(q.body.email||'').trim().toLowerCase();
-  if(!/^\S+@\S+\.\S+$/.test(e))throw new Error('Valid email required');
-  const result=db.prepare('INSERT OR IGNORE INTO newsletter(email) VALUES(?)').run(e);
-  if(result.changes)notifyNewsletterWelcome(e);
-  r.json({ok:1});
-}));
+app.post('/api/newsletter',lim(20),async(q,r)=>{
+  try{
+    const e=String(q.body.email||'').trim().toLowerCase();
+    if(!/^\S+@\S+\.\S+$/.test(e))throw new Error('Valid email required');
+    const result=db.prepare('INSERT OR IGNORE INTO newsletter(email) VALUES(?)').run(e);
+    if(result.changes)await notifyNewsletterWelcome(e);
+    r.json({ok:1});
+  }catch(error){
+    console.error('NEWSLETTER_WELCOME_FAILED',error.message);
+    r.status(400).json({error:'Subscription was saved, but the welcome email could not be sent. Please try again later.'});
+  }
+});
 app.get('/api/newsletter/unsubscribe',lim(20),w((q,r)=>{
   const email=String(q.query.email||'').trim().toLowerCase();
   const token=String(q.query.token||'');
