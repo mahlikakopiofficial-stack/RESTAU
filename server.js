@@ -113,6 +113,7 @@ const custId=(b,q)=>{const t=customerToken(q);if(t)return t.id;const p=String(b.
 const hits=new Map();setInterval(()=>hits.clear(),6e4).unref();
 const lim=n=>(q,r,x)=>{const k=q.ip+q.path,c=(hits.get(k)||0)+1;hits.set(k,c);c>n?r.status(429).json({error:'Too many attempts. Please wait a minute and try again.'}):x()};
 const safeEq=(a,b)=>{const h=v=>crypto.createHash('sha256').update(String(v??'')).digest();return crypto.timingSafeEqual(h(a),h(b))};
+const escHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
 app.use((q,r,n)=>{r.set({'X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN','Referrer-Policy':'same-origin'});n()});
 app.use(express.json({limit:'100kb'}));
