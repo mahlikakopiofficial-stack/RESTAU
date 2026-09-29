@@ -307,6 +307,18 @@ test("customer phone, WhatsApp, map and hours are configurable",()=>{
   assert(index.includes("google.com/maps/search"));
 });
 
+test("web and mobile share one runtime configuration and PWA shell",()=>{
+  assert(fs.existsSync(path.join(root,'public','runtime-config.js')));
+  assert(fs.existsSync(path.join(root,'public','manifest.json')));
+  assert(fs.existsSync(path.join(root,'public','sw.js')));
+  assert(fs.existsSync(path.join(root,'public','pwa.js')));
+  assert(fs.existsSync(path.join(root,'public','icons','pinoyambula-192.svg')));
+  assert(fs.existsSync(path.join(root,'public','icons','pinoyambula-512.svg')));
+  assert(app.includes("PINOY_RUNTIME?.apiOrigin"));
+  assert(index.includes('manifest.json'));
+  assert(account.includes('manifest.json'));
+  assert(admin.includes('manifest.json'));
+});
 test("system check is hidden from public homepage but available to admin",()=>{
   assert(!index.includes('href="check.html"'));
   assert(admin.includes('href="check.html"'));
