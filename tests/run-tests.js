@@ -75,9 +75,12 @@ test("settings contain social fields",()=>{
   assert(server.includes("instagram"));
 });
 
-test("settings contain location and logo",()=>{
+test("settings contain location, map and logo",()=>{
   assert(server.includes("location"));
+  assert(server.includes("map_url"));
   assert(server.includes("logo_url"));
+  assert(admin.includes("Google Maps URL"));
+  assert(index.includes("google.com/maps/search"));
 });
 
 test("customer tracker exists",()=>{
@@ -157,12 +160,16 @@ test("loyalty rewards are earned and redeemed server-side",()=>{
   assert(index.includes('id="loyalty_reward"'));
 });
 
-test("customer delivery tracking supports ETA driver and received confirmation",()=>{
-  assert(server.includes("'orders','eta'"));
+test("customer delivery tracking exposes driver only during delivery",()=>{
   assert(server.includes("'orders','driver_name'"));
+  assert(server.includes("'orders','driver_phone'"));
+  assert(server.includes("o.status!=='Out for delivery'"));
+  assert(server.includes("driver_name:''"));
   assert(server.includes("'/api/orders/:id/received'"));
-  assert(account.includes('Confirm received'));
-  assert(enh.includes('Driver phone'));
+  assert(account.includes('Driver phone'));
+  assert(account.includes('WhatsApp'));
+  assert(enh.includes('Driver during delivery'));
+  assert(enh.includes("'Completed'"));
 });
 
 test("gallery accepts video embeds and reports paid totals",()=>{
@@ -219,18 +226,30 @@ test("customer notification service exists",()=>{
   assert(notifications.includes("sendPasswordResetEmail"));
 });
 
-test("inquiries trigger customer and admin email notifications",()=>{
-  assert(server.includes("notifyInquiryReceived(inquiry)"));
+test("inquiries are manually replied and customer chat is supported",()=>{
   assert(server.includes("notifyAdminInquiry(inquiry)"));
+  assert(!server.includes("notifyInquiryReceived(inquiry);"));
+  assert(server.includes("app.get('/api/customer/inquiries'"));
+  assert(server.includes("app.get('/api/customer/inquiries/:id/messages'"));
+  assert(server.includes("app.post('/api/customer/inquiries'"));
+  assert(server.includes("app.post('/api/customer/inquiries/:id/messages'"));
+  assert(server.includes("notifyAdminCustomerMessage"));
   assert(server.includes("notifyInquiryReply(inquiry,message)"));
-  assert(server.includes("emailQueued"));
+  assert(account.includes("Chat with PinoyAmbula"));
+  assert(account.includes("No automatic replies"));
+  assert(enh.includes("No automatic customer reply"));
 });
 
-test("newsletter has welcome email, campaign sending, and unsubscribe",()=>{
+test("newsletter has welcome email, queued broadcast and unsubscribe",()=>{
   assert(server.includes("notifyNewsletterWelcome(e)"));
-  assert(server.includes("'/api/newsletter/unsubscribe'"));
+  assert(server.includes("newsletter_campaigns"));
+  assert(server.includes("newsletter_jobs"));
   assert(server.includes("'/api/admin/newsletter/send'"));
+  assert(server.includes("'/api/admin/newsletter/campaigns'"));
+  assert(server.includes("processNewsletterQueue"));
+  assert(server.includes("'/api/newsletter/unsubscribe'"));
   assert(server.includes("sendNewsletterCampaign"));
+  assert(enh.includes("Queue broadcast to all subscribers"));
 });
 
 test("orders trigger receipt, admin, status, and payment email notifications",()=>{
@@ -258,10 +277,34 @@ test("admin inquiry UI reports email delivery",()=>{
   assert(enh.includes("sendInquiryReply"));
 });
 
+
+test("subscription plans support images",()=>{
+  assert(server.includes("['plans','img"));
+  assert(server.includes("target==='plan'"));
+  assert(server.includes("UPDATE plans SET img"));
+  assert(index.includes("p.img"));
+  assert(enh.includes("plan-drop"));
+});
+
+test("customer phone, WhatsApp, map and hours are configurable",()=>{
+  assert(admin.includes("name="phone""));
+  assert(admin.includes("name="whatsapp""));
+  assert(admin.includes("name="map_url""));
+  assert(admin.includes("name="hours""));
+  assert(index.includes("href="tel:"));
+  assert(index.includes("wa.me"));
+  assert(index.includes("google.com/maps/search"));
+});
+
+test("system check is hidden from public homepage but available to admin",()=>{
+  assert(!index.includes('href="check.html"'));
+  assert(admin.includes('href="check.html"'));
+});
+
 test("admin newsletter UI provides campaign composer and unsubscribe guidance",()=>{
   assert(enh.includes("R.Newsletter=async function()"));
   assert(enh.includes("sendNewsletterCampaign(event)"));
-  assert(enh.includes("Each email includes an unsubscribe link"));
+  assert(enh.includes("Each broadcast includes an unsubscribe link"));
 });
 
 if(process.exitCode){
