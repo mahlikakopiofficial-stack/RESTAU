@@ -58,9 +58,18 @@ R.Orders=async function(){
     ['Method',r=>esc(r.pay||'COD')],
     ['Payment status',r=>'<select onchange="setOrderPayment('+r.id+',this.value)">'+['Pending','Paid','Failed','Refunded'].map(x=>'<option '+(x===(r.payment_status||'Pending')?'selected':'')+'>'+x+'</option>').join('')+'</select>'],
     ['Driver during delivery',r=>'<input aria-label="Driver name" placeholder="Driver name" value="'+esc(r.driver_name||'')+'" onchange="setOrderField('+r.id+',\'driver_name\',this.value)"><input aria-label="Driver phone" placeholder="Driver phone" value="'+esc(r.driver_phone||'')+'" onchange="setOrderField('+r.id+',\'driver_phone\',this.value)"><small>Shown to customer only while status is Out for delivery.</small>'],
+    ['Customer chat',r=>'<button class="btn s o" type="button" onclick="openOrderChatAdmin('+r.id+')">Open chat</button>'],
     ['Order status',r=>sel('orders',r.id,r.status,['Pending','New','Confirmed','Preparing','Out for delivery','Delivered','Cancelled','Completed'])]
   ]);
-};R.Inquiries=async function(){const rows=await A('/list/inquiries');window._inquiries=rows;return '<p style="font-size:.9rem;opacity:.75">Customer inquiries do not receive automatic replies. Use Conversation to reply manually; email is sent to the customer when you reply.</p>'+tbl(rows,[['Received',r=>esc(r.created)],['Customer',r=>`${esc(r.name)}<br>${esc(r.email||'')}<br>${esc(r.phone||'')}`],['Topic',r=>esc(r.type)],['Message',r=>esc(r.msg)],['Status',r=>sel('inquiries',r.id,r.status||'New',['New','Read','Replied'])],['Conversation',r=>`<button class="btn s" onclick="openInquiry(${r.id})">Open</button>`],['',r=>del('inquiries',r.id)]]);};
+};R.Inquiries=async function(){const rows=await A('/list/inquiries');window._inquiries=rows;return '<p style="font-size:.9rem;opacity:.75">Customer inquiries do not receive automatic replies. Use Conversation to reply manually; email is sent to the customer when you reply. Order chats are linked to their order.</p>'+tbl(rows,[['Order',r=>r.order_id?'#'+r.order_id:'—'],['Received',r=>esc(r.created)],['Customer',r=>esc(r.name)+'<br>'+esc(r.email||'')+'<br>'+esc(r.phone||'')],['Topic',r=>esc(r.type)],['Message',r=>esc(r.msg)],['Status',r=>sel('inquiries',r.id,r.status||'New',['New','Read','Replied'])],['Conversation',r=>'<button class="btn s" onclick="openInquiry('+r.id+')">Open</button>'],['',r=>del('inquiries',r.id)]]);};window.openOrderChatAdmin=async function(orderId){
+  try{
+    const data=await A('/orders/'+orderId+'/chat');
+    if(!data.inquiry){toast('No customer chat has been started for Order #'+orderId);return;}
+    window._inquiries=window._inquiries||[];
+    window._inquiries=window._inquiries.filter(x=>x.id!==data.inquiry.id).concat([data.inquiry]);
+    openInquiry(data.inquiry.id);
+  }catch(error){toast(error.message)}
+};
 window.openInquiry=async function(id){
 	const inquiry=(window._inquiries||[]).find(row=>row.id===id);if(!inquiry)return;
 	let dialog=document.getElementById('inquiryConversation');if(!dialog){dialog=document.createElement('dialog');dialog.id='inquiryConversation';document.body.appendChild(dialog)}
