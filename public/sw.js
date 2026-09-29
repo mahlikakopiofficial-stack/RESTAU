@@ -1,4 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v1';
+const CACHE_NAME='pinoyambula-shell-v2';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -9,7 +9,9 @@ const SHELL=[
   '/enhancements.js',
   '/pwa.js',
   '/runtime-config.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/pinoyambula-192.svg',
+  '/icons/pinoyambula-512.svg'
 ];
 
 self.addEventListener('install',event=>{
@@ -33,27 +35,13 @@ self.addEventListener('fetch',event=>{
   if(url.pathname.startsWith('/api/'))return;
   if(request.method!=='GET')return;
 
-  if(request.mode==='navigate'){
-    event.respondWith(
-      fetch(request).then(response=>{
+  event.respondWith(
+    fetch(request).then(response=>{
+      if(response.ok){
         const copy=response.clone();
         caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));
-        return response;
-      }).catch(()=>caches.match('/index.html'))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(cached=>{
-      const network=fetch(request).then(response=>{
-        if(response.ok){
-          const copy=response.clone();
-          caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));
-        }
-        return response;
-      }).catch(()=>cached);
-      return cached || network;
-    })
+      }
+      return response;
+    }).catch(()=>caches.match(request).then(cached=>cached||caches.match('/index.html')))
   );
 });
