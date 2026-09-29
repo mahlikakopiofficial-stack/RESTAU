@@ -160,16 +160,24 @@ test("loyalty rewards are earned and redeemed server-side",()=>{
   assert(index.includes('id="loyalty_reward"'));
 });
 
-test("customer delivery tracking exposes driver only during delivery",()=>{
-  assert(server.includes("'orders','driver_name'"));
-  assert(server.includes("'orders','driver_phone'"));
-  assert(server.includes("o.status!=='Out for delivery'"));
+test("customer order chat and driver visibility are explicit",()=>{
+  assert(server.includes("['inquiries','order_id','INTEGER']"));
+  assert(server.includes("app.get('/api/customer/orders/:id/chat'"));
+  assert(server.includes("app.post('/api/customer/orders/:id/chat'"));
+  assert(server.includes("app.get('/api/admin/orders/:id/chat'"));
   assert(server.includes("driver_name:''"));
+  assert(server.includes("driver_phone:''"));
+  assert(server.includes("o.status!=='Out for delivery'"));
   assert(server.includes("'/api/orders/:id/received'"));
-  assert(account.includes('Driver phone'));
-  assert(account.includes('WhatsApp'));
-  assert(enh.includes('Driver during delivery'));
-  assert(enh.includes("'Completed'"));
+  assert(account.includes('Chat about this order'));
+  assert(account.includes('Driver name:'));
+  assert(account.includes('Driver number:'));
+  assert(account.includes("status==='Out for delivery'"));
+  assert(account.includes('order-driver'));
+  assert(enh.includes('Customer chat'));
+  assert(enh.includes('Open chat'));
+  assert(enh.includes('Order chats are linked to their order.'));
+  assert(enh.includes('openOrderChatAdmin'));
 });
 
 test("gallery accepts video embeds and reports paid totals",()=>{
