@@ -3,8 +3,6 @@ const nodemailer=require('nodemailer');
 const user=String(process.env.GMAIL_USER||'').trim();
 const pass=String(process.env.GMAIL_APP_PASSWORD||'').replace(/\s/g,'');
 const fromName=String(process.env.GMAIL_FROM_NAME||'PinoyAmbula').trim();
-if(!user||!pass)throw new Error('Gmail SMTP is not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD in .env');
-
 const transporter=nodemailer.createTransport({
   host:'smtp.gmail.com',
   port:587,
