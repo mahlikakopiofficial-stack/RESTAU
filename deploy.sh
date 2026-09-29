@@ -16,7 +16,12 @@ command -v pm2 >/dev/null || npm i -g pm2
 echo "==> Fetching code"
 id resto >/dev/null 2>&1 || useradd -m -s /bin/bash resto
 mkdir -p /var/www; [ -d "$APP" ] || mkdir "$APP"; chown resto:resto "$APP"
-if [ -d "$APP/.git" ]; then su - resto -c "git -C $APP pull --ff-only"; else su - resto -c "git clone '$REPO' $APP"; fi
+if [ -d "$APP/.git" ]; then
+  su - resto -c "git -C $APP checkout -- server.js"
+  su - resto -c "git -C $APP pull --ff-only"
+else
+  su - resto -c "git clone '$REPO' $APP"
+fi
 NEW=""
 if [ ! -f "$APP/.env" ]; then
   ADMINPW=$(openssl rand -base64 18 | tr -dc 'A-Za-z0-9' | head -c 14)
@@ -28,6 +33,7 @@ ADMIN_PASSWORD=$ADMINPW
 CURRENCY=${CURRENCY:-KWD}
 DELIVERY_FEE=${DELIVERY_FEE:-1}
 RESTO_NAME=${RESTO_NAME:-PinoyAmbula}
+PUBLIC_BASE_URL=https://$DOMAIN
 ENABLE_CHECK=0
 ENV
   chmod 600 "$APP/.env"; NEW=1
@@ -37,10 +43,16 @@ if grep -q '^ENABLE_CHECK=' "$APP/.env"; then
 else
   printf '\nENABLE_CHECK=0\n' >> "$APP/.env"
 fi
+if ! grep -q '^PUBLIC_BASE_URL=' "$APP/.env"; then
+  printf 'PUBLIC_BASE_URL=https://%s\n' "$DOMAIN" >> "$APP/.env"
+fi
 chmod 600 "$APP/.env"
 chown -R resto:resto "$APP"
+echo "==> Applying source patches"
+su - resto -c "cd $APP && node tools/patch-password-reset.js server.js"
 echo "==> Installing dependencies + starting app"
 su - resto -c "cd $APP && npm install --omit=dev"
+su - resto -c "cd $APP && node --check server.js && node --check lib/gmail.js && node --check public/app.js"
 su - resto -c "cd $APP && (pm2 delete resto >/dev/null 2>&1 || true) && pm2 start server.js --name resto && pm2 save"
 env PATH="$PATH:/usr/bin" pm2 startup systemd -u resto --hp /home/resto >/dev/null 2>&1 || true
 echo "==> Nginx + firewall"
