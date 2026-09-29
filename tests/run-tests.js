@@ -113,8 +113,8 @@ test("customer forgot-password uses secure email reset",()=>{
   assert(server.includes("app.post('/api/password-reset/confirm'"));
   assert(server.includes('password_reset_tokens'));
   assert(server.includes('auth_version'));
-  assert(server.includes('sendPasswordResetEmail'));
-  assert(fs.existsSync(path.join(root,'mailer.js')));
+  assert(server.includes('sendMail'));
+  assert(fs.existsSync(path.join(root,'lib','gmail.js')));
   assert(fs.existsSync(path.join(root,'public','reset-password.html')));
   assert(!account.includes('staff will verify'));
   assert(!account.includes('temporary password'));
