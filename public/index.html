@@ -24,7 +24,7 @@
     <a href="#home">Back to top</a>
     <a href="account.html">My account</a>
     <a href="admin.html">Admin</a>
-    <a href="check.html">System check</a>
+    
   </p>
 </footer>
 <aside id="cart"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Your Order</h3><button class="btn s o" onclick="cartT()">✕</button></div><div id="lines"></div><div id="totals"></div>
@@ -176,12 +176,14 @@ if(c.hero_img){const h=$('#home');h.style.backgroundImage=`linear-gradient(135de
 $('#closed').hidden=c.accepting;
 
   $('#ft').innerHTML=esc('🌼 '+c.name+' — Salamat po!')
-    +(c.phone?'<br>📞 '+esc(c.phone):'')
-    +(c.hours?'<br>🕒 '+esc(c.hours):'');
+    +(c.phone?'<br>📞 <a href="tel:'+esc(c.phone)+'">'+esc(c.phone)+'</a>':'')
+    +(c.hours?'<br>🕒 '+esc(c.hours).replace(/\n/g,'<br>'):'');
 
+  const maps=c.map_url||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c.location||c.name||'PinoyAmbula'));
   $('#contact-links').innerHTML=
-    (c.location?'<span>📍 '+esc(c.location)+'</span>':'')
-    +(c.whatsapp?' <a target="_blank" rel="noopener" href="https://wa.me/'+String(c.whatsapp).replace(/[^0-9]/g,'')+'">WhatsApp</a>':'<span>WhatsApp not configured</span>');
+    (c.location?'<span>📍 <a target="_blank" rel="noopener" href="'+esc(maps)+'">'+esc(c.location)+'</a></span>':'')
+    +(c.phone?' · <a href="tel:'+esc(c.phone)+'">Call</a>':'')
+    +(c.whatsapp?' · <a target="_blank" rel="noopener" href="https://wa.me/'+String(c.whatsapp).replace(/[^0-9]/g,'')+'">WhatsApp</a>':'');
 
   $('#social-links').innerHTML=
     (c.facebook?'<a target="_blank" rel="noopener" href="'+esc(c.facebook)+'">Facebook</a> ':'')
@@ -210,7 +212,7 @@ $('#closed').hidden=c.accepting;
 async function rvw(e){e.preventDefault();try{await api('/testimonials','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();e.target.closest('details').open=false;toast('Salamat! Your review will appear after approval.')}catch(x){toast(x.message)}}
 let plans=[];
 (async()=>{try{const c=await api('/config');CUR=c.currency;FEE=c.fee;applyCfg(c);items=await api('/menu');plans=await api('/plans');renderMenu();renderCart();
-$('#plan-list').innerHTML=plans.map(p=>`<div class="card"><div class="p"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p>${p.duration_days||26} days</p><p class="pr" style="font-size:1.4rem">${money(p.price)}</p><button class="btn" onclick="subOpen('${p.id}')">Subscribe</button></div></div>`).join('');
+$('#plan-list').innerHTML=plans.map(p=>`<div class="card">${p.img?`<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" style="width:100%;height:180px;object-fit:cover;border-radius:12px 12px 0 0">`:''}<div class="p"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p>${p.duration_days||26} days</p><p class="pr" style="font-size:1.4rem">${money(p.price)}</p><button class="btn" onclick="subOpen('${p.id}')">Subscribe</button></div></div>`).join('');
 $('#gal').innerHTML=(await api('/gallery')).map(g=>`<div class="card">${g.media_type==='video'&&g.media_url?`<iframe class="gallery-embed" src="${esc(g.media_url)}" title="${esc(g.caption||'Restaurant video')}" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`:`<div class="ph" style="height:200px;${g.img?`background-image:url('${esc(g.img)}')`:''}">${g.img?'':'🍽️'}</div>`}<div class="p" style="padding:8px 12px;text-align:center">${esc(g.caption)}</div></div>`).join('');
 $('#rev').innerHTML=(await api('/testimonials')).map(t=>`<div class="card"><div class="p"><div class="stars">${stars(t.stars)}</div><p class="q">"${esc(t.text)}"</p><p><b>— ${esc(t.name)}</b></p></div></div>`).join('')}catch(x){toast(x.message)}})();
 </script><script src="enhancements.js"></script></body></html>
