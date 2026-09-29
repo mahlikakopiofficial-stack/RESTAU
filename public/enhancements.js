@@ -56,7 +56,34 @@ window.openInquiry=async function(id){
 	dialog.showModal();await loadInquiryMessages(id);
 };
 window.loadInquiryMessages=async function(id){const box=document.getElementById('inquiryMessages');if(!box)return;try{const messages=await A('/inquiries/'+id+'/messages');box.innerHTML=messages.map(m=>`<article class="message ${m.author==='admin'?'staff':''}"><b>${m.author==='admin'?'Restaurant':'Customer'}</b><time>${esc(m.created)}</time><p>${esc(m.message)}</p></article>`).join('')}catch(error){box.textContent=error.message}};
-window.sendInquiryReply=async function(event,id){event.preventDefault();const form=event.target,message=new FormData(form).get('message');try{await A('/inquiries/'+id+'/messages','POST',{message});form.reset();await loadInquiryMessages(id);toast('Reply saved to conversation')}catch(error){toast(error.message)}};
+window.sendInquiryReply=async function(event,id){event.preventDefault();const form=event.target,message=new FormData(form).get('message');try{const result=await A('/inquiries/'+id+'/messages','POST',{message});form.reset();await loadInquiryMessages(id);toast(result.emailQueued?'Reply saved and email sent':'Reply saved; customer has no email on file')}catch(error){toast(error.message)}};
+R.Newsletter=async function(){
+  const n=await A('/list/newsletter');
+  window._em=n.map(x=>x.email).join(', ');
+  return '<div class="card" style="padding:16px;max-width:760px">'+
+    '<h3>Newsletter</h3>'+
+    '<p>'+n.length+' subscriber'+(n.length===1?'':'s')+' currently stored. New subscribers automatically receive a welcome email.</p>'+
+    '<form onsubmit="sendNewsletterCampaign(event)">'+
+      '<label>Subject<input name="subject" maxlength="160" required placeholder="New dishes this week"></label>'+
+      '<label>Message<textarea name="message" rows="8" maxlength="5000" required placeholder="Write the newsletter message here..."></textarea></label>'+
+      '<button class="btn" type="submit">Send to all subscribers</button> '+
+      '<button class="btn o" type="button" onclick="navigator.clipboard.writeText(_em).then(()=>toast(\'Emails copied\'))">Copy emails</button> '+
+      '<button class="btn s o" type="button" onclick="exp(\'newsletter\')">Export CSV</button>'+
+      '<p style="font-size:.8rem;opacity:.7">Each email includes an unsubscribe link. Campaigns are sent one subscriber at a time.</p>'+
+    '</form></div>'+
+    '<br>'+tbl(n,[['Email',r=>esc(r.email)],['Date',r=>esc(r.created)],['',r=>del('newsletter',r.id)]]);
+};
+window.sendNewsletterCampaign=async function(event){
+  event.preventDefault();
+  const form=event.target;
+  const data=Object.fromEntries(new FormData(form));
+  if(!confirm('Send this newsletter to all current subscribers?'))return;
+  try{
+    const result=await A('/newsletter/send','POST',data);
+    toast('Newsletter sent: '+result.sent+' sent, '+result.failed+' failed');
+    if(result.failed)console.error(result.failures);
+  }catch(error){toast(error.message)}
+};
 window.pr=async function(id){
 	const order=(window._ol||[]).find(row=>row.id===id);if(!order)return;
 	const settings=await api('/config'),items=JSON.parse(order.items||'[]'),subtotal=Number(order.subtotal)||items.reduce((sum,item)=>sum+(+item.price||0)*(+item.qty||0),0),discount=Number(order.discount)||0,delivery=Math.max(0,Number(order.total)-subtotal+discount),printWindow=open('','_blank','width=760,height=900');
