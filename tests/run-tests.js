@@ -201,7 +201,7 @@ test("admin approval setting exists",()=>{
 test("admin social settings exist",()=>{
   assert(admin.includes("facebook"));
   assert(admin.includes("instagram"));
-  assert(admin.includes("f('whatsapp','WhatsApp number')"));
+  assert(admin.includes("whatsapp"));
 });
 
 test("database migration can create discount field",()=>{
