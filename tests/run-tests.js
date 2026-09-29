@@ -287,11 +287,11 @@ test("subscription plans support images",()=>{
 });
 
 test("customer phone, WhatsApp, map and hours are configurable",()=>{
-  assert(admin.includes("name="phone""));
-  assert(admin.includes("name="whatsapp""));
-  assert(admin.includes("name="map_url""));
-  assert(admin.includes("name="hours""));
-  assert(index.includes("href="tel:"));
+  assert(admin.includes("name=\"phone\""));
+  assert(admin.includes("name=\"whatsapp\""));
+  assert(admin.includes("name=\"map_url\""));
+  assert(admin.includes("name=\"hours\""));
+  assert(index.includes("href=\"tel:"));
   assert(index.includes("wa.me"));
   assert(index.includes("google.com/maps/search"));
 });
