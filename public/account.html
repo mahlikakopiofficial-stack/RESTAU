@@ -5,6 +5,7 @@
 <div id="me" hidden style="padding:30px 0"><h2 id="hi"></h2><p><button class="btn s o" onclick="out()">Logout</button> <a class="btn s" href="index.html#menu">Order food</a></p><section id="loyalty" style="padding:12px 0"><h3>Loyalty</h3><p id="loyalty-progress"></p><div id="loyalty-rewards"></div></section><h3 style="margin:20px 0 8px">My orders</h3>
 <div id="order-tracker" style="margin:15px 0"><div id="orderStep"></div></div>
 <div class="tw"><table id="ot"></table></div><h3 style="margin:20px 0 8px">My 26-day subscriptions</h3><div class="tw"><table id="st"></table></div>
+<dialog id="orderChatDialog"><h3 id="orderChatTitle">Order chat</h3><div id="orderChatMessages" style="max-height:360px;overflow:auto;margin:10px 0"></div><form onsubmit="sendOrderChat(event)"><textarea name="message" rows="3" maxlength="4000" required placeholder="Message the restaurant about this order..."></textarea><button class="btn">Send message</button> <button type="button" class="btn o" onclick="closeOrderChat()">Close</button></form></dialog>
 <section id="support-chat" style="margin:24px 0">
 <h3>Chat with PinoyAmbula</h3>
 <p style="font-size:.9rem;opacity:.75">No automatic replies. Send your message here and the restaurant team will reply from the Admin dashboard.</p>
@@ -25,6 +26,38 @@ async function requestPasswordReset(e){e.preventDefault();try{const result=await
 async function confirmReceipt(id){try{await api('/orders/'+id+'/received','POST',{});toast('Thanks for confirming delivery');load()}catch(error){toast(error.message)}}
 function out(){localStorage.removeItem('ct');location.reload()}
 let activeChatId=null,chatTimer=null;
+let activeOrderChatId=null,orderChatTimer=null;
+function closeOrderChat(){if(orderChatTimer)clearInterval(orderChatTimer);orderChatTimer=null;const d=$('#orderChatDialog');if(d)d.close();}
+async function openOrderChat(orderId){
+  activeOrderChatId=orderId;
+  const d=$('#orderChatDialog');
+  if(!d)return;
+  if(orderChatTimer)clearInterval(orderChatTimer);
+  const refresh=async()=>{
+    try{
+      const data=await api('/customer/orders/'+orderId+'/chat');
+      $('#orderChatTitle').textContent='Chat about Order #'+orderId+' · '+data.order.status;
+      if(!data.inquiry){
+        $('#orderChatMessages').innerHTML='<p style="opacity:.7">No messages yet. Send a message below to start the conversation with the restaurant.</p>';
+      }else{
+        $('#orderChatMessages').innerHTML=data.messages.map(m=>'<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:'+(m.author==='admin'?'#fff3d6':'#eef5ff')+'"><b>'+(m.author==='admin'?'Restaurant':'You')+'</b><div style="font-size:.75rem;opacity:.65">'+esc(m.created)+'</div><p style="margin:5px 0;white-space:pre-wrap">'+esc(m.message)+'</p></article>').join('');
+        $('#orderChatMessages').scrollTop=$('#orderChatMessages').scrollHeight;
+      }
+    }catch(error){toast(error.message);closeOrderChat()}
+  };
+  d.showModal();
+  await refresh();
+  orderChatTimer=setInterval(refresh,5000);
+}
+async function sendOrderChat(e){
+  e.preventDefault();
+  if(!activeOrderChatId)return;
+  try{
+    await api('/customer/orders/'+activeOrderChatId+'/chat','POST',Object.fromEntries(new FormData(e.target)));
+    e.target.reset();
+    await openOrderChat(activeOrderChatId);
+  }catch(error){toast(error.message)}
+}
 async function loadChats(){
   if(!tk('ct'))return;
   try{
@@ -75,7 +108,7 @@ async function load(){
     $('#loyalty-progress').textContent=`${m.delivered} completed deliveries. Rewards unlock at 5 (20% off), 8 (free delivery), and 10 (one free meal).`;
     $('#loyalty-rewards').textContent=m.rewards.length?`Available: ${m.rewards.map(reward=>reward.label).join(' · ')}`:'Keep ordering to unlock your next reward.';
     const steps=['Pending','Confirmed','Preparing','Out for delivery','Delivered'];
-    $('#ot').innerHTML='<tr><th>Date</th><th>Items</th><th>Total</th><th>Delivery updates</th></tr>'+(m.orders.map(o=>{const status=String(o.status||'Pending');const current=steps.indexOf(status);const tracker=steps.map((x,i)=>{const done=current>=i;const here=status===x;return '<span style="display:inline-block;margin-right:8px;font-weight:'+(here?'700':'400')+'">'+(done?'✓ ':'')+esc(x)+'</span>';}).join('');const delivery=[o.driver_name?'Driver: '+esc(o.driver_name):'',o.driver_phone?'Driver phone: <a href="tel:'+esc(o.driver_phone)+'">'+esc(o.driver_phone)+'</a> <a target="_blank" rel="noopener" href="https://wa.me/'+String(o.driver_phone).replace(/[^0-9]/g,'')+'">WhatsApp</a>':''].filter(Boolean).join('<br>');const receipt=o.received_at?'Received confirmed':(['Delivered','Completed'].includes(status)?'<button class="btn s" onclick="confirmReceipt('+o.id+')">Confirm received</button>':'');return '<tr><td>'+esc(o.created)+'</td><td>'+JSON.parse(o.items||'[]').map(i=>i.qty+'× '+esc(i.name)).join(', ')+'</td><td>'+money(o.total)+'</td><td><b>'+esc(status)+'</b><div style="font-size:.78rem;margin-top:5px">'+tracker+'</div>'+(delivery?'<div style="margin-top:6px">'+delivery+'</div>':'')+'<div style="margin-top:6px">'+receipt+'</div></td></tr>';}).join('')||'<tr><td colspan="4">No orders yet</td></tr>');
+    $('#ot').innerHTML='<tr><th>Date</th><th>Items</th><th>Total</th><th>Delivery updates</th></tr>'+(m.orders.map(o=>{const status=String(o.status||'Pending');const current=steps.indexOf(status);const tracker=steps.map((x,i)=>{const done=current>=i;const here=status===x;return '<span style="display:inline-block;margin-right:8px;font-weight:'+(here?'700':'400')+'">'+(done?'✓ ':'')+esc(x)+'</span>';}).join('');const driverBlock=status==='Out for delivery'?'<div class="order-driver" style="margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ead9b8;background:#fffaf0"><b>Driver</b><br>'+(o.driver_name?'<span>Driver name: '+esc(o.driver_name)+'</span><br>':'<span>Driver name: pending</span><br>')+(o.driver_phone?'<span>Driver number: <a href="tel:'+esc(o.driver_phone)+'">'+esc(o.driver_phone)+'</a> <a target="_blank" rel="noopener" href="https://wa.me/'+String(o.driver_phone).replace(/[^0-9]/g,'')+'">WhatsApp</a></span>':'<span>Driver number: pending</span>')+'</div>':'';const receipt=o.received_at?'Received confirmed':(['Delivered','Completed'].includes(status)?'<button class="btn s" onclick="confirmReceipt('+o.id+')">Confirm received</button>':'');const orderChat='<button class="btn s o" type="button" onclick="openOrderChat('+o.id+')">Chat about this order</button>';return '<tr><td>'+esc(o.created)+'</td><td>'+JSON.parse(o.items||'[]').map(i=>i.qty+'× '+esc(i.name)).join(', ')+'</td><td>'+money(o.total)+'</td><td><b>'+esc(status)+'</b><div style="font-size:.78rem;margin-top:5px">'+tracker+'</div>'+driverBlock+'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+orderChat+receipt+'</div></td></tr>';}).join('')||'<tr><td colspan="4">No orders yet</td></tr>');
     $('#order-tracker').innerHTML='<strong>Order status and delivery details are shown with each order.</strong>';
     $('#st').innerHTML='<tr><th>#</th><th>Plan</th><th>Email</th><th>Start</th><th>End</th><th>Payment</th><th>Status</th></tr>'+(m.subs.map(s=>'<tr><td>'+s.id+'</td><td>'+esc(s.plan)+'</td><td>'+esc(s.email||'')+'</td><td>'+s.start+'</td><td>'+s.end+'</td><td>'+esc(s.payment_method||'COD')+' · '+esc(s.payment_status||'Pending')+'</td><td>'+esc(s.status)+'</td></tr>').join('')||'<tr><td colspan="7">No subscriptions yet</td></tr>');
   }catch(x){if(x.message==='Login required')localStorage.removeItem('ct');toast(x.message==='Login required'?'Please log in again to view your account.':'Your account could not load. Check your connection and try again.');}
