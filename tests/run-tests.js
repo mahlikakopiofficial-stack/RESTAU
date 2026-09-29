@@ -2,6 +2,7 @@
 const assert=require("assert");
 const fs=require("fs");
 const path=require("path");
+const {execFileSync}=require("child_process");
 const Database=require("better-sqlite3");
 
 const root=path.join(__dirname,"..");
@@ -24,6 +25,11 @@ function test(name,fn){
   }
 }
 
+test("JavaScript syntax checks pass",()=>{
+  for(const file of ["server.js","lib/gmail.js","lib/notifications.js","public/app.js","public/enhancements.js","public/admin.html","public/account.html"]){
+    if(/\\.js$/.test(file))execFileSync(process.execPath,["--check",path.join(root,file)],{stdio:"pipe"});
+  }
+});
 test("server contains order API",()=>{
   assert(server.includes("app.post('/api/order'"));
 });
