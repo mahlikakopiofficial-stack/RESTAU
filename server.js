@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS items(id INTEGER PRIMARY KEY,cat TEXT,region TEXT DEF
 CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY,name TEXT,phone TEXT UNIQUE,email TEXT,pw TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,notes TEXT,items TEXT,total REAL,pay TEXT DEFAULT 'COD',status TEXT DEFAULT 'New',created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS subs(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,plan TEXT,start TEXT,end TEXT,price REAL,status TEXT DEFAULT 'Active',created TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS inquiries(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,email TEXT,phone TEXT,type TEXT,msg TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS inquiries(id INTEGER PRIMARY KEY,customer_id INTEGER,order_id INTEGER,name TEXT,email TEXT,phone TEXT,type TEXT,msg TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS password_reset_tokens(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL,token_hash TEXT UNIQUE NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS newsletter(id INTEGER PRIMARY KEY,email TEXT UNIQUE,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS gallery(id INTEGER PRIMARY KEY,img TEXT,caption TEXT);
@@ -55,7 +55,8 @@ const ensureColumn=(table,column,definition)=>{
   ['subs','duration_days','INTEGER DEFAULT 26'],
   ['plans','duration_days','INTEGER DEFAULT 26'],
   ['plans','img',"TEXT DEFAULT ''"],
-  ['inquiries','customer_id','INTEGER']
+  ['inquiries','customer_id','INTEGER'],
+  ['inquiries','order_id','INTEGER']
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 db.exec(`CREATE TABLE IF NOT EXISTS inquiry_messages(
   id INTEGER PRIMARY KEY,
@@ -276,8 +277,33 @@ app.post('/api/password-reset/confirm',lim(8),w((q,r)=>{
   r.json({ok:1,message:'Your password has been reset. You can now log in with your new password.'});
 }));
 app.get('/api/customer/inquiries',cust,w((q,r)=>{
-  const rows=db.prepare('SELECT id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? ORDER BY id DESC').all(q.cid);
+  const rows=db.prepare('SELECT id,name,email,phone,type,msg,status,created,order_id FROM inquiries WHERE customer_id=? ORDER BY id DESC').all(q.cid);
   r.json(rows);
+}));
+app.get('/api/customer/orders/:id/chat',cust,w((q,r)=>{
+  const order=one('SELECT id,status FROM orders WHERE id=? AND customer_id=?',q.params.id,q.cid);
+  if(!order)return r.status(404).json({error:'Order not found'});
+  const inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? AND order_id=? ORDER BY id DESC LIMIT 1',q.cid,q.params.id);
+  const messages=inquiry?db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id):[];
+  r.json({order,inquiry,messages});
+}));
+app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
+  need(q.body,'message');
+  const order=one('SELECT id,status FROM orders WHERE id=? AND customer_id=?',q.params.id,q.cid);
+  if(!order)return r.status(404).json({error:'Order not found'});
+  const c=one('SELECT name,email,phone FROM customers WHERE id=?',q.cid);
+  const message=String(q.body.message).trim().slice(0,4000);
+  if(!message)throw new Error('Message is required');
+  let inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? AND order_id=? ORDER BY id DESC LIMIT 1',q.cid,q.params.id);
+  if(!inquiry){
+    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,order_id,name,email,phone,type,msg) VALUES(?,?,?,?,?,?,?)').run(q.cid,q.params.id,c.name,c.email||'',c.phone||'','Order #'+q.params.id,message).lastInsertRowid);
+    inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE id=?',id);
+  }else{
+    db.prepare("UPDATE inquiries SET status='New' WHERE id=?").run(inquiry.id);
+  }
+  db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message);
+  notifyAdminCustomerMessage(inquiry,message);
+  r.json({ok:1,id:inquiry.id,orderId:Number(q.params.id)});
 }));
 app.get('/api/customer/inquiries/:id/messages',cust,w((q,r)=>{
   const inquiry=one('SELECT id,customer_id,msg,created,status FROM inquiries WHERE id=? AND customer_id=?',q.params.id,q.cid);
@@ -513,6 +539,13 @@ app.get('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   if(!inquiry)return r.status(404).json({error:'Inquiry not found'});
   const messages=db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(q.params.id);
   r.json(messages.length?messages:[{id:0,author:'customer',message:inquiry.msg,created:inquiry.created}]);
+}));
+app.get('/api/admin/orders/:id/chat',admin,w((q,r)=>{
+  const order=one('SELECT id,status,name,email,phone FROM orders WHERE id=?',q.params.id);
+  if(!order)return r.status(404).json({error:'Order not found'});
+  const inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE order_id=? ORDER BY id DESC LIMIT 1',q.params.id);
+  const messages=inquiry?db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id):[];
+  r.json({order,inquiry,messages});
 }));
 app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   const inquiry=one('SELECT id,name,email,type,msg FROM inquiries WHERE id=?',q.params.id);
