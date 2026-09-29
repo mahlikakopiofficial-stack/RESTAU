@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
-const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
+const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
@@ -12,12 +12,14 @@ CREATE TABLE IF NOT EXISTS items(id INTEGER PRIMARY KEY,cat TEXT,region TEXT DEF
 CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY,name TEXT,phone TEXT UNIQUE,email TEXT,pw TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,notes TEXT,items TEXT,total REAL,pay TEXT DEFAULT 'COD',status TEXT DEFAULT 'New',created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS subs(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,plan TEXT,start TEXT,end TEXT,price REAL,status TEXT DEFAULT 'Active',created TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS inquiries(id INTEGER PRIMARY KEY,name TEXT,email TEXT,phone TEXT,type TEXT,msg TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS inquiries(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,email TEXT,phone TEXT,type TEXT,msg TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS password_reset_tokens(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL,token_hash TEXT UNIQUE NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS newsletter(id INTEGER PRIMARY KEY,email TEXT UNIQUE,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS gallery(id INTEGER PRIMARY KEY,img TEXT,caption TEXT);
 CREATE TABLE IF NOT EXISTS testimonials(id INTEGER PRIMARY KEY,name TEXT,text TEXT,stars INTEGER DEFAULT 5);
 CREATE TABLE IF NOT EXISTS plans(id TEXT PRIMARY KEY,name TEXT,price REAL,descr TEXT,active INTEGER DEFAULT 1,includes TEXT DEFAULT '[]');
+CREATE TABLE IF NOT EXISTS newsletter_campaigns(id INTEGER PRIMARY KEY,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT DEFAULT 'Queued',total INTEGER DEFAULT 0,sent INTEGER DEFAULT 0,failed INTEGER DEFAULT 0,created TEXT DEFAULT CURRENT_TIMESTAMP,completed TEXT);
+CREATE TABLE IF NOT EXISTS newsletter_jobs(id INTEGER PRIMARY KEY,campaign_id INTEGER NOT NULL,email TEXT NOT NULL,status TEXT DEFAULT 'Pending',error TEXT,sent_at TEXT,UNIQUE(campaign_id,email));
 CREATE TABLE IF NOT EXISTS loyalty_redemptions(customer_id INTEGER NOT NULL,threshold INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(customer_id,threshold));
 `);
 const ensureColumn=(table,column,definition)=>{
@@ -51,7 +53,9 @@ const ensureColumn=(table,column,definition)=>{
   ['subs','payment_method',"TEXT DEFAULT 'COD'"],
   ['subs','payment_status',"TEXT DEFAULT 'Pending'"],
   ['subs','duration_days','INTEGER DEFAULT 26'],
-  ['plans','duration_days','INTEGER DEFAULT 26']
+  ['plans','duration_days','INTEGER DEFAULT 26'],
+  ['plans','img',"TEXT DEFAULT ''"],
+  ['inquiries','customer_id','INTEGER']
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 db.exec(`CREATE TABLE IF NOT EXISTS inquiry_messages(
   id INTEGER PRIMARY KEY,
@@ -93,7 +97,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT);CREATE T
 for(const c of['ALTER TABLE testimonials ADD COLUMN approved INTEGER DEFAULT 1',"ALTER TABLE inquiries ADD COLUMN status TEXT DEFAULT 'New'","ALTER TABLE plans ADD COLUMN includes TEXT DEFAULT '[]'"])try{db.exec(c)}catch(e){}
 if(!db.prepare('SELECT COUNT(*) n FROM plans').get().n)PLANS.forEach(p=>db.prepare('INSERT INTO plans(id,name,price,descr,active,includes) VALUES(?,?,?,?,1,?)').run(p.id,p.name,p.price,p.desc,JSON.stringify(p.id==='lunch26'?['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']:p.id==='dinner26'?['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']:['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery'])));
 const planInc=db.prepare("SELECT COUNT(*) n FROM plans WHERE includes IS NULL OR includes='' OR includes='[]'").get().n;if(planInc){db.prepare("UPDATE plans SET includes=? WHERE id='lunch26'").run(JSON.stringify(['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='dinner26'").run(JSON.stringify(['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='both26'").run(JSON.stringify(['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']))}
-const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.'};
+const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.'};
 for(const k in DEF)db.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)').run(k,DEF[k]);
 db.prepare('UPDATE settings SET v=? WHERE k=? AND v=?').run(DEF.hero_text,'hero_text','Home-style Filipino cooking made with love — from everyday meals to fiesta catering. Delivered to your door, pay cash on delivery.');
 const S=()=>Object.fromEntries(db.prepare('SELECT k,v FROM settings').all().map(x=>[x.k,x.v]));
@@ -132,7 +136,7 @@ app.get('/api/config',(q,r)=>{
   });
 });
 app.get('/api/menu',(q,r)=>r.json(db.prepare('SELECT * FROM items WHERE active=1 ORDER BY id').all()));
-app.get('/api/plans',(q,r)=>r.json(db.prepare('SELECT id,name,price,descr AS "desc",includes,duration_days FROM plans WHERE active=1 ORDER BY rowid').all().map(p=>({...p,includes:(()=>{try{return JSON.parse(p.includes||'[]')}catch{return []}})()}))));
+app.get('/api/plans',(q,r)=>r.json(db.prepare('SELECT id,name,price,descr AS "desc",includes,duration_days,img FROM plans WHERE active=1 ORDER BY rowid').all().map(p=>({...p,includes:(()=>{try{return JSON.parse(p.includes||'[]')}catch{return []}})()}))));
 app.get('/api/gallery',(q,r)=>r.json(db.prepare('SELECT * FROM gallery ORDER BY id').all()));
 app.get('/api/testimonials',(q,r)=>r.json(db.prepare('SELECT * FROM testimonials WHERE approved=1 ORDER BY id DESC').all()));
 app.post('/api/testimonials',lim(5),w((q,r)=>{need(q.body,'name','text');db.prepare('INSERT INTO testimonials(name,text,stars,approved) VALUES(?,?,?,0)').run(String(q.body.name).slice(0,60),String(q.body.text).slice(0,500),Math.min(5,Math.max(1,+q.body.stars||5)));r.json({ok:1})}));
@@ -164,9 +168,12 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
   need(b,'name','msg');
   if(!b.email&&!b.phone)throw new Error('Email or phone required');
   if(b.email&&!/^\S+@\S+\.\S+$/.test(String(b.email)))throw new Error('Valid email required');
+  const token=customerToken(q);
+  const customerId=token?token.id:null;
   const inquiry={
-    id:Number(db.prepare('INSERT INTO inquiries(name,email,phone,type,msg) VALUES(?,?,?,?,?)')
-      .run(String(b.name).slice(0,100),String(b.email||'').slice(0,200),String(b.phone||'').slice(0,40),String(b.type||'General').slice(0,80),String(b.msg).slice(0,4000)).lastInsertRowid),
+    id:Number(db.prepare('INSERT INTO inquiries(customer_id,name,email,phone,type,msg) VALUES(?,?,?,?,?,?)')
+      .run(customerId,String(b.name).slice(0,100),String(b.email||'').slice(0,200),String(b.phone||'').slice(0,40),String(b.type||'General').slice(0,80),String(b.msg).slice(0,4000)).lastInsertRowid),
+    customer_id:customerId,
     name:String(b.name).slice(0,100),
     email:String(b.email||'').slice(0,200),
     phone:String(b.phone||'').slice(0,40),
@@ -174,7 +181,6 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
     msg:String(b.msg).slice(0,4000)
   };
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
-  notifyInquiryReceived(inquiry);
   notifyAdminInquiry(inquiry);
   r.json({ok:1,id:inquiry.id});
 }));
@@ -269,12 +275,52 @@ app.post('/api/password-reset/confirm',lim(8),w((q,r)=>{
   tx();
   r.json({ok:1,message:'Your password has been reset. You can now log in with your new password.'});
 }));
+app.get('/api/customer/inquiries',cust,w((q,r)=>{
+  const rows=db.prepare('SELECT id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? ORDER BY id DESC').all(q.cid);
+  r.json(rows);
+}));
+app.get('/api/customer/inquiries/:id/messages',cust,w((q,r)=>{
+  const inquiry=one('SELECT id,customer_id,msg,created,status FROM inquiries WHERE id=? AND customer_id=?',q.params.id,q.cid);
+  if(!inquiry)return r.status(404).json({error:'Conversation not found'});
+  const messages=db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id);
+  r.json(messages.length?messages:[{id:0,author:'customer',message:inquiry.msg,created:inquiry.created}]);
+}));
+app.post('/api/customer/inquiries',lim(20),cust,w((q,r)=>{
+  need(q.body,'message');
+  const c=one('SELECT name,email,phone FROM customers WHERE id=?',q.cid);
+  const message=String(q.body.message).trim().slice(0,4000);
+  const type=String(q.body.type||'Support').slice(0,80);
+  const inquiry={
+    id:Number(db.prepare('INSERT INTO inquiries(customer_id,name,email,phone,type,msg) VALUES(?,?,?,?,?,?)')
+      .run(q.cid,c.name,c.email||'',c.phone||'',type,message).lastInsertRowid),
+    customer_id:q.cid,name:c.name,email:c.email||'',phone:c.phone||'',type,msg:message
+  };
+  db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
+  notifyAdminCustomerMessage(inquiry,message);
+  r.json({ok:1,id:inquiry.id});
+}));
+app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
+  const inquiry=one('SELECT id,customer_id,name,email,phone,type,msg FROM inquiries WHERE id=? AND customer_id=?',q.params.id,q.cid);
+  if(!inquiry)return r.status(404).json({error:'Conversation not found'});
+  need(q.body,'message');
+  const message=String(q.body.message).trim();
+  if(message.length>4000)throw new Error('Message must be 4000 characters or fewer');
+  const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)')
+    .run(inquiry.id,'customer',message).lastInsertRowid;
+  db.prepare("UPDATE inquiries SET status='New' WHERE id=?").run(inquiry.id);
+  notifyAdminCustomerMessage(inquiry,message);
+  r.json({ok:1,id:Number(id)});
+}));
 app.get('/api/me',cust,w((q,r)=>{
   const c=one('SELECT id,name,phone,email,address,paci,birthday,nationality FROM customers WHERE id=?',q.cid);
   const delivered=one("SELECT COUNT(*) n FROM orders WHERE customer_id=? AND status IN ('Delivered','Completed')",q.cid).n;
   const redeemed=new Set(db.prepare('SELECT threshold FROM loyalty_redemptions WHERE customer_id=?').all(q.cid).map(x=>x.threshold));
   const rewards=[{threshold:5,label:'20% off your order'},{threshold:8,label:'Free delivery'},{threshold:10,label:'One free meal'}].filter(reward=>delivered>=reward.threshold&&!redeemed.has(reward.threshold));
-  r.json({...c,delivered,rewards,orders:db.prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(q.cid),subs:db.prepare('SELECT * FROM subs WHERE customer_id=? ORDER BY id DESC').all(q.cid)});
+  const orders=db.prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(q.cid).map(o=>{
+    if(o.status!=='Out for delivery')return {...o,eta:'',driver_name:'',driver_phone:'',status_message:''};
+    return {...o,eta:'',status_message:''};
+  });
+  r.json({...c,delivered,rewards,orders,subs:db.prepare('SELECT * FROM subs WHERE customer_id=? ORDER BY id DESC').all(q.cid)});
 }));
 app.post('/api/order',lim(30),w((q,r)=>{
   const b=q.body;
@@ -480,19 +526,25 @@ app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   notifyInquiryReply(inquiry,message);
   r.json({ok:1,id:Number(id),emailQueued:!!inquiry.email});
 }));
-app.post('/api/admin/newsletter/send',admin,async(q,r)=>{
-  try{
-    const subject=String(q.body.subject||'').trim();
-    const message=String(q.body.message||'').trim();
-    const subscribers=db.prepare('SELECT email FROM newsletter ORDER BY id').all();
-    if(subscribers.length>500)throw new Error('Newsletter send is limited to 500 subscribers per run.');
-    const result=await sendNewsletterCampaign(subscribers,subject,message);
-    r.json(result);
-  }catch(error){
-    console.error('NEWSLETTER_CAMPAIGN_FAILED',error.message);
-    r.status(400).json({error:error.message});
-  }
-});
+app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
+  const subject=String(q.body.subject||'').trim();
+  const message=String(q.body.message||'').trim();
+  if(!subject||!message)throw new Error('Newsletter subject and message are required');
+  const subscribers=db.prepare('SELECT email FROM newsletter ORDER BY id').all()
+    .filter(x=>/^\S+@\S+\.\S+$/.test(String(x.email||'')));
+  if(!subscribers.length)throw new Error('No newsletter subscribers found');
+  const tx=db.transaction(()=>{
+    const campaignId=Number(db.prepare('INSERT INTO newsletter_campaigns(subject,message,status,total) VALUES(?,?,?,?)')
+      .run(subject,message,'Queued',subscribers.length).lastInsertRowid);
+    const ins=db.prepare('INSERT OR IGNORE INTO newsletter_jobs(campaign_id,email) VALUES(?,?)');
+    for(const subscriber of subscribers)ins.run(campaignId,subscriber.email);
+    return campaignId;
+  });
+  r.json({ok:1,id:tx(),status:'Queued',total:subscribers.length});
+}));
+app.get('/api/admin/newsletter/campaigns',admin,w((q,r)=>{
+  r.json(db.prepare('SELECT * FROM newsletter_campaigns ORDER BY id DESC LIMIT 20').all());
+}));
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
 app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:new Date().toISOString().slice(0,10),orders=db.prepare("SELECT * FROM orders WHERE date(created)=? ORDER BY id").all(date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(created)=?",date).n,inquiries:one('SELECT COUNT(*) n FROM inquiries WHERE date(created)=?',date).n,newsletter:one('SELECT COUNT(*) n FROM newsletter WHERE date(created)=?',date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
 const T=['orders','customers','subs','inquiries','newsletter','testimonials','gallery','items','plans'],DEL=['items','gallery','testimonials','inquiries','newsletter','customers','plans'];
@@ -549,12 +601,11 @@ app.put('/api/admin/payment/:id',admin,w((q,r)=>{
   r.json({ok:1,status});
 }));
 app.put('/api/admin/orders/:id',admin,w((q,r)=>{
-  const allowed=['eta','driver_name','driver_phone','status_message'];
+  const allowed=['driver_name','driver_phone'];
   const keys=Object.keys(q.body).filter(key=>allowed.includes(key));
-  if(!keys.length)throw new Error('Nothing to update');
-  if(q.body.eta&&!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(String(q.body.eta)))throw new Error('Invalid estimated arrival time');
+  if(!keys.length)throw new Error('Only driver name and driver phone can be updated');
   const result=db.prepare(`UPDATE orders SET ${keys.map(key=>key+'=?').join(',')} WHERE id=?`)
-    .run(...keys.map(key=>String(q.body[key]||'').slice(0,key==='status_message'?500:120)),q.params.id);
+    .run(...keys.map(key=>String(q.body[key]||'').slice(0,120)),q.params.id);
   if(!result.changes)throw new Error('Order not found');
   r.json({ok:1});
 }));
@@ -684,7 +735,7 @@ app.delete('/api/admin/:t/:id',admin,w((q,r)=>{if(!DEL.includes(q.params.t))thro
 const SK=[
   'name','phone','hours','currency','fee','min_order','accepting',
   'hero_title','hero_text','logo_url','whatsapp','facebook','instagram',
-  'location','approval_mode','payment_cod','payment_card',
+  'location','map_url','approval_mode','payment_cod','payment_card',
   'promo_enabled','promo_code','promo_type','promo_value'
 ];
 app.get('/api/admin/settings',admin,(q,r)=>r.json(S()));
@@ -736,7 +787,7 @@ app.post('/api/admin/plans',admin,w((q,r)=>{
 }));
 app.put('/api/admin/plans/:id',admin,w((q,r)=>{
   if(q.body.includes!==undefined){const v=Array.isArray(q.body.includes)?q.body.includes:String(q.body.includes).split(/\r?\n|\|/).map(x=>x.trim()).filter(Boolean);q.body.includes=JSON.stringify(v)}
-  const k=Object.keys(q.body).filter(x=>['name','descr','price','active','includes','duration_days'].includes(x));
+  const k=Object.keys(q.body).filter(x=>['name','descr','price','active','includes','duration_days','img'].includes(x));
   if(!k.length)throw new Error('nothing to update');
   if('price' in q.body&&!(+q.body.price>=0))throw new Error('Invalid price');
   if('duration_days' in q.body&&(!Number.isInteger(+q.body.duration_days)||+q.body.duration_days<1||+q.body.duration_days>366))throw new Error('Duration must be 1 to 366 days');
@@ -750,8 +801,8 @@ const c=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.repla
 r.type('text/csv').send('\ufeff'+[cols.map(c).join(',')].concat(rows.map(x=>cols.map(k=>c(x[k])).join(','))).join('\n'))}));
 const up=multer({storage:multer.diskStorage({destination:UP,filename:(q,f,cb)=>cb(null,crypto.randomBytes(8).toString('hex')+path.extname(f.originalname).toLowerCase())}),limits:{fileSize:5e6},fileFilter:(q,f,cb)=>/^image\/(jpe?g|png|webp|gif)$/.test(f.mimetype)?cb(null,true):cb(new Error('Images only (jpg, png, webp, gif)'))});
 app.post('/api/admin/upload',admin,up.single('file'),w((q,r)=>{if(!q.file)throw new Error('No file');const url='/uploads/'+q.file.filename,t=q.query;
-const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
-if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
+const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
+if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
 if(old&&old.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(old)),()=>{});r.json({url})}));
 app.delete('/api/admin/image',admin,w((q,r)=>{
   const {target,id}=q.body||{};
@@ -762,6 +813,9 @@ app.delete('/api/admin/image',admin,w((q,r)=>{
   }else if(target==='item'){
     row=one('SELECT img FROM items WHERE id=?',id);
     clear=()=>db.prepare('UPDATE items SET img=NULL WHERE id=?').run(id);
+  }else if(target==='plan'){
+    row=one('SELECT img FROM plans WHERE id=?',id);
+    clear=()=>db.prepare("UPDATE plans SET img='' WHERE id=?").run(id);
   }else if(target==='gallery'){
     row=one('SELECT img FROM gallery WHERE id=?',id);
     clear=()=>db.prepare('UPDATE gallery SET img=NULL WHERE id=?').run(id);
@@ -771,6 +825,35 @@ app.delete('/api/admin/image',admin,w((q,r)=>{
   if(row.img&&row.img.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});
   r.json({ok:1});
 }));
+let newsletterWorkerBusy=false;
+async function processNewsletterQueue(){
+  if(newsletterWorkerBusy)return;
+  newsletterWorkerBusy=true;
+  try{
+    const job=one("SELECT j.id,j.campaign_id,j.email,c.subject,c.message FROM newsletter_jobs j JOIN newsletter_campaigns c ON c.id=j.campaign_id WHERE j.status='Pending' AND c.status IN ('Queued','Sending') ORDER BY j.id LIMIT 1");
+    if(!job)return;
+    db.prepare("UPDATE newsletter_campaigns SET status='Sending' WHERE id=? AND status='Queued'").run(job.campaign_id);
+    try{
+      const result=await sendNewsletterCampaign([{email:job.email}],job.subject,job.message);
+      if(result.sent){
+        db.prepare("UPDATE newsletter_jobs SET status='Sent',sent_at=CURRENT_TIMESTAMP,error=NULL WHERE id=?").run(job.id);
+        db.prepare("UPDATE newsletter_campaigns SET sent=sent+1 WHERE id=?").run(job.campaign_id);
+      }else{
+        db.prepare("UPDATE newsletter_jobs SET status='Failed',error=? WHERE id=?").run(result.failures?.[0]?.error||'Email send failed',job.id);
+        db.prepare("UPDATE newsletter_campaigns SET failed=failed+1 WHERE id=?").run(job.campaign_id);
+      }
+    }catch(error){
+      db.prepare("UPDATE newsletter_jobs SET status='Failed',error=? WHERE id=?").run(String(error.message).slice(0,500),job.id);
+      db.prepare("UPDATE newsletter_campaigns SET failed=failed+1 WHERE id=?").run(job.campaign_id);
+      console.error('NEWSLETTER_JOB_FAILED',job.email,error.message);
+    }
+    const state=one('SELECT total,sent,failed FROM newsletter_campaigns WHERE id=?',job.campaign_id);
+    if(state&&state.sent+state.failed>=state.total){
+      db.prepare("UPDATE newsletter_campaigns SET status='Completed',completed=CURRENT_TIMESTAMP WHERE id=?").run(job.campaign_id);
+    }
+  }finally{newsletterWorkerBusy=false;}
+}
+setInterval(processNewsletterQueue,Math.max(500,+(E.NEWSLETTER_INTERVAL_MS||1100))).unref();
 app.get('/check.html',(q,r,n)=>E.ENABLE_CHECK==='0'?r.status(404).send('Not found'):n());
 ['admin','account','check'].forEach(p=>app.get('/'+p,(q,r)=>r.redirect('/'+p+'.html')));
 app.use('/uploads',express.static(UP,{maxAge:'7d'}));app.use(express.static(path.join(__dirname,'public')));
