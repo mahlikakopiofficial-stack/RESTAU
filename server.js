@@ -283,6 +283,7 @@ app.get('/api/customer/inquiries',cust,w((q,r)=>{
 app.get('/api/customer/orders/:id/chat',cust,w((q,r)=>{
   const order=one('SELECT id,status FROM orders WHERE id=? AND customer_id=?',q.params.id,q.cid);
   if(!order)return r.status(404).json({error:'Order not found'});
+  if(['Delivered','Completed'].includes(order.status))return r.status(404).json({error:'Order chat is closed'});
   const inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? AND order_id=? ORDER BY id DESC LIMIT 1',q.cid,q.params.id);
   const messages=inquiry?db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id):[];
   r.json({order,inquiry,messages});
@@ -291,6 +292,7 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
   need(q.body,'message');
   const order=one('SELECT id,status FROM orders WHERE id=? AND customer_id=?',q.params.id,q.cid);
   if(!order)return r.status(404).json({error:'Order not found'});
+  if(['Delivered','Completed'].includes(order.status))return r.status(404).json({error:'Order chat is closed'});
   const c=one('SELECT name,email,phone FROM customers WHERE id=?',q.cid);
   const message=String(q.body.message).trim().slice(0,4000);
   if(!message)throw new Error('Message is required');
