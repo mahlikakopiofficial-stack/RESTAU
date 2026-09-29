@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
-const {sendPasswordResetEmail}=require('./mailer');
+const {sendMail}=require('./lib/gmail');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
@@ -184,8 +184,11 @@ app.post('/api/password-reset',lim(5),async(q,r)=>{
     const base=String(E.PUBLIC_BASE_URL||'').replace(/\/$/,'');
     if(!base)throw new Error('PUBLIC_BASE_URL is not configured');
     const resetUrl=base+'/reset-password.html?token='+encodeURIComponent(raw);
+    const safeName=String(customer.name||'Customer').replace(/[<>]/g,'');
+    const text='Hello '+safeName+',\\n\\nWe received a request to reset your PinoyAmbula account password. Use this link within 30 minutes:\\n\\n'+resetUrl+'\\n\\nIf you did not request this, you can ignore this email.';
+    const html='<p>Hello '+safeName+',</p><p>We received a request to reset your PinoyAmbula account password.</p><p><a href="'+resetUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">Reset your password</a></p><p>This link expires in 30 minutes and can only be used once.</p><p>If you did not request this, you can ignore this email.</p>';
     try{
-      await sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl});
+      await sendMail({to:customer.email,subject:'Reset your PinoyAmbula password',text,html});
     }catch(mailError){
       db.prepare('DELETE FROM password_reset_tokens WHERE token_hash=?').run(tokenHash);
       console.error('PASSWORD_RESET_EMAIL_FAILED',mailError.message);
