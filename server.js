@@ -1,6 +1,7 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
+const {sendPasswordResetEmail}=require('./mailer');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
@@ -11,6 +12,7 @@ CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY,name TEXT,phone TEXT
 CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,notes TEXT,items TEXT,total REAL,pay TEXT DEFAULT 'COD',status TEXT DEFAULT 'New',created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS subs(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,plan TEXT,start TEXT,end TEXT,price REAL,status TEXT DEFAULT 'Active',created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS inquiries(id INTEGER PRIMARY KEY,name TEXT,email TEXT,phone TEXT,type TEXT,msg TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS password_reset_tokens(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL,token_hash TEXT UNIQUE NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS newsletter(id INTEGER PRIMARY KEY,email TEXT UNIQUE,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS gallery(id INTEGER PRIMARY KEY,img TEXT,caption TEXT);
 CREATE TABLE IF NOT EXISTS testimonials(id INTEGER PRIMARY KEY,name TEXT,text TEXT,stars INTEGER DEFAULT 5);
@@ -162,17 +164,54 @@ app.post('/api/register',lim(8),w((q,r)=>{
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
 }));
 app.post('/api/login',lim(8),w((q,r)=>{const c=one('SELECT * FROM customers WHERE phone=?',String(q.body.phone||'').trim());if(!c||!chk(q.body.password||'',c.pw))return r.status(401).json({error:'Wrong phone or password'});r.json({token:mk({r:'c',id:c.id,v:c.auth_version||0}),name:c.name})}));
-app.post('/api/password-reset',lim(5),w((q,r)=>{
-  const phone=String(q.body.phone||'').trim(),email=String(q.body.email||'').trim().toLowerCase();
-  need({phone},'phone');
-  if(email&&!/^\S+@\S+\.\S+$/.test(email))throw new Error('Enter a valid email address.');
-  const customer=one('SELECT id,name,email,phone FROM customers WHERE phone=?',phone);
-  if(customer&&(!email||String(customer.email||'').toLowerCase()===email)){
-    const inquiryId=db.prepare("INSERT INTO inquiries(name,email,phone,type,msg) VALUES(?,?,?,'Password reset','Customer requested a password reset.')")
-      .run(customer.name,customer.email||email,customer.phone).lastInsertRowid;
-    db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiryId,'customer','Password reset requested. Verify identity using the registered contact before issuing a temporary password.');
+app.post('/api/password-reset',lim(5),async(q,r)=>{
+  const email=String(q.body.email||'').trim().toLowerCase();
+  const generic='If that email is registered, a password reset link has been sent.';
+  try{
+    if(!/^\S+@\S+\.\S+$/.test(email))return r.json({ok:1,message:generic});
+    const customer=one('SELECT id,name,email FROM customers WHERE lower(trim(email))=?',email);
+    if(!customer)return r.json({ok:1,message:generic});
+
+    db.prepare('DELETE FROM password_reset_tokens WHERE used_at IS NOT NULL OR expires_at<?').run(Date.now());
+    db.prepare('UPDATE password_reset_tokens SET used_at=? WHERE customer_id=? AND used_at IS NULL').run(Date.now(),customer.id);
+
+    const raw=crypto.randomBytes(32).toString('base64url');
+    const tokenHash=crypto.createHash('sha256').update(raw).digest('hex');
+    const expiresAt=Date.now()+30*60*1000;
+    db.prepare('INSERT INTO password_reset_tokens(customer_id,token_hash,expires_at,created_at) VALUES(?,?,?,?)')
+      .run(customer.id,tokenHash,expiresAt,Date.now());
+
+    const base=String(E.PUBLIC_BASE_URL||'').replace(/\/$/,'');
+    if(!base)throw new Error('PUBLIC_BASE_URL is not configured');
+    const resetUrl=base+'/reset-password.html?token='+encodeURIComponent(raw);
+    try{
+      await sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl});
+    }catch(mailError){
+      db.prepare('DELETE FROM password_reset_tokens WHERE token_hash=?').run(tokenHash);
+      console.error('PASSWORD_RESET_EMAIL_FAILED',mailError.message);
+      return r.json({ok:1,message:generic});
+    }
+    r.json({ok:1,message:generic});
+  }catch(error){
+    console.error('PASSWORD_RESET_FAILED',error.message);
+    r.json({ok:1,message:generic});
   }
-  r.json({ok:1,message:'If the details match an account, staff will verify your identity and contact you using the registered number.'});
+});
+
+app.post('/api/password-reset/confirm',lim(8),w((q,r)=>{
+  const token=String(q.body.token||'').trim();
+  const password=String(q.body.password||'');
+  if(!token||token.length<40)throw new Error('Invalid or expired reset link.');
+  if(password.length<6)throw new Error('Password must be at least 6 characters.');
+  const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
+  const row=one('SELECT id,customer_id,expires_at,used_at FROM password_reset_tokens WHERE token_hash=?',tokenHash);
+  if(!row||row.used_at||row.expires_at<Date.now())throw new Error('Invalid or expired reset link.');
+  const tx=db.transaction(()=>{
+    db.prepare('UPDATE customers SET pw=?,auth_version=auth_version+1 WHERE id=?').run(hash(password),row.customer_id);
+    db.prepare('UPDATE password_reset_tokens SET used_at=? WHERE customer_id=? AND used_at IS NULL').run(Date.now(),row.customer_id);
+  });
+  tx();
+  r.json({ok:1,message:'Your password has been reset. You can now log in with your new password.'});
 }));
 app.get('/api/me',cust,w((q,r)=>{
   const c=one('SELECT id,name,phone,email,address,paci,birthday,nationality FROM customers WHERE id=?',q.cid);
