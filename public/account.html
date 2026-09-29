@@ -26,6 +26,7 @@ async function confirmReceipt(id){try{await api('/orders/'+id+'/received','POST'
 function out(){localStorage.removeItem('ct');location.reload()}
 let activeChatId=null,chatTimer=null;
 async function loadChats(){
+  if(!tk('ct'))return;
   try{
     const rows=await api('/customer/inquiries');
     $('#chat-list').innerHTML=rows.length
