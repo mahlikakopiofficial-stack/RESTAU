@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
-const {sendMail}=require('./lib/gmail');
+const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
@@ -164,6 +164,26 @@ app.post('/api/register',lim(8),w((q,r)=>{
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
 }));
 app.post('/api/login',lim(8),w((q,r)=>{const c=one('SELECT * FROM customers WHERE phone=?',String(q.body.phone||'').trim());if(!c||!chk(q.body.password||'',c.pw))return r.status(401).json({error:'Wrong phone or password'});r.json({token:mk({r:'c',id:c.id,v:c.auth_version||0}),name:c.name})}));
+app.get('/api/gmail/oauth/start',(q,r)=>{
+  try{
+    r.redirect(getAuthorizationUrl());
+  }catch(error){
+    console.error('GMAIL_OAUTH_START_FAILED',error.message);
+    r.status(500).send('Gmail authorization is not configured yet.');
+  }
+});
+app.get('/api/gmail/oauth/callback',async(q,r)=>{
+  try{
+    const expected=String(E.GMAIL_OAUTH_STATE||'');
+    if(!expected||String(q.query.state||'')!==expected)return r.status(400).send('Invalid OAuth state.');
+    if(!q.query.code)return r.status(400).send('Google authorization was not completed.');
+    await exchangeCode(String(q.query.code));
+    r.type('html').send('<!doctype html><meta charset="utf-8"><title>Gmail connected</title><h2>Gmail connected successfully.</h2><p>You can close this window and return to PinoyAmbula.</p>');
+  }catch(error){
+    console.error('GMAIL_OAUTH_CALLBACK_FAILED',error.message);
+    r.status(500).send('Gmail authorization failed. Check the server logs.');
+  }
+});
 app.post('/api/password-reset',lim(5),async(q,r)=>{
   const email=String(q.body.email||'').trim().toLowerCase();
   const generic='If that email is registered, a password reset link has been sent.';
