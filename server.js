@@ -47,12 +47,16 @@ const ensureColumn=(table,column,definition)=>{
   ['orders','status_message',"TEXT DEFAULT ''"],
   ['orders','received_at','TEXT'],
   ['orders','loyalty_reward','INTEGER DEFAULT 0'],
+  ['orders','lat','REAL'],
+  ['orders','lng','REAL'],
+  ['orders','map_url',"TEXT DEFAULT ''"],
   ['gallery','media_type',"TEXT DEFAULT 'image'"],
   ['gallery','media_url',"TEXT DEFAULT ''"],
   ['subs','email',"TEXT DEFAULT ''"],
   ['subs','payment_method',"TEXT DEFAULT 'COD'"],
   ['subs','payment_status',"TEXT DEFAULT 'Pending'"],
   ['subs','duration_days','INTEGER DEFAULT 26'],
+  ['subs','nickname',"TEXT DEFAULT ''"],
   ['plans','duration_days','INTEGER DEFAULT 26'],
   ['plans','img',"TEXT DEFAULT ''"],
   ['inquiries','customer_id','INTEGER'],
@@ -367,7 +371,8 @@ app.get('/api/me',cust,w((q,r)=>{
   const c=one('SELECT id,name,phone,email,address,paci,birthday,nationality FROM customers WHERE id=?',q.cid);
   const delivered=one("SELECT COUNT(*) n FROM orders WHERE customer_id=? AND status IN ('Delivered','Completed')",q.cid).n;
   const redeemed=new Set(db.prepare('SELECT threshold FROM loyalty_redemptions WHERE customer_id=?').all(q.cid).map(x=>x.threshold));
-  const rewards=[{threshold:5,label:'20% off your order'},{threshold:8,label:'Free delivery'},{threshold:10,label:'One free meal'}].filter(reward=>delivered>=reward.threshold&&!redeemed.has(reward.threshold));
+  const cycleBase=delivered>0?Math.floor((delivered-1)/10)*10:0;
+  const rewards=[{threshold:cycleBase+5,label:'20% off your order'},{threshold:cycleBase+8,label:'Free delivery'},{threshold:cycleBase+10,label:'One free meal'}].filter(reward=>delivered>=reward.threshold&&!redeemed.has(reward.threshold));
   const orders=db.prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(q.cid).map(o=>{
     if(o.status!=='Out for delivery')return {...o,eta:'',driver_name:'',driver_phone:'',status_message:''};
     return {...o,eta:'',status_message:''};
@@ -425,7 +430,10 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const rewardThreshold=+(b.loyalty_reward||0);
   if(rewardThreshold){
     if(!customerToken(q))throw new Error('Log in to redeem a loyalty reward.');
-    if(![5,8,10].includes(rewardThreshold)||delivered<rewardThreshold||one('SELECT 1 FROM loyalty_redemptions WHERE customer_id=? AND threshold=?',customerId,rewardThreshold))throw new Error('That loyalty reward is not available.');
+    const rewardKind=rewardThreshold%10||10;
+     const cycleBase=delivered>0?Math.floor((delivered-1)/10)*10:0;
+     const validMilestones=[cycleBase+5,cycleBase+8,cycleBase+10];
+     if(![5,8,10].includes(rewardKind)||!validMilestones.includes(rewardThreshold)||delivered<rewardThreshold||one('SELECT 1 FROM loyalty_redemptions WHERE customer_id=? AND threshold=?',customerId,rewardThreshold))throw new Error('That loyalty reward is not available.');
   }
 
   const sub=its.reduce((n,i)=>n+i.price*i.qty,0);
@@ -456,7 +464,8 @@ app.post('/api/order',lim(30),w((q,r)=>{
     if(!meal)throw new Error('Add a regular or budget meal to redeem your free meal.');
     rewardDiscount=meal.price;
   }
-  const delivery=rewardThreshold===8?0:+(st.fee||0);
+  const rewardKind=rewardThreshold%10||10;
+   const delivery=rewardKind===8?0:+(st.fee||0);
   discount=Math.min(sub,discount+rewardDiscount);
   const total=Math.max(0,sub-discount+delivery);
   const approval=String(st.approval_mode||'AUTO').toUpperCase();
@@ -469,7 +478,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
       subtotal,discount,promo_code,total,pay,payment_status,status,
       confirmed_at,loyalty_reward
     )
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(
     customerId,
     b.name,
@@ -525,8 +534,8 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
   const duration=Math.max(1,Math.min(366,+p.duration_days||26));
   const end=new Date(start);end.setUTCDate(end.getUTCDate()+duration-1);
   const date=x=>x.toISOString().slice(0,10);
-  const id=db.prepare('INSERT INTO subs(customer_id,name,phone,address,paci,plan,start,end,price,email,payment_method,payment_status,duration_days) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    .run(custId(b,q),String(b.name).slice(0,100),String(b.phone).slice(0,40),String(b.address).slice(0,400),String(b.paci||'').slice(0,80),p.name,date(start),date(end),p.price,String(b.email).slice(0,200),payment,'Pending',duration).lastInsertRowid;
+  const id=db.prepare('INSERT INTO subs(customer_id,name,nickname,phone,address,paci,plan,start,end,price,email,payment_method,payment_status,duration_days) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(custId(b,q),String(b.name).slice(0,100),String(b.nickname||'').slice(0,60),String(b.phone).slice(0,40),String(b.address).slice(0,400),String(b.paci||'').slice(0,80),p.name,date(start),date(end),p.price,String(b.email).slice(0,200),payment,'Pending',duration).lastInsertRowid;
   const savedSub=one('SELECT * FROM subs WHERE id=?',id);
   notifySubscriptionReceived(savedSub);
   r.json({id:Number(id),start:date(start),end:date(end),duration_days:duration,price:p.price,payment_method:payment,payment_status:'Pending'});
@@ -914,6 +923,13 @@ async function processNewsletterQueue(){
 }
 setInterval(processNewsletterQueue,Math.max(500,+(E.NEWSLETTER_INTERVAL_MS||1100))).unref();
 app.get('/check.html',(q,r,n)=>E.ENABLE_CHECK==='0'?r.status(404).send('Not found'):n());
+app.use((q,r,n)=>{
+  const host=String(q.hostname||'').toLowerCase();
+  const isAdminHost=host.startsWith('admin.')||host==='admin.localhost';
+  if(isAdminHost && (q.path==='/'||q.path==='/index.html')) return r.sendFile(path.join(__dirname,'public','admin.html'));
+  if(!isAdminHost && q.path==='/admin.html' && E.NODE_ENV==='production') return r.status(404).send('Not found');
+  n();
+});
 ['admin','account','check'].forEach(p=>app.get('/'+p,(q,r)=>r.redirect('/'+p+'.html')));
 app.use('/uploads',express.static(UP,{maxAge:'7d'}));app.use(express.static(path.join(__dirname,'public')));
 app.use('/api',(q,r)=>r.status(404).json({error:'Not found'}));
