@@ -96,7 +96,7 @@ ${f('hero_title','Homepage headline')}
 <div class="drop" id="hdz" style="max-width:650px;${s.hero_img?`background:url('${esc(s.hero_img)}') center/cover;color:#fff;height:140px`:''}">⬆ Drop banner image here</div>
 `}};
 const beep=()=>{try{const c=new AudioContext(),o=c.createOscillator();o.connect(c.destination);o.start();setTimeout(()=>o.stop(),250)}catch(e){}};
-async function exp(t){try{const r=await fetch('/api/admin/export/'+t,{headers:{Authorization:'Bearer '+tk(K)}});if(!r.ok)throw Error('Export failed');const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=t+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}catch(e){toast(e.message)}}
+async function exp(t){try{const r=await fetch(API_ORIGIN+'/api/admin/export/'+t,{headers:{Authorization:'Bearer '+tk(K)}});if(!r.ok)throw Error('Export failed');const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=t+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}catch(e){toast(e.message)}}
 function pr(id){const r=_ol.find(x=>x.id==id),w=open('','_blank','width=380,height=600');w.document.write(`<pre style="font:14px monospace">#${r.id}  ${esc(r.created)}\n${esc(r.name)}  ${esc(r.phone)}\n${esc(r.address)}\nPACI: ${esc(r.paci||'-')}\n--------------------\n${JSON.parse(r.items).map(i=>i.qty+' x '+esc(i.name)).join('\n')}\n--------------------\nTOTAL (${esc(r.pay||'COD')} · ${esc(r.payment_status||'Pending')}): ${money(r.total)}\n${esc(r.notes||'')}</pre>`);w.document.close();w.print()}
 async function up2(t,id,k,v){try{await A('/'+t+'/'+id,'PUT',{[k]:v});toast('Saved')}catch(x){toast(x.message)}}
 async function ss(e){

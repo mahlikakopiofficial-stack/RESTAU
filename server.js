@@ -120,6 +120,30 @@ const lim=n=>(q,r,x)=>{const k=q.ip+q.path,c=(hits.get(k)||0)+1;hits.set(k,c);c>
 const safeEq=(a,b)=>{const h=v=>crypto.createHash('sha256').update(String(v??'')).digest();return crypto.timingSafeEqual(h(a),h(b))};
 const escHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
+
+const allowedOrigins = new Set([
+  'https://localhost',
+  'http://localhost',
+  'https://pinoyambulakw.duckdns.org'
+]);
+
+app.use((q,r,n)=>{
+  const origin=q.headers.origin;
+
+  if(origin && allowedOrigins.has(origin)){
+    r.setHeader('Access-Control-Allow-Origin',origin);
+  }
+
+  r.setHeader('Vary','Origin');
+  r.setHeader('Access-Control-Allow-Methods','GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS');
+  r.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
+
+  if(q.method==='OPTIONS'){
+    return r.sendStatus(204);
+  }
+
+  n();
+});
 app.use((q,r,n)=>{r.set({'X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN','Referrer-Policy':'same-origin'});n()});
 app.use(express.json({limit:'100kb'}));
 app.get('/api/health',(q,r)=>r.json({ok:1,up:Math.round(process.uptime()),items:one('SELECT COUNT(*) n FROM items').n}));
