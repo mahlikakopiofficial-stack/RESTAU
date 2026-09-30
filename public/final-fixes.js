@@ -33,6 +33,11 @@
     });
   }
 
+  // Public pages must not expose an admin navigation link.
+  if(!location.pathname.endsWith('/admin.html') && location.pathname!=='/admin.html'){
+    document.querySelectorAll('a[href="admin.html"],a[href="/admin.html"]').forEach(a=>a.remove());
+  }
+
   // Customer nationality: searchable native select.
   const nat=document.querySelector('#auth input[name="nationality"]');
   if(nat && nat.parentNode){
@@ -153,5 +158,19 @@
     const table=document.getElementById('ot');
     if(table)obs.observe(table,{childList:true,subtree:true});
     setTimeout(pendingDriver,700);
+
+    // Loyalty display follows a repeating 10-order cycle.
+    const fixLoyaltyText=()=>{
+      const el=document.getElementById('loyalty-progress');
+      if(!el)return;
+      const m=(el.textContent||'').match(/(\d+) completed deliveries/);
+      if(!m)return;
+      const total=Number(m[1])||0,cycle=total%10;
+      el.textContent=`${total} completed deliveries. Current loyalty cycle: ${cycle}/10. A new reward cycle starts after every 10 completed orders.`;
+    };
+    const loyaltyObs=new MutationObserver(fixLoyaltyText);
+    const loyalty=document.getElementById('loyalty-progress');
+    if(loyalty)loyaltyObs.observe(loyalty,{childList:true,characterData:true,subtree:true});
+    setTimeout(fixLoyaltyText,800);
   }
 })();
