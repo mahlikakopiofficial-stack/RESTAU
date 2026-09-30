@@ -4,8 +4,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/run-tests.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/enhancements.js"
+    "test": "node tests/final-regression.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/enhancements.js && node --check public/final-fixes.js"
   },
   "engines": {
     "node": ">=22"
