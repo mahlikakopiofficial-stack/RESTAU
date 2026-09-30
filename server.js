@@ -572,6 +572,15 @@ app.post('/api/admin/customers/:id/reset-password',admin,async(q,r)=>{
     r.status(400).json({error:error.message});
   }
 });
+app.post('/api/admin/email-customer',admin,w(async(q,r)=>{
+  const to=String(q.body.to||'').trim().toLowerCase(),subject=String(q.body.subject||'').trim(),text=String(q.body.text||'').trim();
+  if(!/^\\S+@\\S+\\.\\S+$/.test(to))throw new Error('Valid customer email required');
+  if(!subject)throw new Error('Subject is required');
+  if(!text)throw new Error('Message is required');
+  if(subject.length>160||text.length>5000)throw new Error('Subject or message is too long');
+  await sendMail({to,subject,text,html:'<div style="font-family:Arial,sans-serif;white-space:pre-wrap">'+escHtml(text)+'</div>'});
+  r.json({ok:1,message:'Customer email sent.'});
+}));
 app.get('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   const inquiry=one('SELECT id,msg,created FROM inquiries WHERE id=?',q.params.id);
   if(!inquiry)return r.status(404).json({error:'Inquiry not found'});
