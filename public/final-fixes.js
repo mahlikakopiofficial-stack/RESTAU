@@ -124,5 +124,34 @@
       side.appendChild(b);
     };
     const obs=new MutationObserver(addEmailButton);obs.observe(document.body,{childList:true,subtree:true});setTimeout(addEmailButton,500);
+
+    // Keep every admin navigation control visually consistent on desktop and mobile.
+    const style=document.createElement('style');
+    style.textContent='#side{display:flex;flex-wrap:wrap;gap:8px;align-items:center}#side button,#side a{box-sizing:border-box;min-height:40px;padding:9px 12px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}#side .btn{font-size:.9rem}';
+    document.head.appendChild(style);
+  }
+
+  // Customer delivery/driver state: show a clear pending state until a driver is assigned.
+  if(location.pathname.endsWith('/account.html')||location.pathname==='/account.html'){
+    const pendingDriver=()=>{
+      const table=document.getElementById('ot');
+      if(!table)return;
+      table.querySelectorAll('tr').forEach(row=>{
+        if(row.querySelector('th')||row.querySelector('.order-driver'))return;
+        const text=row.textContent||'';
+        if(/Delivered|Completed|No orders yet/.test(text))return;
+        const cell=row.cells?.[3];
+        if(!cell)return;
+        const block=document.createElement('div');
+        block.className='order-driver';
+        block.style.cssText='margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ead9b8;background:#fffaf0';
+        block.innerHTML='<b>Driver</b><br><span>Driver name: pending</span><br><span>Driver number: pending</span>';
+        cell.appendChild(block);
+      });
+    };
+    const obs=new MutationObserver(pendingDriver);
+    const table=document.getElementById('ot');
+    if(table)obs.observe(table,{childList:true,subtree:true});
+    setTimeout(pendingDriver,700);
   }
 })();
