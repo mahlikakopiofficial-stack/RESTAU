@@ -937,7 +937,8 @@ setInterval(processNewsletterQueue,Math.max(500,+(E.NEWSLETTER_INTERVAL_MS||1100
 app.get('/check.html',(q,r,n)=>E.ENABLE_CHECK==='0'?r.status(404).send('Not found'):n());
 app.use((q,r,n)=>{
   const host=String(q.hostname||'').toLowerCase();
-  const isAdminHost=host.startsWith('admin.')||host==='admin.localhost';
+  const configuredAdminHost=String(E.ADMIN_HOST||'admin.pinoyambula.com').toLowerCase();
+  const isAdminHost=host===configuredAdminHost||host==='admin.localhost';
   if(isAdminHost && (q.path==='/'||q.path==='/index.html')) return r.sendFile(path.join(__dirname,'public','admin.html'));
   if(!isAdminHost && q.path==='/admin.html' && E.NODE_ENV==='production') return r.status(404).send('Not found');
   n();
