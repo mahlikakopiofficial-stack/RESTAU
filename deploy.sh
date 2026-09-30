@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-command deploy/update for a fresh Ubuntu 22.04/24.04 DigitalOcean droplet. Safe to re-run (= update).
-# Usage (as root):  REPO=https://github.com/YOU/filipino-resto.git DOMAIN=example.com EMAIL=you@mail.com bash deploy.sh
+# Usage (as root): REPO=https://github.com/YOU/filipino-resto.git DOMAIN=example.com EMAIL=you@mail.com bash deploy.sh
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run as root (sudo)"; exit 1; }
 REPO="${REPO:-}"; DOMAIN="${DOMAIN:-_}"; EMAIL="${EMAIL:-}"; APP=/var/www/resto; PORT=3000
@@ -9,16 +9,19 @@ export DEBIAN_FRONTEND=noninteractive
 echo "==> Installing system packages"
 apt-get update -y
 apt-get install -y curl git nginx ufw build-essential python3 sqlite3 ca-certificates openssl cron
-if ! command -v node >/dev/null || [ "$(node -v | cut -c2-3)" -lt 18 ]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; apt-get install -y nodejs
+# Capacitor/web runtime requires Node 22+; keep production aligned with package.json.
+if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 22 ]; then
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  apt-get install -y nodejs
 fi
 command -v pm2 >/dev/null || npm i -g pm2
 echo "==> Fetching code"
 id resto >/dev/null 2>&1 || useradd -m -s /bin/bash resto
 mkdir -p /var/www; [ -d "$APP" ] || mkdir "$APP"; chown resto:resto "$APP"
 if [ -d "$APP/.git" ]; then
-  su - resto -c "git -C $APP checkout -- server.js"
-  su - resto -c "git -C $APP pull --ff-only"
+  su - resto -c "git -C $APP reset --hard HEAD"
+  su - resto -c "git -C $APP fetch origin"
+  su - resto -c "git -C $APP reset --hard origin/main"
 else
   su - resto -c "git clone '$REPO' $APP"
 fi
@@ -30,6 +33,7 @@ PORT=$PORT
 NODE_ENV=production
 SECRET=$(openssl rand -hex 32)
 ADMIN_PASSWORD=$ADMINPW
+ADMIN_HOST=${ADMIN_HOST:-admin.pinoyambula.com}
 CURRENCY=${CURRENCY:-KWD}
 DELIVERY_FEE=${DELIVERY_FEE:-1}
 RESTO_NAME=${RESTO_NAME:-PinoyAmbula}
@@ -46,11 +50,15 @@ fi
 if ! grep -q '^PUBLIC_BASE_URL=' "$APP/.env"; then
   printf 'PUBLIC_BASE_URL=https://%s\n' "$DOMAIN" >> "$APP/.env"
 fi
+if ! grep -q '^ADMIN_HOST=' "$APP/.env"; then
+  printf 'ADMIN_HOST=%s\n' "${ADMIN_HOST:-admin.pinoyambula.com}" >> "$APP/.env"
+fi
 chmod 600 "$APP/.env"
 chown -R resto:resto "$APP"
 echo "==> Installing dependencies + starting app"
 su - resto -c "cd $APP && npm install --omit=dev"
-su - resto -c "cd $APP && node --check server.js && node --check lib/gmail.js && node --check public/app.js"
+su - resto -c "cd $APP && node --check server.js && node --check lib/gmail.js && node --check lib/notifications.js && node --check public/app.js && node --check public/final-fixes.js"
+su - resto -c "cd $APP && npm test"
 su - resto -c "cd $APP && (pm2 delete resto >/dev/null 2>&1 || true) && pm2 start server.js --name resto && pm2 save"
 env PATH="$PATH:/usr/bin" pm2 startup systemd -u resto --hp /home/resto >/dev/null 2>&1 || true
 echo "==> Nginx + firewall"
