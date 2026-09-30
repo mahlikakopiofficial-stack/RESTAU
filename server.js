@@ -476,7 +476,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
     INSERT INTO orders(
       customer_id,name,phone,email,address,paci,notes,items,
       subtotal,discount,promo_code,total,pay,payment_status,status,
-      confirmed_at,loyalty_reward
+      confirmed_at,loyalty_reward,lat,lng,map_url
     )
     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(
@@ -496,7 +496,10 @@ app.post('/api/order',lim(30),w((q,r)=>{
     requestedPay==='CARD'?'Pending':'Pending',
     status,
     status==='Confirmed'?new Date().toISOString():null,
-    rewardThreshold
+    rewardThreshold,
+    Number.isFinite(+b.lat)?+b.lat:null,
+    Number.isFinite(+b.lng)?+b.lng:null,
+    String(b.map_url||'').slice(0,500)
   ).lastInsertRowid;
   if(rewardThreshold)db.prepare('INSERT INTO loyalty_redemptions(customer_id,threshold,order_id) VALUES(?,?,?)').run(customerId,rewardThreshold,id);
   return Number(id);
