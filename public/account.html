@@ -113,4 +113,4 @@ async function load(){
     $('#st').innerHTML='<tr><th>#</th><th>Plan</th><th>Email</th><th>Start</th><th>End</th><th>Payment</th><th>Status</th></tr>'+(m.subs.map(s=>'<tr><td>'+s.id+'</td><td>'+esc(s.plan)+'</td><td>'+esc(s.email||'')+'</td><td>'+s.start+'</td><td>'+s.end+'</td><td>'+esc(s.payment_method||'COD')+' · '+esc(s.payment_status||'Pending')+'</td><td>'+esc(s.status)+'</td></tr>').join('')||'<tr><td colspan="7">No subscriptions yet</td></tr>');
   }catch(x){if(x.message==='Login required')localStorage.removeItem('ct');toast(x.message==='Login required'?'Please log in again to view your account.':'Your account could not load. Check your connection and try again.');}
 }
-load().then(loadChats)</script></body></html>
+load().then(loadChats)</script><script src="final-fixes.js"></script></body></html>
