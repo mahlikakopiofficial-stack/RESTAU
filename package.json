@@ -11,9 +11,6 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.2",
-    "@capacitor/cli": "^8.5.2",
-    "@capacitor/core": "^8.5.2",
     "better-sqlite3": "^11.3.0",
     "cors": "^2.8.6",
     "express": "^4.19.2",
@@ -23,6 +20,9 @@
     "better-sqlite3@11.10.0": true
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
   }
 }
