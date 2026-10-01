@@ -19,6 +19,7 @@ echo "==> Fetching code"
 id resto >/dev/null 2>&1 || useradd -m -s /bin/bash resto
 mkdir -p /var/www; [ -d "$APP" ] || mkdir "$APP"; chown resto:resto "$APP"
 if [ -d "$APP/.git" ]; then
+  chown -R resto:resto "$APP/.git"
   su - resto -c "git -C $APP reset --hard HEAD"
   su - resto -c "git -C $APP fetch origin"
   su - resto -c "git -C $APP reset --hard origin/main"
