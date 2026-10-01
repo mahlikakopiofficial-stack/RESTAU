@@ -130,14 +130,17 @@ function cartOutside(){
 
 async function addPromos(){
   const nav=document.querySelector('nav');
-  if(!nav||document.getElementById('master-promos'))return;
+  if(!nav)return;
   let rows=[];
   try{rows=await api('/announcements')}catch{return}
-  if(!rows.length)return;
-  const bar=document.createElement('div');
-  bar.id='master-promos';bar.className='master-promo';
-  bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
-  nav.insertAdjacentElement('afterend',bar);
+  let bar=document.getElementById('master-promos');
+  if(!rows.length){bar?.remove();return}
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='master-promos';bar.className='master-promo';
+    bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
+    nav.insertAdjacentElement('afterend',bar);
+  }
   const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
     '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
     (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
@@ -277,6 +280,10 @@ function addTheme(){
 
 function siteBoot(){
   masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();addExchangeConverter();addRegional();addHeritage();addGalleryCarousel();
+  if(!window.__masterPromoRefresh){
+    window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},30000);
+    window.addEventListener('focus',addPromos);
+  }
   setInterval(addCartOptIn,1200);
   const form=document.querySelector('#subd form');
   if(form&&typeof window.updateSubEnd==='function'){
@@ -316,7 +323,7 @@ function adminBoot(){
   R['Announcements']=async function(){
     const rows=await A('/announcements');
     return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="url"></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+
-      tbl(rows,[['Priority',x=>x.priority],['Title',x=>'<input value="'+escm(x.title)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{title:this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Message',x=>'<textarea rows="2" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{message:this.value})">'+escm(x.message)+'</textarea>'],['Active',x=>'<input type="checkbox" style="width:auto" '+(x.active?'checked':'')+' onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{active:this.checked?1:0}).then(()=>toast(&#39;Saved&#39;))">'],['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],['CTA',x=>escm(x.cta_label||'')+(x.cta_url?' · '+escm(x.cta_url):'')],['Window',x=>escm(x.starts_at||'')+' → '+escm(x.ends_at||'')],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']]);
+      tbl(rows,[['Priority',x=>x.priority],['Title',x=>'<input value="'+escm(x.title)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{title:this.value}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'],['Message',x=>'<textarea rows="2" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{message:this.value}).catch(error=>toast(error.message))">'+escm(x.message)+'</textarea>'],['Active',x=>'<input type="checkbox" aria-label="Active announcement" style="width:auto" '+(x.active?'checked':'')+' onchange="masterSetAnnouncementActive('+x.id+',this)">'],['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],['CTA',x=>escm(x.cta_label||'')+(x.cta_url?' · '+escm(x.cta_url):'')],['Window',x=>escm(x.starts_at||'')+' → '+escm(x.ends_at||'')],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']]);
   };
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
@@ -344,6 +351,17 @@ function adminBoot(){
   window.masterAddAnnouncement=async form=>{
     const d=Object.fromEntries(new FormData(form));d.active=form.elements.active.checked?1:0;d.starts_at=String(d.starts_at||'').replace('T',' ');d.ends_at=String(d.ends_at||'').replace('T',' ');
     try{await A('/announcements','POST',d);toast('Announcement added');go('Announcements')}catch(e){toast(e.message)}
+  };
+  window.masterSetAnnouncementActive=async(id,checkbox)=>{
+    const active=checkbox.checked?1:0;
+    checkbox.disabled=true;
+    try{
+      await A('/announcements/'+id,'PUT',{active});
+      toast(active?'Announcement activated':'Announcement paused');
+    }catch(error){
+      checkbox.checked=!checkbox.checked;
+      toast('Announcement update failed: '+error.message);
+    }finally{checkbox.disabled=false}
   };
   window.masterAddRegional=async form=>{try{await A('/regional-dishes','POST',Object.fromEntries(new FormData(form)));toast('Regional dish added');go('Regional Dishes')}catch(e){toast(e.message)}};
   window.masterAddHeritage=async form=>{try{await A('/heritage','POST',Object.fromEntries(new FormData(form)));toast('Heritage item added');go('Heritage')}catch(e){toast(e.message)}};
