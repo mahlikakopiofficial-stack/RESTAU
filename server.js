@@ -33,6 +33,7 @@ const ensureColumn=(table,column,definition)=>{
 };
 [
   ['items','discount_price','REAL DEFAULT 0'],
+  ['items','ingredients',"TEXT DEFAULT ''"],
   ['customers','address',"TEXT DEFAULT ''"],
   ['customers','paci',"TEXT DEFAULT ''"],
   ['customers','birthday',"TEXT DEFAULT ''"],
@@ -70,6 +71,31 @@ const ensureColumn=(table,column,definition)=>{
   ['inquiries','customer_id','INTEGER'],
   ['inquiries','order_id','INTEGER']
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
+const ingredientDefaults={
+'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
+'Sinigang na Baboy':'Pork, tamarind, tomato, onion, radish, okra, eggplant, kangkong, fish sauce, water',
+'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
+'Lechon Kawali':'Pork belly, garlic, bay leaf, salt, black pepper, cooking oil, liver sauce',
+'Pancit Canton':'Wheat noodles, chicken, cabbage, carrots, green beans, onion, garlic, soy sauce, oyster sauce',
+'Tapsilog':'Beef tapa, garlic, soy sauce, calamansi, sugar, garlic rice, egg, cooking oil',
+'Longsilog':'Longganisa, garlic rice, egg, cooking oil, garlic, vinegar dip',
+'Adobo Rice Bowl':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, rice',
+"Sago't Gulaman":'Sago pearls, gulaman jelly, brown sugar, pandan, water, ice',
+'Buko Juice':'Young coconut water, young coconut meat, ice',
+'Calamansi Juice':'Calamansi juice, water, sugar, ice',
+'Halo-Halo':'Shaved ice, sweet beans, nata de coco, kaong, ube, leche flan, evaporated milk, sugar',
+'Pancit Party Tray (10 pax)':'Pancit bihon, chicken, cabbage, carrots, green beans, onion, garlic, soy sauce, oyster sauce',
+'Adobo Tray (20 pax)':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
+'Lechon Belly (15 pax)':'Pork belly, garlic, lemongrass, onion, salt, black pepper, bay leaf, cooking oil',
+'Chicken Katsu Curry':'Chicken breast, panko, flour, egg, Japanese curry, onion, carrot, potato, rice',
+'Salmon Sushi Roll':'Salmon, sushi rice, nori, rice vinegar, cucumber, sesame, soy sauce',
+'Bibimbap':'Rice, beef, spinach, carrot, bean sprouts, zucchini, egg, gochujang, sesame oil',
+'Kimchi Jjigae':'Kimchi, pork, tofu, onion, garlic, gochugaru, stock',
+'Pad Thai':'Rice noodles, shrimp, tofu, bean sprouts, egg, peanuts, tamarind, fish sauce, sugar, lime',
+'Green Curry':'Chicken, green curry paste, coconut milk, Thai basil, eggplant, fish sauce, sugar, rice',
+'Pho Bo':'Beef, rice noodles, onion, ginger, star anise, cinnamon, herbs, fish sauce, beef broth',
+'Banh Mi':'Baguette, pork, pate, pickled carrot, pickled daikon, cucumber, cilantro, mayonnaise'};
+for(const [name,ingredients] of Object.entries(ingredientDefaults)) db.prepare("UPDATE items SET ingredients=? WHERE name=? AND COALESCE(ingredients,'')=''").run(ingredients,name);
 db.exec(`CREATE TABLE IF NOT EXISTS inquiry_messages(
   id INTEGER PRIMARY KEY,
   inquiry_id INTEGER NOT NULL,
@@ -747,8 +773,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
   if(table==='subs'){
     const allowed=['Active','Paused','Completed','Cancelled'];
     if(!allowed.includes(status))throw new Error('Invalid subscription status');
-    if(b.duration_days!==undefined&&!keys.includes('duration_days'))keys.push('duration_days');
-  const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
+    const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
     if(!before)throw new Error('Subscription not found');
     db.prepare('UPDATE subs SET status=? WHERE id=?').run(status,q.params.id);
     const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
@@ -790,7 +815,7 @@ app.post('/api/orders/:id/received',cust,w((q,r)=>{
   r.json({ok:1,received:true});
 }));
 app.put('/api/admin/subs/:id',admin,w((q,r)=>{
-  const b=q.body,allowed=['name','email','phone','address','paci','start','end','duration_days','payment_method','payment_status'];
+  const b=q.body,allowed=['name','email','phone','address','paci','start','end','duration_days','payment_method','payment_status','whatsapp_opt_in'];
   const keys=Object.keys(b).filter(key=>allowed.includes(key));
   if(!keys.length)throw new Error('Nothing to update');
   if((b.email!==undefined)&&b.email&&!/^\S+@\S+\.\S+$/.test(String(b.email)))throw new Error('Valid email required');
@@ -811,7 +836,7 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
     duration=Math.max(1,Math.round((z-a)/86400000)+1);b.duration_days=duration;
     if(!keys.includes('duration_days'))keys.push('duration_days');
   }
-  if(b.duration_days!==undefined&&b.end===undefined&&b.start===undefined)b.duration_days=duration;
+  if(b.duration_days!==undefined&&b.end===undefined&&b.start===undefined){const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+duration-1);end=d.toISOString().slice(0,10);b.end=end;if(!keys.includes('end'))keys.push('end');}
   if(start>end)throw new Error('End date must be on or after start date');
   const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
   if(!before)throw new Error('Subscription not found');
@@ -857,7 +882,7 @@ app.get('/api/admin/report-range',admin,w((q,r)=>{
   summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));
   r.json(summary);
 }));
-const F=['cat','region','name','descr','price','discount_price','emoji','active'];
+const F=['cat','region','name','descr','ingredients','price','discount_price','emoji','active'];
 app.put('/api/admin/items/:id',admin,w((q,r)=>{const k=Object.keys(q.body).filter(x=>F.includes(x));if('price' in q.body&&!(+q.body.price>=0))throw new Error('Invalid price');if(!k.length)throw new Error('nothing to update');db.prepare(`UPDATE items SET ${k.map(x=>x+'=?').join(',')} WHERE id=?`).run(...k.map(x=>q.body[x]),q.params.id);r.json({ok:1})}));
 app.post('/api/admin/items',admin,w((q,r)=>{
   const b=q.body;
@@ -872,12 +897,13 @@ app.post('/api/admin/items',admin,w((q,r)=>{
     throw new Error('Invalid discount price');
 
   db.prepare(
-    'INSERT INTO items(cat,region,name,descr,price,discount_price,emoji) VALUES(?,?,?,?,?,?,?)'
+    'INSERT INTO items(cat,region,name,descr,ingredients,price,discount_price,emoji) VALUES(?,?,?,?,?,?,?,?)'
   ).run(
     b.cat,
     b.region||'Filipino',
     b.name,
     b.descr||'',
+    b.ingredients||'',
     +b.price,
     b.discount_price===''?null:+b.discount_price||0,
     b.emoji||'🍽️'
