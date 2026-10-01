@@ -1,4 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v2';
+const CACHE_NAME='pinoyambula-shell-v3';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -7,11 +7,11 @@ const SHELL=[
   '/style.css',
   '/app.js',
   '/enhancements.js',
+  '/final-fixes.js',
   '/pwa.js',
   '/runtime-config.js',
   '/manifest.json',
-  '/icons/pinoyambula-192.svg',
-  '/icons/pinoyambula-512.svg'
+  '/icons/pinoyambula.svg'
 ];
 
 self.addEventListener('install',event=>{
