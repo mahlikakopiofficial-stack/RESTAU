@@ -2,7 +2,7 @@
 <div class="box" id="login"><h2>Admin Login</h2><form onsubmit="lg(event)"><label>Password</label><input name="password" type="password" required><button class="btn">Login</button> <a class="btn o" href="index.html">Back to site</a></form></div>
 <div class="adm" id="app" hidden><div id="side"></div><div id="main"></div></div>
 <script src="app.js"></script><script>
-const K='at',A=(u,m,b)=>api('/admin'+u,m,b,K),TABS=['Overview','Orders','Menu','Gallery','Customers','Subscriptions','Inquiries','Newsletter','Testimonials','Plans','Settings'],CATS=['Regular','Budget','Drinks','Catering','Other Asian'];let cur='Overview';
+const K='at',A=(u,m,b)=>api('/admin'+u,m,b,K),TABS=['Overview','Orders','Menu','Gallery','Regional Dishes','Heritage','Announcements','Customers','Subscriptions','Inquiries','Newsletter','Testimonials','Plans','Settings'],CATS=['Regular','Budget','Drinks','Catering','Other Asian'];let cur='Overview';
 async function lg(e){e.preventDefault();try{localStorage.setItem(K,(await api('/admin/login','POST',Object.fromEntries(new FormData(e.target)),K)).token);show()}catch(x){toast(x.message)}}
 function out(){localStorage.removeItem(K);location.reload()}
 function show(){const ok=!!tk(K);$('#login').hidden=ok;$('#app').hidden=!ok;if(ok)go(cur)}
