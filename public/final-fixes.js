@@ -182,17 +182,24 @@
     setTimeout(pendingDriver,700);
 
     // Loyalty display follows a repeating 10-order cycle.
+    const loyalty=document.getElementById('loyalty-progress');
+    let loyaltyObs=null;
     const fixLoyaltyText=()=>{
       const el=document.getElementById('loyalty-progress');
       if(!el)return;
       const m=(el.textContent||'').match(/(\d+) completed deliveries/);
       if(!m)return;
       const total=Number(m[1])||0,cycle=total%10;
-      el.textContent=`${total} completed deliveries. Current loyalty cycle: ${cycle}/10. A new reward cycle starts after every 10 completed orders.`;
+      const next=`${total} completed deliveries. Current loyalty cycle: ${cycle}/10. A new reward cycle starts after every 10 completed orders.`;
+      if(el.textContent===next)return;
+      if(loyaltyObs)loyaltyObs.disconnect();
+      el.textContent=next;
+      if(loyaltyObs)loyaltyObs.observe(el,{childList:true,characterData:true,subtree:true});
     };
-    const loyaltyObs=new MutationObserver(fixLoyaltyText);
-    const loyalty=document.getElementById('loyalty-progress');
-    if(loyalty)loyaltyObs.observe(loyalty,{childList:true,characterData:true,subtree:true});
-    setTimeout(fixLoyaltyText,800);
+    if(loyalty){
+      loyaltyObs=new MutationObserver(fixLoyaltyText);
+      loyaltyObs.observe(loyalty,{childList:true,characterData:true,subtree:true});
+      setTimeout(fixLoyaltyText,800);
+    }
   }
 })();
