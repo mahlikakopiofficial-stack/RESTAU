@@ -1,6 +1,9 @@
 name: Android Release
 
 on:
+  push:
+    tags:
+      - "android-v*"
   workflow_dispatch:
     inputs:
       version_name:
@@ -11,6 +14,7 @@ on:
         description: "Version code"
         required: true
         default: "1"
+
 
 permissions:
   contents: read
@@ -59,6 +63,32 @@ jobs:
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/pinoyambula-upload.jks
           chmod 600 android/pinoyambula-upload.jks
 
+      - name: Determine release version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION_NAME="${{ inputs.version_name }}"
+            VERSION_CODE="${{ inputs.version_code }}"
+          else
+            TAG="${GITHUB_REF_NAME#android-v}"
+            VERSION_CODE="${TAG##*-}"
+            VERSION_NAME="${TAG%-*}"
+          fi
+
+          case "$VERSION_CODE" in
+            ''|*[!0-9]*)
+              echo "Invalid version code: $VERSION_CODE"
+              exit 1
+              ;;
+          esac
+
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+          echo "Version name: $VERSION_NAME"
+          echo "Version code: $VERSION_CODE"
+
       - name: Build signed release APK and AAB
         working-directory: android
         env:
@@ -68,8 +98,8 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ./gradlew --no-daemon clean assembleRelease bundleRelease \
-            -PversionName="${{ inputs.version_name }}" \
-            -PversionCode="${{ inputs.version_code }}"
+            -PversionName="${{ steps.version.outputs.version_name }}" \
+            -PversionCode="${{ steps.version.outputs.version_code }}"
 
       - name: Verify release APK
         run: |
@@ -84,14 +114,14 @@ jobs:
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: pinoyambula-release-apk-${{ inputs.version_name }}-${{ inputs.version_code }}
+          name: pinoyambula-release-apk-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.version_code }}
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: pinoyambula-release-aab-${{ inputs.version_name }}-${{ inputs.version_code }}
+          name: pinoyambula-release-aab-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.version_code }}
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
