@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # One-command deploy/update for a fresh Ubuntu 22.04/24.04 DigitalOcean droplet. Safe to re-run (= update).
-# Usage (as root): REPO=https://github.com/YOU/filipino-resto.git DOMAIN=example.com EMAIL=you@mail.com bash deploy.sh
+# Usage (as root): REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambulakw.duckdns.org ADMIN_HOST=admin-pinoy-ambula.duckdns.org EMAIL=you@mail.com bash deploy.sh
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run as root (sudo)"; exit 1; }
-REPO="${REPO:-}"; DOMAIN="${DOMAIN:-_}"; EMAIL="${EMAIL:-}"; APP=/var/www/resto; PORT=3000
-[ -n "$REPO" ] || [ -d "$APP/.git" ] || { echo "Set REPO=https://github.com/YOU/filipino-resto.git"; exit 1; }
+REPO="${REPO:-}"; DOMAIN="${DOMAIN:-_}"; ADMIN_HOST="${ADMIN_HOST:-admin-pinoy-ambula.duckdns.org}"; EMAIL="${EMAIL:-}"; APP=/var/www/resto; PORT=3000
+[ -n "$REPO" ] || [ -d "$APP/.git" ] || { echo "Set REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git"; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 echo "==> Installing system packages"
 apt-get update -y
@@ -33,7 +33,7 @@ PORT=$PORT
 NODE_ENV=production
 SECRET=$(openssl rand -hex 32)
 ADMIN_PASSWORD=$ADMINPW
-ADMIN_HOST=${ADMIN_HOST:-admin.pinoyambula.com}
+ADMIN_HOST=$ADMIN_HOST
 CURRENCY=${CURRENCY:-KWD}
 DELIVERY_FEE=${DELIVERY_FEE:-1}
 RESTO_NAME=${RESTO_NAME:-PinoyAmbula}
@@ -50,8 +50,10 @@ fi
 if ! grep -q '^PUBLIC_BASE_URL=' "$APP/.env"; then
   printf 'PUBLIC_BASE_URL=https://%s\n' "$DOMAIN" >> "$APP/.env"
 fi
-if ! grep -q '^ADMIN_HOST=' "$APP/.env"; then
-  printf 'ADMIN_HOST=%s\n' "${ADMIN_HOST:-admin.pinoyambula.com}" >> "$APP/.env"
+if grep -q '^ADMIN_HOST=' "$APP/.env"; then
+  sed -i "s|^ADMIN_HOST=.*|ADMIN_HOST=$ADMIN_HOST|" "$APP/.env"
+else
+  printf 'ADMIN_HOST=%s\n' "$ADMIN_HOST" >> "$APP/.env"
 fi
 chmod 600 "$APP/.env"
 chown -R resto:resto "$APP"
@@ -72,12 +74,29 @@ server {
   }
 }
 NGX
-ln -sf /etc/nginx/sites-available/resto /etc/nginx/sites-enabled/resto; rm -f /etc/nginx/sites-enabled/default
+cat > /etc/nginx/sites-available/resto-admin <<NGXADMIN
+server {
+  listen 80; server_name $ADMIN_HOST; client_max_body_size 6m;
+  location / {
+    proxy_pass http://127.0.0.1:$PORT;
+    proxy_set_header Host \$host; proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+}
+NGXADMIN
+ln -sf /etc/nginx/sites-available/resto /etc/nginx/sites-enabled/resto
+ln -sf /etc/nginx/sites-available/resto-admin /etc/nginx/sites-enabled/resto-admin
+rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 ufw allow OpenSSH >/dev/null; ufw allow 'Nginx Full' >/dev/null; ufw --force enable >/dev/null
 if [ "$DOMAIN" != "_" ] && [ -n "$EMAIL" ]; then
   apt-get install -y certbot python3-certbot-nginx
-  certbot --nginx -d "$DOMAIN" -m "$EMAIL" --agree-tos -n --redirect || echo "!! HTTPS skipped: point the domain's DNS A record to this droplet, then re-run this command."
+  certbot --nginx -d "$DOMAIN" -m "$EMAIL" --agree-tos -n --redirect || echo "!! HTTPS skipped for $DOMAIN: point DNS to this droplet, then re-run."
+  if [ "$ADMIN_HOST" != "_" ] && getent hosts "$ADMIN_HOST" >/dev/null 2>&1; then
+    certbot --nginx -d "$ADMIN_HOST" -m "$EMAIL" --agree-tos -n --redirect || echo "!! HTTPS skipped for $ADMIN_HOST: point DNS to this droplet, then re-run."
+  else
+    echo "!! Admin HTTPS skipped: $ADMIN_HOST does not resolve yet."
+  fi
 fi
 echo "==> Daily backups (03:00, keep 14 days)"
 mkdir -p /var/backups/resto
@@ -90,7 +109,7 @@ HOST=$([ "$DOMAIN" = "_" ] && echo "$IP" || echo "$DOMAIN")
 curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null && echo "✅ App is healthy" || echo "!! App not responding — run: su - resto -c 'pm2 logs resto --lines 30'"
 echo "----------------------------------------------"
 echo " Site:   http://$HOST"
-echo " Admin:  http://$HOST/admin.html"
+echo " Admin:  http://$ADMIN_HOST"
 echo " Check:  disabled in production (ENABLE_CHECK=0)"
 [ -n "$NEW" ] && echo " Admin password: $ADMINPW   (saved in $APP/.env)"
 echo " Update later: re-run the same command."
