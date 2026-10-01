@@ -1,6 +1,28 @@
 (() => {
   'use strict';
 
+  // Single-source PinoyAmbula brand mark: the same SVG is used by the
+  // customer header, admin favicon, browser favicon, and PWA manifest.
+  const BRAND_ICON='/icons/pinoyambula.svg';
+  const BRAND_NAME='PinoyAmbula';
+  const applyBrandMark=()=>{
+    document.querySelectorAll('link[rel="icon"]').forEach(link=>link.href=BRAND_ICON);
+    const logo=document.querySelector('nav .logo');
+    if(logo){
+      logo.innerHTML='<img src="'+BRAND_ICON+'" alt="" class="brand-mark"> <span>'+BRAND_NAME+'</span>';
+      logo.setAttribute('aria-label',BRAND_NAME+' home');
+      logo.style.display='inline-flex';
+      logo.style.alignItems='center';
+      logo.style.gap='8px';
+    }
+    if(!document.getElementById('pinoy-brand-style')){
+      const style=document.createElement('style');style.id='pinoy-brand-style';
+      style.textContent='.brand-mark{width:34px;height:34px;display:block;flex:0 0 34px}';
+      document.head.appendChild(style);
+    }
+  };
+  applyBrandMark();
+
   // Mobile pull-to-refresh: only when the page is already at the top.
   let startY=0, pulling=false;
   document.addEventListener('touchstart',e=>{
