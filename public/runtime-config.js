@@ -1,4 +1,6 @@
 window.PINOY_RUNTIME = Object.freeze({
   appName: 'PinoyAmbula',
-  apiOrigin: 'https://pinoyambulakw.duckdns.org'
+  apiOrigin: location.hostname === 'admin-pinoy-ambula.duckdns.org'
+    ? ''
+    : 'https://pinoyambulakw.duckdns.org'
 });
