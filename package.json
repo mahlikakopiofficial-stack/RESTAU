@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node tests/final-regression.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/enhancements.js && node --check public/final-fixes.js && node --check public/master-enhancements.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/enhancements.js && node --check public/final-fixes.js && node --check public/master-enhancements.js && node --check public/media-runtime-fix.js"
   },
   "engines": {
     "node": ">=22"
