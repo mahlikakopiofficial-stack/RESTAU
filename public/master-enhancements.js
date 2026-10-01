@@ -287,6 +287,7 @@ function masterSettingsFields(base,s){
     '<h3 style="margin-top:22px">Al Mulla Exchange · KWD → PHP</h3>'+
     '<label><input type="checkbox" name="exchange_rate_enabled" value="1" style="width:auto" '+(s.exchange_rate_enabled!=='0'?'checked':'')+'> Show reference rate</label>'+
     '<label>Refresh interval (minutes)<input name="exchange_rate_refresh_minutes" type="number" min="5" max="1440" value="'+escm(s.exchange_rate_refresh_minutes||60)+'"></label>'+
+    '<label>Al Mulla PHP reference rate (1 KWD)<input name="al_mulla_php_rate" type="number" step="0.001" min="0" value="'+escm(s.al_mulla_php_rate||'203.885')+'"></label>'+
     '<label>Al Mulla source URL<input name="al_mulla_source_url" value="'+escm(s.al_mulla_source_url||'https://www.almullaexchange.com/')+'"></label>'+
     '<h3 style="margin-top:22px">WhatsApp notifications</h3><p id="masterWaStatus">Checking provider status…</p>'+
     '<h3 style="margin-top:22px">Theme</h3>'+
