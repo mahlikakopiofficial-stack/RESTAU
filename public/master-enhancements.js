@@ -25,8 +25,12 @@ function masterCss(){
     '.btn.y{background:var(--pa-gold);border-color:var(--pa-gold);color:#3c2b00}',
     '.btn.o{background:transparent;color:var(--pa-maroon)}',
     '.tabs button.on{background:var(--pa-maroon);color:#fff}',
-    '.master-promo{background:var(--pa-maroon);color:#fff;padding:8px 0;border-bottom:2px solid var(--pa-gold);position:relative;z-index:30}',
-    '.master-promo-inner{display:flex;align-items:center;gap:10px;justify-content:center;min-height:42px;text-align:center}',
+    '.master-promo{background:var(--pa-maroon);color:#fff;padding:7px 0;border-bottom:2px solid var(--pa-gold);position:relative;z-index:30;overflow:hidden}',
+    '.master-promo-inner{overflow:hidden;min-height:42px;display:block}',
+    '.master-promo-track{display:flex;width:max-content;align-items:center;gap:48px;animation:pa-marquee 28s linear infinite}',
+    '.master-promo-item{display:flex;align-items:center;gap:10px;white-space:nowrap}',
+    '@keyframes pa-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}',
+    '.master-promo:hover .master-promo-track{animation-play-state:paused}',
     '.master-promo img{width:34px;height:34px;object-fit:cover;border-radius:8px}',
     '.master-promo .promo-text{min-width:0}.master-promo strong{display:block}.master-promo span{font-size:.9rem;opacity:.92}',
     '.master-nav-tool{width:38px;height:38px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(123,45,38,.2);color:var(--pa-maroon);cursor:pointer}',
@@ -129,19 +133,13 @@ async function addPromos(){
   bar.id='master-promos';bar.className='master-promo';
   bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
   nav.insertAdjacentElement('afterend',bar);
-  let i=0,timer=null;
-  const render=()=>{
-    const x=rows[i%rows.length];
-    document.getElementById('masterPromoContent').innerHTML=(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
-      '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
-      (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'');
-  };
-  render();
-  if(rows.length>1){
-    timer=setInterval(()=>{i=(i+1)%rows.length;render()},6000);
-    bar.addEventListener('mouseenter',()=>clearInterval(timer));
-    bar.addEventListener('mouseleave',()=>{clearInterval(timer);timer=setInterval(()=>{i=(i+1)%rows.length;render()},6000)});
-  }
+  const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
+    '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
+    (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
+  const content=document.getElementById('masterPromoContent');
+  content.className='master-promo-track';
+  content.innerHTML=(rows.length>1?rows.concat(rows):rows).map(renderItem).join('');
+  if(rows.length===1)content.style.animation='none';
 }
 
 async function addExchangeConverter(){
@@ -352,11 +350,12 @@ function adminBoot(){
       ['Start',s=>'<input type="date" value="'+escm(s.start)+'" onchange="masterSaveSub('+s.id+',this.value,null,null)">'],
       ['Duration',s=>'<input type="number" min="1" max="366" value="'+(s.duration_days||26)+'" style="width:90px" onchange="masterSaveSub('+s.id+',null,+this.value,null)">'],
       ['End',s=>'<input type="date" value="'+escm(s.end)+'" onchange="masterSaveSub('+s.id+',null,null,this.value)">'],
+      ['WhatsApp',s=>'<label><input type="checkbox" style="width:auto" '+(s.whatsapp_opt_in?'checked':'')+' onchange="masterSaveSub('+s.id+',null,null,null,this.checked?1:0)"> Opt-in</label>'],
       ['Price',s=>money(s.price)],['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—'],
       ['Status',s=>sel('subs',s.id,s.status,['Active','Paused','Completed','Cancelled'])]]);
   };
-  window.masterSaveSub=async(id,start,duration,end)=>{
-    const body={};if(start)body.start=start;if(duration)body.duration_days=duration;if(end)body.end=end;
+  window.masterSaveSub=async(id,start,duration,end,whatsapp)=>{
+    const body={};if(start)body.start=start;if(duration)body.duration_days=duration;if(end)body.end=end;if(whatsapp!==undefined)body.whatsapp_opt_in=whatsapp;
     try{await A('/subs/'+id,'PUT',body);toast(end?'Validity end date updated':'Subscription schedule updated');go('Subscriptions')}catch(e){toast(e.message)}
   };
   window.pr=async function(id){
