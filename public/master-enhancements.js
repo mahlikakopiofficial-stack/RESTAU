@@ -13,6 +13,11 @@ function masterCss(){
     'body{background:var(--pa-cream);color:var(--pa-deep)}',
     '.banig{background-image:repeating-linear-gradient(45deg,rgba(123,45,38,.06) 0 8px,transparent 8px 16px),repeating-linear-gradient(-45deg,rgba(242,201,76,.08) 0 8px,transparent 8px 16px);height:10px}',
     'nav{background:rgba(255,250,240,.96);border-bottom:1px solid rgba(123,45,38,.16);backdrop-filter:blur(10px)}',
+    'nav ul{gap:8px}',
+    'nav ul li>a,nav ul li>button:not(.master-nav-tool){min-height:38px;min-width:96px;padding:8px 12px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:.9rem;line-height:1.1;text-decoration:none;box-sizing:border-box}',
+    'nav ul li>button:not(.master-nav-tool){border:1px solid rgba(123,45,38,.18);background:transparent;color:inherit;cursor:pointer}',
+    'nav ul li>.master-nav-tool{min-width:38px}',
+    '@media(max-width:700px){nav ul li>a,nav ul li>button:not(.master-nav-tool){width:100%;min-width:0}}',
     '.logo{color:var(--pa-maroon);font-weight:800}',
     '.hero{background-color:#123b37;border-bottom:5px solid var(--pa-gold)}',
     '.card{border:1px solid rgba(123,45,38,.12);box-shadow:0 8px 26px rgba(72,42,22,.08)}',
@@ -31,7 +36,8 @@ function masterCss(){
     '.master-carousel{position:relative;overflow:hidden;border-radius:18px;background:#2b302f}',
     '.master-carousel-track{display:flex;transition:transform .45s ease;will-change:transform}',
     '.master-slide{flex:0 0 100%;position:relative;min-height:260px;background:#1f2423;color:#fff}',
-    '.master-slide img,.master-slide iframe{display:block;width:100%;height:320px;object-fit:cover;border:0}',
+    '.master-slide img,.master-slide iframe{display:block;width:100%;height:320px;object-fit:cover;border:0;pointer-events:none}',
+    '.master-slide-hit{position:absolute;inset:0;background:transparent;border:0;cursor:pointer;z-index:3}',
     '.master-slide .caption{position:absolute;left:0;right:0;bottom:0;padding:30px 18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.78))}',
     '.master-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:var(--pa-maroon);font-size:1.3rem;cursor:pointer;z-index:2}',
     '.master-carousel-btn.prev{left:10px}.master-carousel-btn.next{right:10px}',
@@ -40,6 +46,8 @@ function masterCss(){
     '.master-item-media{height:190px;width:100%;object-fit:cover;border-radius:12px 12px 0 0;background:var(--pa-sand)}',
     '.master-lightbox{width:min(900px,94vw);max-width:900px;border:0;border-radius:16px;padding:14px;background:#121716;color:#fff}.master-lightbox::backdrop{background:rgba(0,0,0,.72)}',
     '.master-lightbox img,.master-lightbox iframe{display:block;width:100%;max-height:72vh;min-height:280px;object-fit:contain;border:0;border-radius:10px;background:#0b0d0c}',
+    '.master-lightbox{margin:auto}',
+    '.master-menu-photo{display:block;width:100%;padding:0;border:0;background:#ead8b7;cursor:pointer;min-height:190px;overflow:hidden;border-radius:12px 12px 0 0}.master-menu-photo img{display:block;width:100%;height:190px;object-fit:cover}.master-menu-card{cursor:pointer}.master-menu-card .menu-card-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}.master-menu-card h3{cursor:pointer}',
     '.master-lightbox .close-row{display:flex;justify-content:flex-end}.master-lightbox .close-row button{background:#fff;color:#222;border:0}',
     '.master-optin{display:flex!important;gap:8px;align-items:flex-start;margin:10px 0;padding:10px;border:1px dashed #cfb98e;border-radius:10px;background:#fffaf0;font-size:.87rem}.master-optin input{width:auto!important;margin-top:4px}',
     '.master-pos-preview{width:80mm!important;max-width:80mm!important}',
@@ -47,7 +55,7 @@ function masterCss(){
     '#main .master-admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
     '.master-status-ok{color:#1c6b41;font-weight:700}.master-status-off{color:#8a2b24;font-weight:700}',
     '@media (prefers-reduced-motion: reduce){.master-carousel-track{transition:none!important}}',
-    '@media(max-width:600px){.master-slide img,.master-slide iframe{height:240px}.master-promo-inner{padding:0 12px}.master-tooltip{right:-40px}.master-section{padding:42px 0}}'
+    '@media(max-width:700px){.master-exchange .exchange-card{grid-template-columns:1fr}.master-exchange .btn{width:100%}}@media(max-width:600px){.master-slide img,.master-slide iframe{height:240px}.master-promo-inner{padding:0 12px}.master-tooltip{right:-40px}.master-section{padding:42px 0}.master-menu-photo img{height:170px}}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -136,23 +144,28 @@ async function addPromos(){
   }
 }
 
-function addExchangeTool(){
-  const list=document.getElementById('nl');
-  if(!list||document.getElementById('masterExchange'))return;
-  const li=document.createElement('li');
-  li.className='master-fly';
-  li.id='masterExchange';
-  li.innerHTML='<button type="button" class="master-nav-tool" aria-label="KWD to PHP exchange rate">₱</button><div class="master-tooltip">Loading reference rate…</div>';
-  const btn=li.querySelector('button'),tip=li.querySelector('.master-tooltip');
-  const toggle=()=>li.classList.toggle('open');
-  btn.addEventListener('click',toggle);
-  document.addEventListener('click',e=>{if(!li.contains(e.target))li.classList.remove('open')});
-  list.insertBefore(li,list.lastElementChild||null);
-  api('/exchange-rate').then(x=>{
-    if(!x.enabled){li.hidden=true;return}
-    if(x.rate)tip.innerHTML='<b>KWD → PHP</b><br>1 KWD ≈ '+Number(x.rate).toFixed(2)+' PHP<br><small>Reference only · '+escm(x.source||'server')+'</small>';
-    else tip.textContent='Reference rate temporarily unavailable.';
-  }).catch(()=>{tip.textContent='Reference rate temporarily unavailable.'});
+async function addExchangeConverter(){
+  const root=document.getElementById('exchange-converter');
+  if(!root||root.dataset.bound)return;
+  root.dataset.bound='1';
+  root.className='master-exchange';
+  root.innerHTML='<div class="wrap"><div class="t"><h2>KWD ↔ PHP Converter</h2><p>Visible on the main page for quick reference.</p></div><div class="exchange-card"><label>Kuwaiti Dinar (KWD)<input id="exchange-kwd" type="number" min="0" step="0.001" value="1"></label><label>Philippine Peso (PHP)<input id="exchange-php" type="number" min="0" step="0.01"></label><div><div class="exchange-rate" id="exchange-rate-line">Loading Al Mulla reference rate…</div><a class="exchange-link" id="exchange-source-link" href="https://www.almullaexchange.com/" target="_blank" rel="noopener">Open Al Mulla Exchange</a></div></div><p class="exchange-note" id="exchange-note">Reference only. Exchange-house rates can vary by channel and time.</p></div>';
+  const kwd=root.querySelector('#exchange-kwd'),php=root.querySelector('#exchange-php'),line=root.querySelector('#exchange-rate-line'),note=root.querySelector('#exchange-note'),link=root.querySelector('#exchange-source-link');
+  let rate=0;
+  try{
+    const x=await api('/exchange-rate');
+    if(!x.enabled||!(+x.rate>0))throw new Error('Unavailable');
+    rate=+x.rate;
+    line.textContent='1 KWD = '+rate.toFixed(2)+' PHP · '+escm(x.source||'Al Mulla Exchange reference');
+    if(x.source_url)link.href=x.source_url;
+    if(x.updated_at)note.textContent='Reference only · configured/updated '+new Date(x.updated_at).toLocaleString()+' · not for settlement.';
+    const recalcFromKwd=()=>{php.value=(Math.max(0,+kwd.value||0)*rate).toFixed(2)};
+    const recalcFromPhp=()=>{kwd.value=(Math.max(0,+php.value||0)/rate).toFixed(3)};
+    kwd.addEventListener('input',recalcFromKwd);php.addEventListener('input',recalcFromPhp);recalcFromKwd();
+  }catch{
+    line.textContent='Al Mulla reference rate unavailable';
+    note.textContent='Admin can enter the latest Al Mulla reference rate in Settings.';
+  }
 }
 
 async function addRegional(){
@@ -181,9 +194,10 @@ async function addHeritage(){
 
 async function addGalleryCarousel(){
   const root=document.getElementById('gal'),section=document.getElementById('gallery');
-  if(!root||!section)return;
+  if(!root||!section||root.dataset.carouselBound)return;
+  root.dataset.carouselBound='1';
   let rows=[];try{rows=await api('/gallery')}catch{return}
-  if(!rows.length)return;
+  if(!rows.length){root.innerHTML='<p>No gallery items yet.</p>';return}
   const wrap=root.parentElement;
   root.innerHTML='<div class="master-carousel" id="gallery-carousel"><button class="master-carousel-btn prev" type="button" aria-label="Previous gallery item">‹</button><div class="master-carousel-track"></div><button class="master-carousel-btn next" type="button" aria-label="Next gallery item">›</button></div><div class="master-dots"></div>';
   buildCarousel(q('#gallery-carousel',root),q('.master-dots',wrap),rows);
@@ -194,36 +208,32 @@ function buildCarousel(carousel,dots,rows){
   const slides=[rows[rows.length-1]].concat(rows,rows[0]);
   track.innerHTML=slides.map((x,i)=>{
     const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':'<img src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.title||x.caption||'Gallery image')+'" loading="lazy">';
-    return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<div class="caption"><strong>'+escm(x.title||x.caption||'PinoyAmbula')+'</strong></div></article>';
+    return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<button class="master-slide-hit" type="button" aria-label="Preview '+escm(x.title||x.caption||'gallery item')+'"></button><div class="caption"><strong>'+escm(x.title||x.caption||'PinoyAmbula')+'</strong><span> · Tap to preview</span></div></article>';
   }).join('');
-  let index=1,locked=false;
+  dots.innerHTML='';
+  let index=1;
   const render=animate=>{
     track.style.transition=animate?'transform .45s ease':'none';
     track.style.transform='translateX(-'+(index*100)+'%)';
-    [...dots.children].forEach((b,i)=>b.classList.toggle('on',i===index-1));
+    [...dots.children].forEach((b,i)=>b.classList.toggle('on',i===((index-1+rows.length)%rows.length)));
   };
-  rows.forEach((x,i)=>{const b=document.createElement('button');b.type='button';b.className='master-dot';b.setAttribute('aria-label','Go to item '+(i+1));b.addEventListener('click',()=>{index=i+1;render(true);});dots.appendChild(b)});
-  carousel.querySelector('.prev').addEventListener('click',()=>{if(locked)return;index--;render(true)});
-  carousel.querySelector('.next').addEventListener('click',()=>{if(locked)return;index++;render(true)});
+  rows.forEach((x,i)=>{const b=document.createElement('button');b.type='button';b.className='master-dot';b.setAttribute('aria-label','Go to item '+(i+1));b.addEventListener('click',()=>{index=i+1;render(true)});dots.appendChild(b)});
+  carousel.querySelector('.prev').addEventListener('click',()=>{index--;render(true)});
+  carousel.querySelector('.next').addEventListener('click',()=>{index++;render(true)});
+  carousel.querySelectorAll('.master-slide-hit').forEach((b,logical)=>{
+    b.addEventListener('click',()=>openMediaPreview(rows[logical===0?rows.length-1:logical-1>=rows.length?0:logical-1]));
+  });
   track.addEventListener('transitionend',()=>{
     if(index===0){index=rows.length;render(false)}
     if(index===rows.length+1){index=1;render(false)}
-  });
-  track.addEventListener('click',e=>{
-    const slide=e.target.closest('.master-slide');if(!slide)return;
-    const logical=((+slide.dataset.slideIndex-1+rows.length)%rows.length);
-    openMediaPreview(rows[logical]);
   });
   render(false);
   if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&rows.length>1){
     let timer=setInterval(()=>{index++;render(true)},6500);
     carousel.addEventListener('mouseenter',()=>clearInterval(timer));
     carousel.addEventListener('mouseleave',()=>{clearInterval(timer);timer=setInterval(()=>{index++;render(true)},6500)});
-    carousel.addEventListener('focusin',()=>clearInterval(timer));
-    carousel.addEventListener('focusout',()=>{clearInterval(timer);timer=setInterval(()=>{index++;render(true)},6500)});
   }
 }
-
 function patchMenu(){
   if(typeof items==='undefined'||typeof itemPrice!=='function')return;
   const menuFallback=()=>((typeof config!=='undefined'&&config.menu_default_icon)||'/icons/pinoyambula.svg');
@@ -232,24 +242,27 @@ function patchMenu(){
     const i=items.find(x=>x.id==id);if(!i)return;
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
     let d=document.getElementById('menuPreview');
-    if(!d){d=document.createElement('dialog');d.id='menuPreview';d.innerHTML='<button type="button" class="btn s o" style="float:right" aria-label="Close menu preview">✕</button><div id="menuPreviewBody"></div>';d.querySelector('button').addEventListener('click',()=>d.close());document.body.appendChild(d)}
-    d.querySelector('#menuPreviewBody').innerHTML='<img class="preview-img" src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p><p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
-    d.querySelector('#menuPreviewBody button').onclick=()=>{add(i.id);d.close()};
+    if(!d){
+      d=document.createElement('dialog');d.id='menuPreview';d.className='master-lightbox';
+      d.innerHTML='<div class="close-row"><button type="button" class="btn s o" aria-label="Close menu preview">✕</button></div><div id="menuPreviewBody"></div>';
+      d.querySelector('button').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close()});document.body.appendChild(d);
+    }
+    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p><p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
+    d.querySelector('#menuPreviewBody button.btn').onclick=()=>{add(i.id);d.close()};
     if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
   };
   window.card=function(i){
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
-    return '<article class="card menu-card"><button type="button" class="ph menu-photo" onclick="openMenuPreview('+i.id+')" aria-label="Preview '+escm(i.name)+'" style="background-image:url('+JSON.stringify(encodeURIComponent('__SRC__'))+');background-size:cover;background-position:center">'+(i.img?'':'<span style="opacity:0">Default image</span>')+'</button><div class="p"><p class="menu-category">'+escm(i.cat)+(i.region&&i.cat==='Other Asian'?' · '+escm(i.region):'')+'</p><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s" type="button" onclick="add('+i.id+')">Add</button></div></div></article>'.replace('__SRC__',escm(src));
+    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><p class="menu-category">'+escm(i.cat)+(i.region&&i.cat==='Other Asian'?' · '+escm(i.region):'')+'</p><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s" type="button" onclick="add('+i.id+')">Add</button></div></div></article>';
   };
   try{renderMenu()}catch{}
 }
-
 function addTheme(){
   document.documentElement.dataset.pinoyambulaTheme='heritage';
 }
 
 function siteBoot(){
-  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();addExchangeTool();addRegional();addHeritage();addGalleryCarousel();
+  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();addExchangeConverter();addRegional();addHeritage();addGalleryCarousel();
   setInterval(addCartOptIn,1200);
   const form=document.querySelector('#subd form');
   if(form&&typeof window.updateSubEnd==='function'){
@@ -271,10 +284,10 @@ function masterSettingsFields(base,s){
     '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
     '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
     '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
-    '<h3 style="margin-top:22px">KWD → PHP reference rate</h3>'+
+    '<h3 style="margin-top:22px">Al Mulla Exchange · KWD → PHP</h3>'+
     '<label><input type="checkbox" name="exchange_rate_enabled" value="1" style="width:auto" '+(s.exchange_rate_enabled!=='0'?'checked':'')+'> Show reference rate</label>'+
     '<label>Refresh interval (minutes)<input name="exchange_rate_refresh_minutes" type="number" min="5" max="1440" value="'+escm(s.exchange_rate_refresh_minutes||60)+'"></label>'+
-    '<label>Admin fallback rate (optional)<input name="kwd_php_rate" type="number" step="0.01" min="0" value="'+escm(s.kwd_php_rate||'')+'"></label>'+
+    '<label>Al Mulla source URL<input name="al_mulla_source_url" value="'+escm(s.al_mulla_source_url||'https://www.almullaexchange.com/')+'"></label>'+
     '<h3 style="margin-top:22px">WhatsApp notifications</h3><p id="masterWaStatus">Checking provider status…</p>'+
     '<h3 style="margin-top:22px">Theme</h3>'+
     '<select name="theme_style"><option value="filipino-heritage" '+(s.theme_style!=='plain'?'selected':'')+'>Filipino heritage</option><option value="plain" '+(s.theme_style==='plain'?'selected':'')+'>Classic</option></select>';
@@ -333,21 +346,17 @@ function adminBoot(){
   const originalSub=R.Subscriptions;
   R.Subscriptions=async function(){
     const rows=await A('/list/subs');
-    return tbl(rows,[
-      ['#',s=>s.id],
-      ['Customer',s=>escm(s.name)+'<br>'+escm(s.phone)],
-      ['Plan',s=>escm(s.plan)],
-      ['Start',s=>'<input type="date" value="'+escm(s.start)+'" onchange="masterSaveSub('+s.id+',this.value,null)">'],
-      ['Duration',s=>'<input type="number" min="1" max="366" value="'+(s.duration_days||26)+'" style="width:90px" onchange="masterSaveSub('+s.id+',null,+this.value)">'],
-      ['End',s=>'<b>'+escm(s.end)+'</b>'],
-      ['Price',s=>money(s.price)],
-      ['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—'],
-      ['Status',s=>sel('subs',s.id,s.status,['Active','Paused','Completed','Cancelled'])]
-    ]);
+    return '<p class="small">New subscriptions use the selected plan duration automatically. Admin can adjust start date, duration, or the final end date for validity corrections.</p>'+
+      tbl(rows,[['#',s=>s.id],['Customer',s=>escm(s.name)+'<br>'+escm(s.phone)],['Plan',s=>escm(s.plan)],
+      ['Start',s=>'<input type="date" value="'+escm(s.start)+'" onchange="masterSaveSub('+s.id+',this.value,null,null)">'],
+      ['Duration',s=>'<input type="number" min="1" max="366" value="'+(s.duration_days||26)+'" style="width:90px" onchange="masterSaveSub('+s.id+',null,+this.value,null)">'],
+      ['End',s=>'<input type="date" value="'+escm(s.end)+'" onchange="masterSaveSub('+s.id+',null,null,this.value)">'],
+      ['Price',s=>money(s.price)],['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—'],
+      ['Status',s=>sel('subs',s.id,s.status,['Active','Paused','Completed','Cancelled'])]]);
   };
-  window.masterSaveSub=async(id,start,duration)=>{
-    const body={};if(start)body.start=start;if(duration)body.duration_days=duration;
-    try{await A('/subs/'+id,'PUT',body);toast('Subscription schedule updated');go('Subscriptions')}catch(e){toast(e.message)}
+  window.masterSaveSub=async(id,start,duration,end)=>{
+    const body={};if(start)body.start=start;if(duration)body.duration_days=duration;if(end)body.end=end;
+    try{await A('/subs/'+id,'PUT',body);toast(end?'Validity end date updated':'Subscription schedule updated');go('Subscriptions')}catch(e){toast(e.message)}
   };
   window.pr=async function(id){
     const order=(window._ol||[]).find(x=>x.id===id);if(!order)return;
