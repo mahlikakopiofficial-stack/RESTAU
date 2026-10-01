@@ -97,7 +97,74 @@ ${f('hero_title','Homepage headline')}
 `}};
 const beep=()=>{try{const c=new AudioContext(),o=c.createOscillator();o.connect(c.destination);o.start();setTimeout(()=>o.stop(),250)}catch(e){}};
 async function exp(t){try{const r=await fetch(API_ORIGIN+'/api/admin/export/'+t,{headers:{Authorization:'Bearer '+tk(K)}});if(!r.ok)throw Error('Export failed');const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=t+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}catch(e){toast(e.message)}}
-function pr(id){const r=_ol.find(x=>x.id==id),w=open('','_blank','width=380,height=600');w.document.write(`<pre style="font:14px monospace">#${r.id}  ${esc(r.created)}\n${esc(r.name)}  ${esc(r.phone)}\n${esc(r.address)}\nPACI: ${esc(r.paci||'-')}\n--------------------\n${JSON.parse(r.items).map(i=>i.qty+' x '+esc(i.name)).join('\n')}\n--------------------\nTOTAL (${esc(r.pay||'COD')} · ${esc(r.payment_status||'Pending')}): ${money(r.total)}\n${esc(r.notes||'')}</pre>`);w.document.close();w.print()}
+async function pr(id){
+  const r=_ol.find(x=>x.id==id);
+  if(!r)return;
+  try{
+    const st=await A('/settings');
+    const w=open('','_blank','width=520,height=820');
+    if(!w)throw new Error('Please allow pop-ups to print the receipt.');
+
+    const items=JSON.parse(r.items||'[]');
+    const currency=String(st.currency||CUR||'KWD');
+    const fmt=v=>Number(v||0).toFixed(3)+' '+currency;
+    const delivery=Math.max(0,(+r.total||0)-(+r.subtotal||+r.total||0)+(+r.discount||0));
+    const itemRows=items.map(i=>{
+      const qty=Math.max(1,+i.qty||1);
+      const unit=+i.price||0;
+      return '<tr><td>'+esc(i.name)+'</td><td style="text-align:center">'+qty+'</td><td style="text-align:right">'+fmt(unit)+'</td><td style="text-align:right">'+fmt(unit*qty)+'</td></tr>';
+    }).join('');
+    const mapLink=r.map_url?'<a href="'+esc(r.map_url)+'" target="_blank" rel="noopener">Open delivery location map</a>':'';
+
+    w.document.write('<!doctype html><html><head><title>'+esc((st.name||'PinoyAmbula')+' — Delivery Receipt #'+r.id)+'</title>'+
+      '<meta name="viewport" content="width=device-width,initial-scale=1"><style>'+
+      'body{font-family:Arial,sans-serif;color:#202b25;margin:0;padding:24px;line-height:1.45}.receipt{max-width:760px;margin:auto}'+
+      'h1{margin:0 0 4px;font-size:25px}h2{font-size:17px;margin:0 0 8px}.muted{color:#66736c;font-size:12px}'+
+      '.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}.box{border:1px solid #ddd8cc;border-radius:10px;padding:13px}'+
+      '.row{display:flex;justify-content:space-between;gap:12px;padding:4px 0}table{width:100%;border-collapse:collapse;margin:10px 0 16px}'+
+      'th,td{border-bottom:1px solid #e7e2d9;padding:8px 6px;text-align:left;font-size:13px}th{font-size:12px;background:#f6f0e4}'+
+      '.total{font-size:18px;font-weight:700}.status{display:inline-block;padding:4px 9px;border-radius:999px;background:#f3ead8}'+
+      '.notes{white-space:pre-wrap}.footer{margin-top:22px;border-top:1px solid #ddd8cc;padding-top:12px;font-size:11px;color:#66736c}'+
+      '.print{margin-bottom:16px;padding:9px 14px;border:0;border-radius:7px;background:#b63a2b;color:#fff;font-weight:700;cursor:pointer}@media print{body{padding:0}.print{display:none}.box{break-inside:avoid}}'+
+      '</style></head><body><div class="receipt"><button class="print" onclick="print()">Print receipt</button>'+
+      '<div style="text-align:center"><h1>'+esc(st.name||'PinoyAmbula')+'</h1>'+
+      (st.location?'<div>'+esc(st.location)+'</div>':'')+
+      (st.phone?'<div>Phone: '+esc(st.phone)+'</div>':'')+
+      (st.whatsapp?'<div>WhatsApp: '+esc(st.whatsapp)+'</div>':'')+
+      (st.hours?'<div class="muted">Hours: '+esc(st.hours)+'</div>':'')+
+      '</div><hr style="border:0;border-top:2px solid #202b25;margin:16px 0">'+
+      '<div class="row"><b>Delivery Receipt</b><b>#'+esc(r.id)+'</b></div>'+
+      '<div class="row muted"><span>Order date</span><span>'+esc(r.created)+'</span></div>'+
+      '<div class="row"><span>Status</span><span class="status">'+esc(r.status||'New')+'</span></div>'+
+      '<div class="row"><span>Payment</span><span>'+esc(r.pay||'COD')+' · '+esc(r.payment_status||'Pending')+'</span></div>'+
+      '<div class="grid"><div class="box"><h2>Customer</h2><div><b>'+esc(r.name||'')+'</b></div>'+
+      '<div>Phone: '+esc(r.phone||'—')+'</div><div>Email: '+esc(r.email||'—')+'</div><div>PACI: '+esc(r.paci||'—')+'</div></div>'+
+      '<div class="box"><h2>Delivery</h2><div>'+esc(r.address||'—')+'</div><div>Delivery fee: '+fmt(delivery)+'</div>'+
+      (r.lat!=null&&r.lng!=null?'<div>Coordinates: '+esc(r.lat)+', '+esc(r.lng)+'</div>':'')+
+      (mapLink?'<div style="margin-top:8px">'+mapLink+'</div>':'')+
+      '</div></div>'+
+      '<div class="box"><h2>Order items</h2><table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Line total</th></tr></thead><tbody>'+
+      itemRows+'</tbody></table><div class="row"><span>Subtotal</span><span>'+fmt(r.subtotal||r.total)+'</span></div>'+
+      '<div class="row"><span>Discount</span><span>-'+fmt(r.discount||0)+'</span></div><div class="row"><span>Delivery</span><span>'+fmt(delivery)+'</span></div>'+
+      '<div class="row total"><span>Total</span><span>'+fmt(r.total)+'</span></div></div>'+
+      (r.notes?'<div class="box"><h2>Customer notes</h2><div class="notes">'+esc(r.notes)+'</div></div>':'')+
+      (r.driver_name||r.driver_phone||r.eta||r.status_message||r.delivered_at||r.received_at?'<div class="box"><h2>Delivery tracking</h2>'+
+        (r.driver_name?'<div>Driver: '+esc(r.driver_name)+'</div>':'')+
+        (r.driver_phone?'<div>Driver phone: '+esc(r.driver_phone)+'</div>':'')+
+        (r.eta?'<div>ETA: '+esc(r.eta)+'</div>':'')+
+        (r.status_message?'<div>Status message: '+esc(r.status_message)+'</div>':'')+
+        (r.delivered_at?'<div>Delivered: '+esc(r.delivered_at)+'</div>':'')+
+        (r.received_at?'<div>Customer received: '+esc(r.received_at)+'</div>':'')+
+      '</div>':'')+
+      '<div class="footer">Thank you for ordering from '+esc(st.name||'PinoyAmbula')+'. Keep this receipt for your records.'+
+      (st.facebook?'<br>Facebook: '+esc(st.facebook):'')+
+      (st.instagram?'<br>Instagram: '+esc(st.instagram):'')+
+      '</div></div></body></html>');
+    w.document.close();
+    w.focus();
+    setTimeout(()=>w.print(),250);
+  }catch(e){toast(e.message)}
+}
 async function up2(t,id,k,v){try{await A('/'+t+'/'+id,'PUT',{[k]:v});toast('Saved')}catch(x){toast(x.message)}}
 async function ss(e){
   e.preventDefault();
