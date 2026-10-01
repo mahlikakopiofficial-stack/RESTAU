@@ -29,7 +29,7 @@ window.PINOY_RUNTIME = Object.freeze({
 // clients all resolve uploaded /uploads/... assets against the live API origin.
 (function loadMediaRuntime(){
   const s=document.createElement('script');
-  s.src=PINoy_API_ORIGIN+'/media-runtime-fix.js?v=20261001';
+  s.src=PINoy_API_ORIGIN+'/media-runtime-fix.js?v=20261001-2';
   s.defer=false;
   document.head.appendChild(s);
 })();
