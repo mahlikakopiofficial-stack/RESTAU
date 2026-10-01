@@ -24,3 +24,12 @@ window.PINOY_RUNTIME = Object.freeze({
   apiOrigin: PINOY_API_ORIGIN,
   mediaOrigin: PINOY_API_ORIGIN
 });
+
+// Keep media handling in one small runtime layer so web, PWA and Capacitor
+// clients all resolve uploaded /uploads/... assets against the live API origin.
+(function loadMediaRuntime(){
+  const s=document.createElement('script');
+  s.src=PINoy_API_ORIGIN+'/media-runtime-fix.js';
+  s.defer=false;
+  document.head.appendChild(s);
+})();
