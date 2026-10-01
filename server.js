@@ -755,7 +755,7 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
   if(!current)throw new Error('Subscription not found');
   const start=b.start||current.start;
   let end=b.end||current.end;
-  if(b.duration_days!==undefined){const duration=Math.max(1,Math.min(366,Math.trunc(+b.duration_days||current.duration_days||26)));const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+duration-1);end=d.toISOString().slice(0,10);b.end=end;b.duration_days=duration;}
+  if(b.start!==undefined||b.duration_days!==undefined){const duration=Math.max(1,Math.min(366,Math.trunc(+b.duration_days||current.duration_days||26)));const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+duration-1);end=d.toISOString().slice(0,10);b.end=end;b.duration_days=duration;if(!keys.includes('end'))keys.push('end');}
   if(start>end)throw new Error('End date must be on or after start date');
   const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
   if(!before)throw new Error('Subscription not found');
