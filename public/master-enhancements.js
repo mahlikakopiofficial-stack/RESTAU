@@ -2,7 +2,7 @@
 'use strict';
 
 const escm=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const $, $$ = (s,r=document)=>r.querySelectorAll(s);
+const q=(s,r=document)=>r.querySelector(s), $=(s,r=document)=>[...r.querySelectorAll(s)];
 
 function masterCss(){
   if(document.getElementById('master-enh-css'))return;
