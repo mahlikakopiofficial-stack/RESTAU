@@ -1,4 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v7';
+const CACHE_NAME='pinoyambula-shell-v8';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -8,6 +8,8 @@ const SHELL=[
   '/app.js',
   '/enhancements.js',
   '/final-fixes.js',
+  '/master-enhancements.js',
+  '/media-runtime-fix.js',
   '/pwa.js',
   '/runtime-config.js',
   '/manifest.json',
