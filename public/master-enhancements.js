@@ -1,0 +1,376 @@
+(function(){
+'use strict';
+
+const escm=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $, $$ = (s,r=document)=>r.querySelectorAll(s);
+
+function masterCss(){
+  if(document.getElementById('master-enh-css'))return;
+  const style=document.createElement('style');
+  style.id='master-enh-css';
+  style.textContent=[
+    ':root{--pa-maroon:#7b2d26;--pa-gold:#f2c94c;--pa-cream:#fffaf0;--pa-deep:#24352f;--pa-sand:#ead8b7}',
+    'body{background:var(--pa-cream);color:var(--pa-deep)}',
+    '.banig{background-image:repeating-linear-gradient(45deg,rgba(123,45,38,.06) 0 8px,transparent 8px 16px),repeating-linear-gradient(-45deg,rgba(242,201,76,.08) 0 8px,transparent 8px 16px);height:10px}',
+    'nav{background:rgba(255,250,240,.96);border-bottom:1px solid rgba(123,45,38,.16);backdrop-filter:blur(10px)}',
+    '.logo{color:var(--pa-maroon);font-weight:800}',
+    '.hero{background-color:#123b37;border-bottom:5px solid var(--pa-gold)}',
+    '.card{border:1px solid rgba(123,45,38,.12);box-shadow:0 8px 26px rgba(72,42,22,.08)}',
+    '.btn{border-color:var(--pa-maroon);background:var(--pa-maroon)}',
+    '.btn.y{background:var(--pa-gold);border-color:var(--pa-gold);color:#3c2b00}',
+    '.btn.o{background:transparent;color:var(--pa-maroon)}',
+    '.tabs button.on{background:var(--pa-maroon);color:#fff}',
+    '.master-promo{background:var(--pa-maroon);color:#fff;padding:8px 0;border-bottom:2px solid var(--pa-gold);position:relative;z-index:30}',
+    '.master-promo-inner{display:flex;align-items:center;gap:10px;justify-content:center;min-height:42px;text-align:center}',
+    '.master-promo img{width:34px;height:34px;object-fit:cover;border-radius:8px}',
+    '.master-promo .promo-text{min-width:0}.master-promo strong{display:block}.master-promo span{font-size:.9rem;opacity:.92}',
+    '.master-nav-tool{width:38px;height:38px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(123,45,38,.2);color:var(--pa-maroon);cursor:pointer}',
+    '.master-fly{position:relative}.master-tooltip{position:absolute;right:0;top:44px;background:#fff;color:var(--pa-deep);border:1px solid #dccfb9;border-radius:12px;padding:10px 12px;width:220px;box-shadow:0 10px 28px #0002;display:none;z-index:80;font-size:.82rem;text-align:left}.master-fly.open .master-tooltip{display:block}',
+    '.master-section{padding:56px 0}.master-section.alt{background:#f7eedf}',
+    '.master-section .t h2{color:var(--pa-maroon)}',
+    '.master-carousel{position:relative;overflow:hidden;border-radius:18px;background:#2b302f}',
+    '.master-carousel-track{display:flex;transition:transform .45s ease;will-change:transform}',
+    '.master-slide{flex:0 0 100%;position:relative;min-height:260px;background:#1f2423;color:#fff}',
+    '.master-slide img,.master-slide iframe{display:block;width:100%;height:320px;object-fit:cover;border:0}',
+    '.master-slide .caption{position:absolute;left:0;right:0;bottom:0;padding:30px 18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.78))}',
+    '.master-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:var(--pa-maroon);font-size:1.3rem;cursor:pointer;z-index:2}',
+    '.master-carousel-btn.prev{left:10px}.master-carousel-btn.next{right:10px}',
+    '.master-dots{display:flex;justify-content:center;gap:6px;margin:10px 0}.master-dot{width:9px;height:9px;border:0;border-radius:50%;background:#c7b99f}.master-dot.on{background:var(--pa-maroon)}',
+    '.master-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px}',
+    '.master-item-media{height:190px;width:100%;object-fit:cover;border-radius:12px 12px 0 0;background:var(--pa-sand)}',
+    '.master-lightbox{width:min(900px,94vw);max-width:900px;border:0;border-radius:16px;padding:14px;background:#121716;color:#fff}.master-lightbox::backdrop{background:rgba(0,0,0,.72)}',
+    '.master-lightbox img,.master-lightbox iframe{display:block;width:100%;max-height:72vh;min-height:280px;object-fit:contain;border:0;border-radius:10px;background:#0b0d0c}',
+    '.master-lightbox .close-row{display:flex;justify-content:flex-end}.master-lightbox .close-row button{background:#fff;color:#222;border:0}',
+    '.master-optin{display:flex!important;gap:8px;align-items:flex-start;margin:10px 0;padding:10px;border:1px dashed #cfb98e;border-radius:10px;background:#fffaf0;font-size:.87rem}.master-optin input{width:auto!important;margin-top:4px}',
+    '.master-pos-preview{width:80mm!important;max-width:80mm!important}',
+    '.master-admin-card{padding:16px;border:1px solid #e5dccb;border-radius:14px;background:#fff;margin-bottom:16px}',
+    '#main .master-admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
+    '.master-status-ok{color:#1c6b41;font-weight:700}.master-status-off{color:#8a2b24;font-weight:700}',
+    '@media (prefers-reduced-motion: reduce){.master-carousel-track{transition:none!important}}',
+    '@media(max-width:600px){.master-slide img,.master-slide iframe{height:240px}.master-promo-inner{padding:0 12px}.master-tooltip{right:-40px}.master-section{padding:42px 0}}'
+  ].join('');
+  document.head.appendChild(style);
+}
+
+function openMediaPreview(media){
+  let d=document.getElementById('masterLightbox');
+  if(!d){
+    d=document.createElement('dialog');
+    d.id='masterLightbox';
+    d.className='master-lightbox';
+    d.innerHTML='<div class="close-row"><button type="button" class="btn s o" aria-label="Close preview">✕</button></div><div id="masterLightboxBody"></div><p id="masterLightboxCaption"></p>';
+    d.querySelector('button').addEventListener('click',()=>d.close());
+    d.addEventListener('click',e=>{if(e.target===d)d.close()});
+    document.body.appendChild(d);
+  }
+  const body=d.querySelector('#masterLightboxBody'),cap=d.querySelector('#masterLightboxCaption');
+  if(media.media_type==='video'&&media.media_url)body.innerHTML='<iframe src="'+escm(media.media_url)+'" title="'+escm(media.title||media.caption||'Video preview')+'" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>';
+  else body.innerHTML='<img src="'+escm(media.img||'/icons/pinoyambula.svg')+'" alt="'+escm(media.title||media.caption||'Preview')+'">';
+  cap.textContent=media.title||media.caption||'';
+  if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
+}
+
+function addCartOptIn(){
+  const cart=document.getElementById('cart');
+  if(cart&&!cart.querySelector('[name="whatsapp_opt_in"]')){
+    const phone=cart.querySelector('[name="phone"]');
+    if(phone){
+      const label=document.createElement('label');
+      label.className='master-optin';
+      label.innerHTML='<input type="checkbox" name="whatsapp_opt_in" value="1"><span>Send order updates on WhatsApp to this number. I confirm I use WhatsApp and want these notifications.</span>';
+      phone.parentElement&&phone.parentElement.insertAdjacentElement('afterend',label);
+    }
+  }
+  const sub=document.querySelector('#subd form');
+  if(sub&&!sub.querySelector('[name="whatsapp_opt_in"]')){
+    const anchor=sub.querySelector('[name="phone"]');
+    if(anchor){
+      const label=document.createElement('label');
+      label.className='master-optin';
+      label.innerHTML='<input type="checkbox" name="whatsapp_opt_in" value="1"><span>Send subscription updates on WhatsApp to this number. I confirm I use WhatsApp and want these notifications.</span>';
+      anchor.parentElement&&anchor.parentElement.insertAdjacentElement('afterend',label);
+    }
+  }
+}
+
+function cartOutside(){
+  if(window.__masterCartOutside)return;
+  window.__masterCartOutside=true;
+  document.addEventListener('pointerdown',e=>{
+    const cart=document.getElementById('cart');
+    if(!cart||!cart.classList.contains('open'))return;
+    if(cart.contains(e.target))return;
+    if(e.target.closest && e.target.closest('#cart-fab,[onclick*="cartT"]'))return;
+    cart.classList.remove('open');
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      const cart=document.getElementById('cart');
+      if(cart)cart.classList.remove('open');
+    }
+  });
+}
+
+async function addPromos(){
+  const nav=document.querySelector('nav');
+  if(!nav||document.getElementById('master-promos'))return;
+  let rows=[];
+  try{rows=await api('/announcements')}catch{return}
+  if(!rows.length)return;
+  const bar=document.createElement('div');
+  bar.id='master-promos';bar.className='master-promo';
+  bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
+  nav.insertAdjacentElement('afterend',bar);
+  let i=0,timer=null;
+  const render=()=>{
+    const x=rows[i%rows.length];
+    document.getElementById('masterPromoContent').innerHTML=(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
+      '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
+      (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'');
+  };
+  render();
+  if(rows.length>1){
+    timer=setInterval(()=>{i=(i+1)%rows.length;render()},6000);
+    bar.addEventListener('mouseenter',()=>clearInterval(timer));
+    bar.addEventListener('mouseleave',()=>{clearInterval(timer);timer=setInterval(()=>{i=(i+1)%rows.length;render()},6000)});
+  }
+}
+
+function addExchangeTool(){
+  const list=document.getElementById('nl');
+  if(!list||document.getElementById('masterExchange'))return;
+  const li=document.createElement('li');
+  li.className='master-fly';
+  li.id='masterExchange';
+  li.innerHTML='<button type="button" class="master-nav-tool" aria-label="KWD to PHP exchange rate">₱</button><div class="master-tooltip">Loading reference rate…</div>';
+  const btn=li.querySelector('button'),tip=li.querySelector('.master-tooltip');
+  const toggle=()=>li.classList.toggle('open');
+  btn.addEventListener('click',toggle);
+  document.addEventListener('click',e=>{if(!li.contains(e.target))li.classList.remove('open')});
+  list.insertBefore(li,list.lastElementChild||null);
+  api('/exchange-rate').then(x=>{
+    if(!x.enabled){li.hidden=true;return}
+    if(x.rate)tip.innerHTML='<b>KWD → PHP</b><br>1 KWD ≈ '+Number(x.rate).toFixed(2)+' PHP<br><small>Reference only · '+escm(x.source||'server')+'</small>';
+    else tip.textContent='Reference rate temporarily unavailable.';
+  }).catch(()=>{tip.textContent='Reference rate temporarily unavailable.'});
+}
+
+async function addRegional(){
+  if(document.getElementById('regional-favorites'))return;
+  let rows=[];try{rows=await api('/regional-dishes')}catch{return}
+  if(!rows.length)return;
+  const plans=document.getElementById('plans');
+  if(!plans)return;
+  const s=document.createElement('section');s.id='regional-favorites';s.className='master-section alt';
+  s.innerHTML='<div class="wrap"><div class="t"><h2>Regional Filipino Favorites</h2><p>Famous dishes from different regions of the Philippines.</p></div><div class="master-grid" id="regional-grid"></div></div>';
+  plans.insertAdjacentElement('beforebegin',s);
+  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'</div></article>').join('');
+}
+
+async function addHeritage(){
+  if(document.getElementById('heritage-section'))return;
+  let rows=[];try{rows=await api('/heritage')}catch{return}
+  if(!rows.length)return;
+  const gallery=document.getElementById('gallery');
+  if(!gallery)return;
+  const s=document.createElement('section');s.id='heritage-section';s.className='master-section';
+  s.innerHTML='<div class="wrap"><div class="t"><h2>Ancient Script &amp; Filipino Heritage</h2><p>Baybayin, heritage crafts, food traditions, bayanihan and Filipino cultural memory.</p></div><div class="master-carousel" id="heritage-carousel"><button class="master-carousel-btn prev" type="button" aria-label="Previous heritage item">‹</button><div class="master-carousel-track"></div><button class="master-carousel-btn next" type="button" aria-label="Next heritage item">›</button></div><div class="master-dots"></div></div>';
+  gallery.insertAdjacentElement('beforebegin',s);
+  buildCarousel(s.querySelector('.master-carousel'),s.querySelector('.master-dots'),rows);
+}
+
+async function addGalleryCarousel(){
+  const root=document.getElementById('gal'),section=document.getElementById('gallery');
+  if(!root||!section)return;
+  let rows=[];try{rows=await api('/gallery')}catch{return}
+  if(!rows.length)return;
+  const wrap=root.parentElement;
+  root.innerHTML='<div class="master-carousel" id="gallery-carousel"><button class="master-carousel-btn prev" type="button" aria-label="Previous gallery item">‹</button><div class="master-carousel-track"></div><button class="master-carousel-btn next" type="button" aria-label="Next gallery item">›</button></div><div class="master-dots"></div>';
+  buildCarousel(q('#gallery-carousel',root),q('.master-dots',wrap),rows);
+}
+
+function buildCarousel(carousel,dots,rows){
+  const track=carousel.querySelector('.master-carousel-track');
+  const slides=[rows[rows.length-1]].concat(rows,rows[0]);
+  track.innerHTML=slides.map((x,i)=>{
+    const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':'<img src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.title||x.caption||'Gallery image')+'" loading="lazy">';
+    return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<div class="caption"><strong>'+escm(x.title||x.caption||'PinoyAmbula')+'</strong></div></article>';
+  }).join('');
+  let index=1,locked=false;
+  const render=animate=>{
+    track.style.transition=animate?'transform .45s ease':'none';
+    track.style.transform='translateX(-'+(index*100)+'%)';
+    [...dots.children].forEach((b,i)=>b.classList.toggle('on',i===index-1));
+  };
+  rows.forEach((x,i)=>{const b=document.createElement('button');b.type='button';b.className='master-dot';b.setAttribute('aria-label','Go to item '+(i+1));b.addEventListener('click',()=>{index=i+1;render(true);});dots.appendChild(b)});
+  carousel.querySelector('.prev').addEventListener('click',()=>{if(locked)return;index--;render(true)});
+  carousel.querySelector('.next').addEventListener('click',()=>{if(locked)return;index++;render(true)});
+  track.addEventListener('transitionend',()=>{
+    if(index===0){index=rows.length;render(false)}
+    if(index===rows.length+1){index=1;render(false)}
+  });
+  track.addEventListener('click',e=>{
+    const slide=e.target.closest('.master-slide');if(!slide)return;
+    const logical=((+slide.dataset.slideIndex-1+rows.length)%rows.length);
+    openMediaPreview(rows[logical]);
+  });
+  render(false);
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&rows.length>1){
+    let timer=setInterval(()=>{index++;render(true)},6500);
+    carousel.addEventListener('mouseenter',()=>clearInterval(timer));
+    carousel.addEventListener('mouseleave',()=>{clearInterval(timer);timer=setInterval(()=>{index++;render(true)},6500)});
+    carousel.addEventListener('focusin',()=>clearInterval(timer));
+    carousel.addEventListener('focusout',()=>{clearInterval(timer);timer=setInterval(()=>{index++;render(true)},6500)});
+  }
+}
+
+function patchMenu(){
+  if(typeof items==='undefined'||typeof itemPrice!=='function')return;
+  const menuFallback=()=>((typeof config!=='undefined'&&config.menu_default_icon)||'/icons/pinoyambula.svg');
+  const drinkFallback=()=>((typeof config!=='undefined'&&config.drink_default_icon)||'/icons/pinoyambula.svg');
+  window.openMenuPreview=function(id){
+    const i=items.find(x=>x.id==id);if(!i)return;
+    const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
+    let d=document.getElementById('menuPreview');
+    if(!d){d=document.createElement('dialog');d.id='menuPreview';d.innerHTML='<button type="button" class="btn s o" style="float:right" aria-label="Close menu preview">✕</button><div id="menuPreviewBody"></div>';d.querySelector('button').addEventListener('click',()=>d.close());document.body.appendChild(d)}
+    d.querySelector('#menuPreviewBody').innerHTML='<img class="preview-img" src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p><p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
+    d.querySelector('#menuPreviewBody button').onclick=()=>{add(i.id);d.close()};
+    if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
+  };
+  window.card=function(i){
+    const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
+    return '<article class="card menu-card"><button type="button" class="ph menu-photo" onclick="openMenuPreview('+i.id+')" aria-label="Preview '+escm(i.name)+'" style="background-image:url(\\''+escm(src)+'\\');background-size:cover;background-position:center">'+(i.img?'':'<span style="opacity:0">Default image</span>')+'</button><div class="p"><p class="menu-category">'+escm(i.cat)+(i.region&&i.cat==='Other Asian'?' · '+escm(i.region):'')+'</p><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s" type="button" onclick="add('+i.id+')">Add</button></div></div></article>';
+  };
+  try{renderMenu()}catch{}
+}
+
+function addTheme(){
+  document.documentElement.dataset.pinoyambulaTheme='heritage';
+}
+
+function siteBoot(){
+  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();addExchangeTool();addRegional();addHeritage();addGalleryCarousel();
+  setInterval(addCartOptIn,1200);
+  const form=document.querySelector('#subd form');
+  if(form&&typeof window.updateSubEnd==='function'){
+    const update=window.updateSubEnd;
+    window.updateSubEnd=function(){
+      const p=(typeof plans!=='undefined'?plans:[]).find(x=>x.id===$('#subd [name=plan]')?.value),start=$('#sub-start')?.value;
+      if(!p||!start)return update();
+      const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+Math.max(1,+p.duration_days||1)-1);
+      $('#sub-end').value=d.toISOString().slice(0,10);
+    };
+  }
+}
+
+function masterSettingsFields(base,s){
+  const extra='<h3 style="margin-top:22px">Customer experience</h3>'+
+    '<label>Menu default image URL<input name="menu_default_icon" value="'+escm(s.menu_default_icon||'/icons/pinoyambula.svg')+'"></label>'+
+    '<label>Drinks default image URL<input name="drink_default_icon" value="'+escm(s.drink_default_icon||'/icons/pinoyambula.svg')+'"></label>'+
+    '<h3 style="margin-top:22px">POS customer receipt</h3>'+
+    '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
+    '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
+    '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
+    '<h3 style="margin-top:22px">KWD → PHP reference rate</h3>'+
+    '<label><input type="checkbox" name="exchange_rate_enabled" value="1" style="width:auto" '+(s.exchange_rate_enabled!=='0'?'checked':'')+'> Show reference rate</label>'+
+    '<label>Refresh interval (minutes)<input name="exchange_rate_refresh_minutes" type="number" min="5" max="1440" value="'+escm(s.exchange_rate_refresh_minutes||60)+'"></label>'+
+    '<label>Admin fallback rate (optional)<input name="kwd_php_rate" type="number" step="0.01" min="0" value="'+escm(s.kwd_php_rate||'')+'"></label>'+
+    '<h3 style="margin-top:22px">WhatsApp notifications</h3><p id="masterWaStatus">Checking provider status…</p>'+
+    '<h3 style="margin-top:22px">Theme</h3>'+
+    '<select name="theme_style"><option value="filipino-heritage" '+(s.theme_style!=='plain'?'selected':'')+'>Filipino heritage</option><option value="plain" '+(s.theme_style==='plain'?'selected':'')+'>Classic</option></select>';
+  const pos=base.lastIndexOf('</form>');
+  return pos>=0?base.slice(0,pos)+extra+base.slice(pos):base;
+}
+
+function adminBoot(){
+  if(typeof R==='undefined'||typeof A==='undefined')return;
+  const baseSettings=R.Settings;
+  R['Announcements']=async function(){
+    const rows=await A('/announcements');
+    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="url"></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+
+      tbl(rows,[['Priority',x=>x.priority],['Title',x=>'<input value="'+escm(x.title)+'" onchange="A(\\'/announcements/'+x.id+'\\',\\'PUT\\',{title:this.value}).then(()=>toast(\\'Saved\\'))">'],['Message',x=>'<textarea rows="2" onchange="A(\\'/announcements/'+x.id+'\\',\\'PUT\\',{message:this.value})">'+escm(x.message)+'</textarea>'],['Active',x=>'<input type="checkbox" style="width:auto" '+(x.active?'checked':'')+' onchange="A(\\'/announcements/'+x.id+'\\',\\'PUT\\',{active:this.checked?1:0}).then(()=>toast(\\'Saved\\'))">'],['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(\\''+escm(x.image)+'\\') center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],['CTA',x=>escm(x.cta_label||'')+(x.cta_url?' · '+escm(x.cta_url):'')],['Window',x=>escm(x.starts_at||'')+' → '+escm(x.ends_at||'')],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(\\'/announcements/'+x.id+'\\',\\'Announcements\\')">Delete</button>']]);
+  };
+  R['Regional Dishes']=async function(){
+    const rows=await A('/regional-dishes');
+    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddRegional(this)"><h3>Add regional Filipino dish</h3><div class="master-admin-grid"><label>Name<input name="name" required></label><label>Region<input name="region" required></label><label>Price<input name="price" type="number" step="0.001" min="0" value="0"></label><label>Sort order<input name="sort_order" type="number" value="0"></label></div><label>Description<textarea name="descr" rows="2"></textarea></label><button class="btn">Add dish</button></form>'+
+      tbl(rows,[['Name',x=>'<input value="'+escm(x.name)+'" onchange="A(\\'/regional-dishes/'+x.id+'\\',\\'PUT\\',{name:this.value}).then(()=>toast(\\'Saved\\'))">'],['Region',x=>'<input value="'+escm(x.region)+'" onchange="A(\\'/regional-dishes/'+x.id+'\\',\\'PUT\\',{region:this.value}).then(()=>toast(\\'Saved\\'))">'],['Description',x=>'<textarea rows="2" onchange="A(\\'/regional-dishes/'+x.id+'\\',\\'PUT\\',{descr:this.value})">'+escm(x.descr)+'</textarea>'],['Price',x=>'<input type="number" step="0.001" value="'+x.price+'" onchange="A(\\'/regional-dishes/'+x.id+'\\',\\'PUT\\',{price:+this.value}).then(()=>toast(\\'Saved\\'))">'],['Available',x=>'<input type="checkbox" style="width:auto" '+(x.active?'checked':'')+' onchange="A(\\'/regional-dishes/'+x.id+'\\',\\'PUT\\',{active:this.checked?1:0}).then(()=>toast(\\'Saved\\'))">'],['Image',x=>'<div class="drop master-reg-image" data-id="'+x.id+'" style="height:80px;'+(x.img?'background:url(\\''+escm(x.img)+'\\') center/cover;color:#fff':'')+'">'+(x.img?'Replace image':'⬆ Add image')+'</div>'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(\\'/regional-dishes/'+x.id+'\\',\\'Regional Dishes\\')">Delete</button>']]);
+  };
+  R['Heritage']=async function(){
+    const rows=await A('/heritage');
+    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddHeritage(this)"><h3>Ancient Script & Filipino Heritage</h3><div class="master-admin-grid"><label>Title<input name="title" required></label><label>Media type<select name="media_type"><option value="image">Image</option><option value="video">Video</option></select></label><label>Video/media URL<input name="media_url" placeholder="https://..."></label><label>Sort order<input name="sort_order" type="number" value="0"></label></div><label>Caption<textarea name="caption" rows="2"></textarea></label><button class="btn">Add heritage item</button></form>'+
+      tbl(rows,[['Title',x=>'<input value="'+escm(x.title)+'" onchange="A(\\'/heritage/'+x.id+'\\',\\'PUT\\',{title:this.value}).then(()=>toast(\\'Saved\\'))">'],['Type',x=>'<select onchange="A(\\'/heritage/'+x.id+'\\',\\'PUT\\',{media_type:this.value}).then(()=>toast(\\'Saved\\'))"><option '+(x.media_type==='image'?'selected':'')+'>image</option><option '+(x.media_type==='video'?'selected':'')+'>video</option></select>'],['Caption',x=>'<textarea rows="2" onchange="A(\\'/heritage/'+x.id+'\\',\\'PUT\\',{caption:this.value})">'+escm(x.caption)+'</textarea>'],['Media URL',x=>'<input value="'+escm(x.media_url||'')+'" onchange="A(\\'/heritage/'+x.id+'\\',\\'PUT\\',{media_url:this.value})">'],['Image',x=>'<div class="drop master-her-image" data-id="'+x.id+'" style="height:80px;'+(x.img?'background:url(\\''+escm(x.img)+'\\') center/cover;color:#fff':'')+'">'+(x.img?'Replace image':'⬆ Add image')+'</div>'],['Active',x=>'<input type="checkbox" style="width:auto" '+(x.active?'checked':'')+' onchange="A(\\'/heritage/'+x.id+'\\',\\'PUT\\',{active:this.checked?1:0}).then(()=>toast(\\'Saved\\'))">'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(\\'/heritage/'+x.id+'\\',\\'Heritage\\')">Delete</button>']]);
+  };
+  R.Settings=async function(){
+    const base=await baseSettings();
+    const s=await A('/settings');
+    const wa=await A('/whatsapp/status').catch(()=>({configured:false}));
+    const out=masterSettingsFields(base,s);
+    const hook=A_after;
+    A_after=()=>{
+      if(hook)hook();
+      const el=document.getElementById('masterWaStatus');
+      if(el)el.innerHTML=wa.configured?'<span class="master-status-ok">WhatsApp provider configured</span>':'<span class="master-status-off">WhatsApp provider not configured — website continues to work without WhatsApp.</span>';
+    };
+    return out;
+  };
+  window.masterAddAnnouncement=async form=>{
+    const d=Object.fromEntries(new FormData(form));d.active=form.elements.active.checked?1:0;d.starts_at=String(d.starts_at||'').replace('T',' ');d.ends_at=String(d.ends_at||'').replace('T',' ');
+    try{await A('/announcements','POST',d);toast('Announcement added');go('Announcements')}catch(e){toast(e.message)}
+  };
+  window.masterAddRegional=async form=>{try{await A('/regional-dishes','POST',Object.fromEntries(new FormData(form)));toast('Regional dish added');go('Regional Dishes')}catch(e){toast(e.message)}};
+  window.masterAddHeritage=async form=>{try{await A('/heritage','POST',Object.fromEntries(new FormData(form)));toast('Heritage item added');go('Heritage')}catch(e){toast(e.message)}};
+  window.masterDelete=async(path,label)=>{if(!confirm('Delete this '+label+' item?'))return;try{await A(path,'DELETE');toast('Deleted');go(cur)}catch(e){toast(e.message)}};
+  const patchDrops=()=>{
+    $$('.master-ann-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=announcement&id='+el.dataset.id)}});
+    $$('.master-reg-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=regional&id='+el.dataset.id)}});
+    $$('.master-her-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=heritage&id='+el.dataset.id)}});
+  };
+  const originalGo=window.go;
+  if(originalGo&&!window.__masterGoWrapped){
+    window.__masterGoWrapped=true;
+    window.go=async function(t){await originalGo(t);setTimeout(patchDrops,50)};
+  }
+  const originalSub=R.Subscriptions;
+  R.Subscriptions=async function(){
+    const rows=await A('/list/subs');
+    return tbl(rows,[
+      ['#',s=>s.id],
+      ['Customer',s=>escm(s.name)+'<br>'+escm(s.phone)],
+      ['Plan',s=>escm(s.plan)],
+      ['Start',s=>'<input type="date" value="'+escm(s.start)+'" onchange="masterSaveSub('+s.id+',this.value,null)">'],
+      ['Duration',s=>'<input type="number" min="1" max="366" value="'+(s.duration_days||26)+'" style="width:90px" onchange="masterSaveSub('+s.id+',null,+this.value)">'],
+      ['End',s=>'<b>'+escm(s.end)+'</b>'],
+      ['Price',s=>money(s.price)],
+      ['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—'],
+      ['Status',s=>sel('subs',s.id,s.status,['Active','Paused','Completed','Cancelled'])]
+    ]);
+  };
+  window.masterSaveSub=async(id,start,duration)=>{
+    const body={};if(start)body.start=start;if(duration)body.duration_days=duration;
+    try{await A('/subs/'+id,'PUT',body);toast('Subscription schedule updated');go('Subscriptions')}catch(e){toast(e.message)}
+  };
+  window.pr=async function(id){
+    const order=(window._ol||[]).find(x=>x.id===id);if(!order)return;
+    const st=await A('/settings');const items=JSON.parse(order.items||'[]');const w=open('','_blank','width=390,height=850');
+    if(!w){toast('Please allow pop-ups to print receipts');return}
+    const currency=String(st.currency||CUR||'KWD'),fmt=v=>Number(v||0).toFixed(3)+' '+currency;
+    const subtotal=Number(order.subtotal||items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||0),0)),discount=Number(order.discount||0),delivery=Math.max(0,Number(order.total)-subtotal+discount);
+    const logo=st.receipt_logo_url||'/icons/pinoyambula.svg';
+    const itemRows=items.map(i=>'<tr><td>'+escm(i.name)+'</td><td>'+i.qty+'</td><td class="num">'+fmt(i.price)+'</td><td class="num">'+fmt((+i.price||0)*(+i.qty||0))+'</td></tr>').join('');
+    w.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Receipt #'+order.id+'</title><style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}body{width:80mm;margin:0 auto;padding:4mm;font:11px Arial,sans-serif;color:#111}.logo{width:20mm;height:20mm;object-fit:contain;display:block;margin:0 auto 2mm}.center{text-align:center}.line{border-top:1px dashed #111;margin:3mm 0}.row{display:flex;justify-content:space-between;gap:4mm}.customer{font-size:12px;font-weight:700}.small{font-size:10px}.num{text-align:right}table{width:100%;border-collapse:collapse;margin:3mm 0}th,td{padding:1.5mm 0;border-bottom:1px dotted #bbb;vertical-align:top}th{font-size:9px}.total{font-size:14px;font-weight:800}.policy{font-size:9px;margin-top:3mm}.no-print{margin-top:4mm;width:100%;padding:3mm}@media print{.no-print{display:none}}</style></head><body><div class="center"><img class="logo" src="'+escm(logo)+'"><b>'+escm(st.name||'PinoyAmbula')+'</b><div class="small">'+escm(st.phone||'')+'</div><div class="line"></div><b>RECEIPT #'+order.id+'</b><div class="small">'+escm(order.created)+'</div></div><div class="line"></div><div class="customer">'+escm(order.name||'Customer')+'</div><div>'+escm(order.phone||'')+'</div><div>'+escm(order.address||'')+'</div>'+(order.paci?'<div class="small">PACI: '+escm(order.paci)+'</div>':'')+'<div class="line"></div><table><thead><tr><th>ITEM</th><th>Q</th><th class="num">UNIT</th><th class="num">AMT</th></tr></thead><tbody>'+itemRows+'</tbody></table><div class="row"><span>Subtotal</span><span>'+fmt(subtotal)+'</span></div><div class="row"><span>Discount</span><span>-'+fmt(discount)+'</span></div><div class="row"><span>Delivery</span><span>'+fmt(delivery)+'</span></div><div class="line"></div><div class="row total"><span>TOTAL</span><span>'+fmt(order.total)+'</span></div><div class="small">Payment: '+escm(order.pay||'COD')+'</div><div class="line"></div><div class="policy"><b>'+escm(st.receipt_no_refund||'No refund after order confirmation.')+'</b><br>'+escm(st.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</div><div class="center small" style="margin-top:4mm">Salamat po!</div><button class="no-print" onclick="print()">Print receipt</button><script>window.onload=function(){setTimeout(function(){window.print()},250)}<\\/script></body></html>');
+    w.document.close();
+  };
+  patchDrops();
+}
+
+function boot(){
+  masterCss();
+  const isAdmin=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname.startsWith('admin-');
+  if(isAdmin){adminBoot();return}
+  setTimeout(()=>{
+    try{siteBoot()}catch(e){console.error('MASTER_SITE_BOOT_FAILED',e)}
+  },150);
+}
+
+boot();
+})();
