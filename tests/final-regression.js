@@ -48,6 +48,11 @@ t('enhanced customer UX v2',()=>{
   assert(master.includes('nav ul li>a,nav ul li>button'));
   assert(master.includes('Al Mulla PHP reference rate'));
   assert(master.includes('Admin can adjust start date, duration, or the final end date'));
+  assert(master.includes('preview-ingredients')||master.includes('Ingredients'));
+  assert(master.includes('pa-marquee'));
+  assert(server.includes("['items','ingredients'"));
+  assert(server.includes("/api/admin/report-range"));
+  assert(server.includes("whatsapp_opt_in"));
 });
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
 if(tests.length){console.error('\nTEST RESULT: FAIL');process.exit(1)}else console.log('\nTEST RESULT: PASS');
