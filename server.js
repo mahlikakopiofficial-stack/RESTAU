@@ -110,7 +110,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT);CREATE T
 for(const c of['ALTER TABLE testimonials ADD COLUMN approved INTEGER DEFAULT 1',"ALTER TABLE inquiries ADD COLUMN status TEXT DEFAULT 'New'","ALTER TABLE plans ADD COLUMN includes TEXT DEFAULT '[]'"])try{db.exec(c)}catch(e){}
 if(!db.prepare('SELECT COUNT(*) n FROM plans').get().n)PLANS.forEach(p=>db.prepare('INSERT INTO plans(id,name,price,descr,active,includes) VALUES(?,?,?,?,1,?)').run(p.id,p.name,p.price,p.desc,JSON.stringify(p.id==='lunch26'?['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']:p.id==='dinner26'?['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']:['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery'])));
 const planInc=db.prepare("SELECT COUNT(*) n FROM plans WHERE includes IS NULL OR includes='' OR includes='[]'").get().n;if(planInc){db.prepare("UPDATE plans SET includes=? WHERE id='lunch26'").run(JSON.stringify(['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='dinner26'").run(JSON.stringify(['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='both26'").run(JSON.stringify(['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']))}
-const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'60',theme_style:'filipino-heritage'};
+const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',kwd_php_rate:'',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'60',theme_style:'filipino-heritage'};
 for(const k in DEF)db.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)').run(k,DEF[k]);
 db.prepare('UPDATE settings SET v=? WHERE k=? AND v=?').run(DEF.hero_text,'hero_text','Home-style Filipino cooking made with love — from everyday meals to fiesta catering. Delivered to your door, pay cash on delivery.');
 const S=()=>Object.fromEntries(db.prepare('SELECT k,v FROM settings').all().map(x=>[x.k,x.v]));
@@ -549,7 +549,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   db.prepare('UPDATE orders SET whatsapp_opt_in=? WHERE id=?').run(b.whatsapp_opt_in?1:0,id);
   const savedOrder=one('SELECT * FROM orders WHERE id=?',id);
   notifyOrderReceived(savedOrder);
-  Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
+  if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
   notifyAdminOrder(savedOrder);
 
   r.json({
@@ -585,7 +585,7 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
   const savedSub=one('SELECT * FROM subs WHERE id=?',id);
   if(b.whatsapp_opt_in)db.prepare('UPDATE customers SET whatsapp_opt_in=1 WHERE id=?').run(savedSub.customer_id);
   notifySubscriptionReceived(savedSub);
-  Promise.resolve(notificationOnce('subscription:'+id+':received',savedSub.phone,subscriptionWhatsAppText(savedSub,'received'))).catch(()=>{});
+  if(savedSub.whatsapp_opt_in)Promise.resolve(notificationOnce('subscription:'+id+':received',savedSub.phone,subscriptionWhatsAppText(savedSub,'received'))).catch(()=>{});
   r.json({id:Number(id),start:date(start),end:date(end),duration_days:duration,price:p.price,payment_method:payment,payment_status:'Pending'});
 }));
 
@@ -866,7 +866,7 @@ const SK=[
   'name','phone','hours','currency','fee','min_order','accepting',
   'hero_title','hero_text','logo_url','whatsapp','facebook','instagram',
   'location','map_url','approval_mode','payment_cod','payment_card',
-  'promo_enabled','promo_code','promo_type','promo_value','menu_default_icon','drink_default_icon','receipt_logo_url','receipt_no_refund','receipt_exchange_policy','exchange_rate_enabled','exchange_rate_refresh_minutes','theme_style'
+  'promo_enabled','promo_code','promo_type','promo_value','menu_default_icon','drink_default_icon','receipt_logo_url','receipt_no_refund','receipt_exchange_policy','exchange_rate_enabled','exchange_rate_refresh_minutes','kwd_php_rate','theme_style'
 ];
 app.get('/api/admin/settings',admin,(q,r)=>r.json(S()));
 app.put('/api/admin/settings',admin,w((q,r)=>{
@@ -931,8 +931,8 @@ const c=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.repla
 r.type('text/csv').send('\ufeff'+[cols.map(c).join(',')].concat(rows.map(x=>cols.map(k=>c(x[k])).join(','))).join('\n'))}));
 const up=multer({storage:multer.diskStorage({destination:UP,filename:(q,f,cb)=>cb(null,crypto.randomBytes(8).toString('hex')+path.extname(f.originalname).toLowerCase())}),limits:{fileSize:5e6},fileFilter:(q,f,cb)=>/^image\/(jpe?g|png|webp|gif)$/.test(f.mimetype)?cb(null,true):cb(new Error('Images only (jpg, png, webp, gif)'))});
 app.post('/api/admin/upload',admin,up.single('file'),w((q,r)=>{if(!q.file)throw new Error('No file');const url='/uploads/'+q.file.filename,t=q.query;
-const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.target==='announcement'?one('SELECT image x FROM announcements WHERE id=?',t.id)?.x:t.target==='heritage'?one('SELECT img x FROM heritage WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
-if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.target==='announcement')db.prepare('UPDATE announcements SET image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(url,t.id);else if(t.target==='heritage')db.prepare("UPDATE heritage SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
+const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.target==='announcement'?one('SELECT image x FROM announcements WHERE id=?',t.id)?.x:t.target==='regional'?one('SELECT img x FROM regional_dishes WHERE id=?',t.id)?.x:t.target==='heritage'?one('SELECT img x FROM heritage WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
+if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.target==='announcement')db.prepare('UPDATE announcements SET image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(url,t.id);else if(t.target==='regional')db.prepare('UPDATE regional_dishes SET img=? WHERE id=?').run(url,t.id);else if(t.target==='heritage')db.prepare("UPDATE heritage SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
 if(old&&old.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(old)),()=>{});r.json({url})}));
 app.delete('/api/admin/image',admin,w((q,r)=>{
   const {target,id}=q.body||{};
@@ -949,6 +949,9 @@ app.delete('/api/admin/image',admin,w((q,r)=>{
   }else if(target==='announcement'){
     row=one('SELECT image FROM announcements WHERE id=?',id);
     clear=()=>db.prepare("UPDATE announcements SET image='',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
+  }else if(target==='regional'){
+    row=one('SELECT img FROM regional_dishes WHERE id=?',id);
+    clear=()=>db.prepare('UPDATE regional_dishes SET img="" WHERE id=?').run(id);
   }else if(target==='heritage'){
     row=one('SELECT img FROM heritage WHERE id=?',id);
     clear=()=>db.prepare("UPDATE heritage SET img='',media_type='image',media_url='' WHERE id=?").run(id);
