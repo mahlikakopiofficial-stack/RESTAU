@@ -3,6 +3,7 @@ try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
 const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
+const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
@@ -21,6 +22,10 @@ CREATE TABLE IF NOT EXISTS plans(id TEXT PRIMARY KEY,name TEXT,price REAL,descr 
 CREATE TABLE IF NOT EXISTS newsletter_campaigns(id INTEGER PRIMARY KEY,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT DEFAULT 'Queued',total INTEGER DEFAULT 0,sent INTEGER DEFAULT 0,failed INTEGER DEFAULT 0,created TEXT DEFAULT CURRENT_TIMESTAMP,completed TEXT);
 CREATE TABLE IF NOT EXISTS newsletter_jobs(id INTEGER PRIMARY KEY,campaign_id INTEGER NOT NULL,email TEXT NOT NULL,status TEXT DEFAULT 'Pending',error TEXT,sent_at TEXT,UNIQUE(campaign_id,email));
 CREATE TABLE IF NOT EXISTS loyalty_redemptions(customer_id INTEGER NOT NULL,threshold INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(customer_id,threshold));
+CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,title TEXT NOT NULL,message TEXT NOT NULL,image TEXT DEFAULT '',cta_label TEXT DEFAULT '',cta_url TEXT DEFAULT '',priority INTEGER DEFAULT 0,starts_at TEXT DEFAULT '',ends_at TEXT DEFAULT '',active INTEGER DEFAULT 1,created TEXT DEFAULT CURRENT_TIMESTAMP,updated TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS regional_dishes(id INTEGER PRIMARY KEY,name TEXT NOT NULL,region TEXT NOT NULL,descr TEXT DEFAULT '',price REAL DEFAULT 0,img TEXT DEFAULT '',active INTEGER DEFAULT 1,sort_order INTEGER DEFAULT 0,created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS heritage(id INTEGER PRIMARY KEY,title TEXT NOT NULL,caption TEXT DEFAULT '',media_type TEXT DEFAULT 'image',img TEXT DEFAULT '',media_url TEXT DEFAULT '',active INTEGER DEFAULT 1,sort_order INTEGER DEFAULT 0,created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS notification_log(id INTEGER PRIMARY KEY,channel TEXT NOT NULL,event_key TEXT NOT NULL UNIQUE,recipient TEXT DEFAULT '',status TEXT DEFAULT 'Pending',error TEXT DEFAULT '',created TEXT DEFAULT CURRENT_TIMESTAMP,sent_at TEXT);
 `);
 const ensureColumn=(table,column,definition)=>{
   if(!db.prepare(`PRAGMA table_info(${table})`).all().some(x=>x.name===column))
@@ -33,6 +38,7 @@ const ensureColumn=(table,column,definition)=>{
   ['customers','birthday',"TEXT DEFAULT ''"],
   ['customers','nationality',"TEXT DEFAULT ''"],
   ['customers','auth_version','INTEGER DEFAULT 0'],
+  ['customers','whatsapp_opt_in','INTEGER DEFAULT 0'],
   ['orders','subtotal','REAL DEFAULT 0'],
   ['orders','discount','REAL DEFAULT 0'],
   ['orders','email',"TEXT DEFAULT ''"],
@@ -50,6 +56,7 @@ const ensureColumn=(table,column,definition)=>{
   ['orders','lat','REAL'],
   ['orders','lng','REAL'],
   ['orders','map_url',"TEXT DEFAULT ''"],
+  ['orders','whatsapp_opt_in','INTEGER DEFAULT 0'],
   ['gallery','media_type',"TEXT DEFAULT 'image'"],
   ['gallery','media_url',"TEXT DEFAULT ''"],
   ['subs','email',"TEXT DEFAULT ''"],
@@ -57,6 +64,7 @@ const ensureColumn=(table,column,definition)=>{
   ['subs','payment_status',"TEXT DEFAULT 'Pending'"],
   ['subs','duration_days','INTEGER DEFAULT 26'],
   ['subs','nickname',"TEXT DEFAULT ''"],
+  ['subs','whatsapp_opt_in','INTEGER DEFAULT 0'],
   ['plans','duration_days','INTEGER DEFAULT 26'],
   ['plans','img',"TEXT DEFAULT ''"],
   ['inquiries','customer_id','INTEGER'],
@@ -102,10 +110,42 @@ db.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT);CREATE T
 for(const c of['ALTER TABLE testimonials ADD COLUMN approved INTEGER DEFAULT 1',"ALTER TABLE inquiries ADD COLUMN status TEXT DEFAULT 'New'","ALTER TABLE plans ADD COLUMN includes TEXT DEFAULT '[]'"])try{db.exec(c)}catch(e){}
 if(!db.prepare('SELECT COUNT(*) n FROM plans').get().n)PLANS.forEach(p=>db.prepare('INSERT INTO plans(id,name,price,descr,active,includes) VALUES(?,?,?,?,1,?)').run(p.id,p.name,p.price,p.desc,JSON.stringify(p.id==='lunch26'?['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']:p.id==='dinner26'?['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']:['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery'])));
 const planInc=db.prepare("SELECT COUNT(*) n FROM plans WHERE includes IS NULL OR includes='' OR includes='[]'").get().n;if(planInc){db.prepare("UPDATE plans SET includes=? WHERE id='lunch26'").run(JSON.stringify(['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='dinner26'").run(JSON.stringify(['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='both26'").run(JSON.stringify(['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']))}
-const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.'};
+const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'60',theme_style:'filipino-heritage'};
 for(const k in DEF)db.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)').run(k,DEF[k]);
 db.prepare('UPDATE settings SET v=? WHERE k=? AND v=?').run(DEF.hero_text,'hero_text','Home-style Filipino cooking made with love — from everyday meals to fiesta catering. Delivered to your door, pay cash on delivery.');
 const S=()=>Object.fromEntries(db.prepare('SELECT k,v FROM settings').all().map(x=>[x.k,x.v]));
+if(!db.prepare('SELECT COUNT(*) n FROM regional_dishes').get().n){
+  const regional=[
+    ['Bicol Express','Bicol Region','Pork or seafood stew with coconut milk and chili, commonly associated with Bicol cuisine.',3.200],
+    ['Chicken Inasal','Western Visayas','Char-grilled marinated chicken associated with Bacolod and the Western Visayas.',3.000],
+    ['La Paz Batchoy','Western Visayas','Rich noodle soup associated with La Paz, Iloilo.',2.800],
+    ['Pinapaitan','Ilocos Region','Savory and bitter Ilocano stew traditionally made with offal and bile.',2.800],
+    ['Bagnet','Ilocos Region','Crispy Ilocano pork belly dish served in bite-size pieces.',3.500],
+    ['Pancit Batil Patung','Cagayan Valley','Noodle dish associated with Tuguegarao and nearby areas.',2.600],
+    ['Kansi','Western Visayas','Sour beef soup associated with Negros Occidental and Iloilo.',3.100],
+    ['Kinilaw','Visayas and Mindanao','Vinegar-cured seafood preparation found across many coastal communities in the Philippines.',2.900]
+  ];
+  const ri=db.prepare('INSERT INTO regional_dishes(name,region,descr,price,sort_order) VALUES(?,?,?,?,?)');
+  regional.forEach((x,i)=>ri.run(x[0],x[1],x[2],x[3],i));
+}
+const notificationOnce=async(eventKey,recipient,text)=>{
+  if(!eventKey||!recipient||!whatsappConfigured())return {skipped:true};
+  const inserted=db.prepare("INSERT OR IGNORE INTO notification_log(channel,event_key,recipient,status) VALUES('whatsapp',?,?,?)").run(eventKey,recipient,'Pending');
+  if(!inserted.changes)return {duplicate:true};
+  try{
+    const result=await sendWhatsAppText(recipient,text);
+    if(result.sent)db.prepare("UPDATE notification_log SET status='Sent',sent_at=CURRENT_TIMESTAMP,error='' WHERE event_key=?").run(eventKey);
+    else db.prepare("UPDATE notification_log SET status='Skipped',error=? WHERE event_key=?").run(String(result.reason||'Skipped').slice(0,500),eventKey);
+    return result;
+  }catch(error){
+    db.prepare("UPDATE notification_log SET status='Failed',error=? WHERE event_key=?").run(String(error.message||error).slice(0,500),eventKey);
+    console.error('WHATSAPP_NOTIFICATION_FAILED',eventKey,error.message||error);
+    return {failed:true,error:error.message||String(error)};
+  }
+};
+const restaurantName=()=>String(S().name||NAME).trim();
+const orderWhatsAppText=(order,event)=>restaurantName()+': Order #'+order.id+' for '+String(order.name||'Customer')+' is now '+(event==='received'?'received':String(event).toLowerCase())+'. Total: '+Number(order.total||0).toFixed(3)+' '+String(S().currency||CUR)+'.';
+const subscriptionWhatsAppText=(sub,event)=>restaurantName()+': Your '+String(sub.plan||'subscription')+' is '+String(event)+'. Schedule: '+sub.start+' to '+sub.end+'.';
 const sweep=()=>db.prepare("UPDATE subs SET status='Completed' WHERE status='Active' AND \"end\"<date('now')").run();sweep();setInterval(sweep,36e5).unref();
 const sig=p=>crypto.createHmac('sha256',SECRET).update(p).digest('base64url');
 const mk=o=>{const p=Buffer.from(JSON.stringify({...o,exp:Date.now()+7*864e5})).toString('base64url');return p+'.'+sig(p)};
@@ -505,8 +545,11 @@ app.post('/api/order',lim(30),w((q,r)=>{
   return Number(id);
   });
   const id=saveOrder();
+  if(b.whatsapp_opt_in)db.prepare('UPDATE customers SET whatsapp_opt_in=1 WHERE id=?').run(customerId);
+  db.prepare('UPDATE orders SET whatsapp_opt_in=? WHERE id=?').run(b.whatsapp_opt_in?1:0,id);
   const savedOrder=one('SELECT * FROM orders WHERE id=?',id);
   notifyOrderReceived(savedOrder);
+  Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
   notifyAdminOrder(savedOrder);
 
   r.json({
@@ -537,10 +580,12 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
   const duration=Math.max(1,Math.min(366,+p.duration_days||26));
   const end=new Date(start);end.setUTCDate(end.getUTCDate()+duration-1);
   const date=x=>x.toISOString().slice(0,10);
-  const id=db.prepare('INSERT INTO subs(customer_id,name,nickname,phone,address,paci,plan,start,end,price,email,payment_method,payment_status,duration_days) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    .run(custId(b,q),String(b.name).slice(0,100),String(b.nickname||'').slice(0,60),String(b.phone).slice(0,40),String(b.address).slice(0,400),String(b.paci||'').slice(0,80),p.name,date(start),date(end),p.price,String(b.email).slice(0,200),payment,'Pending',duration).lastInsertRowid;
+  const id=db.prepare('INSERT INTO subs(customer_id,name,nickname,phone,address,paci,plan,start,end,price,email,payment_method,payment_status,duration_days,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(custId(b,q),String(b.name).slice(0,100),String(b.nickname||'').slice(0,60),String(b.phone).slice(0,40),String(b.address).slice(0,400),String(b.paci||'').slice(0,80),p.name,date(start),date(end),p.price,String(b.email).slice(0,200),payment,'Pending',duration,b.whatsapp_opt_in?1:0).lastInsertRowid;
   const savedSub=one('SELECT * FROM subs WHERE id=?',id);
+  if(b.whatsapp_opt_in)db.prepare('UPDATE customers SET whatsapp_opt_in=1 WHERE id=?').run(savedSub.customer_id);
   notifySubscriptionReceived(savedSub);
+  Promise.resolve(notificationOnce('subscription:'+id+':received',savedSub.phone,subscriptionWhatsAppText(savedSub,'received'))).catch(()=>{});
   r.json({id:Number(id),start:date(start),end:date(end),duration_days:duration,price:p.price,payment_method:payment,payment_status:'Pending'});
 }));
 
@@ -650,6 +695,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     db.prepare('UPDATE orders SET '+sets.join(',')+' WHERE id=?').run(...vals);
     const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
     notifyOrderStatus(after,before.status);
+    if(after.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+after.id+':'+after.status,after.phone,orderWhatsAppText(after,after.status))).catch(()=>{});
     return r.json({ok:1,status});
   }
 
@@ -661,6 +707,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     db.prepare('UPDATE subs SET status=? WHERE id=?').run(status,q.params.id);
     const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
     notifySubscriptionStatus(after,before.status);
+    if(after.whatsapp_opt_in)Promise.resolve(notificationOnce('subscription:'+after.id+':'+after.status,after.phone,subscriptionWhatsAppText(after,after.status))).catch(()=>{});
     return r.json({ok:1,status});
   }
 
@@ -704,9 +751,11 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
   if(b.payment_method!==undefined&&!['COD','CARD'].includes(String(b.payment_method).toUpperCase()))throw new Error('Invalid payment method');
   if(b.payment_status!==undefined&&!['Pending','Paid','Failed','Refunded'].includes(b.payment_status))throw new Error('Invalid payment status');
   for(const key of ['start','end'])if(b[key]!==undefined&&!validDate(b[key]))throw new Error('Invalid '+key+' date');
-  const current=one('SELECT start,end FROM subs WHERE id=?',q.params.id);
+  const current=one('SELECT start,end,duration_days FROM subs WHERE id=?',q.params.id);
   if(!current)throw new Error('Subscription not found');
-  const start=b.start||current.start,end=b.end||current.end;
+  const start=b.start||current.start;
+  let end=b.end||current.end;
+  if(b.duration_days!==undefined){const duration=Math.max(1,Math.min(366,Math.trunc(+b.duration_days||current.duration_days||26)));const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+duration-1);end=d.toISOString().slice(0,10);b.end=end;b.duration_days=duration;}
   if(start>end)throw new Error('End date must be on or after start date');
   const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
   if(!before)throw new Error('Subscription not found');
@@ -715,6 +764,7 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
   if(!result.changes)throw new Error('Subscription not found');
   const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
   if(keys.includes('payment_status'))notifySubscriptionPaymentStatus(after,before.payment_status);
+  if(keys.includes('whatsapp_opt_in'))db.prepare('UPDATE customers SET whatsapp_opt_in=? WHERE id=?').run(after.whatsapp_opt_in?1:0,after.customer_id);
   r.json({ok:1});
 }));
 const validDate=value=>{
@@ -816,7 +866,7 @@ const SK=[
   'name','phone','hours','currency','fee','min_order','accepting',
   'hero_title','hero_text','logo_url','whatsapp','facebook','instagram',
   'location','map_url','approval_mode','payment_cod','payment_card',
-  'promo_enabled','promo_code','promo_type','promo_value'
+  'promo_enabled','promo_code','promo_type','promo_value','menu_default_icon','drink_default_icon','receipt_logo_url','receipt_no_refund','receipt_exchange_policy','exchange_rate_enabled','exchange_rate_refresh_minutes','theme_style'
 ];
 app.get('/api/admin/settings',admin,(q,r)=>r.json(S()));
 app.put('/api/admin/settings',admin,w((q,r)=>{
@@ -881,8 +931,8 @@ const c=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.repla
 r.type('text/csv').send('\ufeff'+[cols.map(c).join(',')].concat(rows.map(x=>cols.map(k=>c(x[k])).join(','))).join('\n'))}));
 const up=multer({storage:multer.diskStorage({destination:UP,filename:(q,f,cb)=>cb(null,crypto.randomBytes(8).toString('hex')+path.extname(f.originalname).toLowerCase())}),limits:{fileSize:5e6},fileFilter:(q,f,cb)=>/^image\/(jpe?g|png|webp|gif)$/.test(f.mimetype)?cb(null,true):cb(new Error('Images only (jpg, png, webp, gif)'))});
 app.post('/api/admin/upload',admin,up.single('file'),w((q,r)=>{if(!q.file)throw new Error('No file');const url='/uploads/'+q.file.filename,t=q.query;
-const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
-if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
+const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.target==='announcement'?one('SELECT image x FROM announcements WHERE id=?',t.id)?.x:t.target==='heritage'?one('SELECT img x FROM heritage WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
+if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.target==='announcement')db.prepare('UPDATE announcements SET image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(url,t.id);else if(t.target==='heritage')db.prepare("UPDATE heritage SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
 if(old&&old.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(old)),()=>{});r.json({url})}));
 app.delete('/api/admin/image',admin,w((q,r)=>{
   const {target,id}=q.body||{};
@@ -896,6 +946,12 @@ app.delete('/api/admin/image',admin,w((q,r)=>{
   }else if(target==='plan'){
     row=one('SELECT img FROM plans WHERE id=?',id);
     clear=()=>db.prepare("UPDATE plans SET img='' WHERE id=?").run(id);
+  }else if(target==='announcement'){
+    row=one('SELECT image FROM announcements WHERE id=?',id);
+    clear=()=>db.prepare("UPDATE announcements SET image='',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
+  }else if(target==='heritage'){
+    row=one('SELECT img FROM heritage WHERE id=?',id);
+    clear=()=>db.prepare("UPDATE heritage SET img='',media_type='image',media_url='' WHERE id=?").run(id);
   }else if(target==='gallery'){
     row=one('SELECT img FROM gallery WHERE id=?',id);
     clear=()=>db.prepare('UPDATE gallery SET img=NULL WHERE id=?').run(id);
@@ -934,6 +990,41 @@ async function processNewsletterQueue(){
   }finally{newsletterWorkerBusy=false;}
 }
 setInterval(processNewsletterQueue,Math.max(500,+(E.NEWSLETTER_INTERVAL_MS||1100))).unref();
+app.get('/api/announcements',(q,r)=>{
+  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
+});
+app.get('/api/regional-dishes',(q,r)=>r.json(db.prepare("SELECT id,name,region,descr,price,img FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all()));
+app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
+let exchangeCache={rate:null,updatedAt:0,source:'Unavailable'};
+async function getExchangeRate(){
+  const st=S(),minutes=Math.max(5,Math.min(1440,+(st.exchange_rate_refresh_minutes||60)));
+  if(exchangeCache.rate&&Date.now()-exchangeCache.updatedAt<minutes*60000)return exchangeCache;
+  try{
+    const response=await fetch('https://api.frankfurter.app/latest?from=KWD&to=PHP');
+    const data=await response.json().catch(()=>({}));
+    const rate=Number(data?.rates?.PHP);
+    if(!response.ok||!(rate>0))throw new Error('No KWD/PHP rate');
+    exchangeCache={rate,updatedAt:Date.now(),source:'Frankfurter'};
+  }catch(error){
+    const fallback=Number(st.kwd_php_rate);
+    exchangeCache={rate:fallback>0?fallback:null,updatedAt:Date.now(),source:fallback>0?'Admin fallback':'Unavailable'};
+  }
+  return exchangeCache;
+}
+app.get('/api/exchange-rate',async(q,r)=>{const st=S();if(st.exchange_rate_enabled==='0')return r.json({enabled:false});const x=await getExchangeRate();r.json({enabled:true,rate:x.rate,updated_at:x.updatedAt?new Date(x.updatedAt).toISOString():null,source:x.source,reference:'1 KWD = PHP'});});
+app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
+app.post('/api/admin/announcements',admin,w((q,r)=>{need(q.body,'title','message');const b=q.body;const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)').run(String(b.title).slice(0,160),String(b.message).slice(0,1000),String(b.image||''),String(b.cta_label||'').slice(0,80),String(b.cta_url||'').slice(0,500),Math.trunc(+b.priority||0),String(b.starts_at||''),String(b.ends_at||''),b.active===0?0:1).lastInsertRowid);r.json({ok:1,id});}));
+app.put('/api/admin/announcements/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','message','image','cta_label','cta_url','priority','starts_at','ends_at','active'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE announcements SET '+keys.map(k=>k+'=?').join(',')+',updated_at=CURRENT_TIMESTAMP WHERE id=?').run(...keys.map(k=>k==='priority'?Math.trunc(+q.body[k]||0):String(q.body[k]??'').slice(0,k==='message'?1000:500)),q.params.id);r.json({ok:1});}));
+app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);if(row?.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});db.prepare('DELETE FROM announcements WHERE id=?').run(q.params.id);r.json({ok:1});}));
+app.get('/api/admin/regional-dishes',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())));
+app.post('/api/admin/regional-dishes',admin,w((q,r)=>{need(q.body,'name','region');const id=Number(db.prepare('INSERT INTO regional_dishes(name,region,descr,price,img,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(String(q.body.name).slice(0,120),String(q.body.region).slice(0,120),String(q.body.descr||'').slice(0,600),Math.max(0,+q.body.price||0),String(q.body.img||''),q.body.active===0?0:1,Math.trunc(+q.body.sort_order||0)).lastInsertRowid);r.json({ok:1,id});}));
+app.put('/api/admin/regional-dishes/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['name','region','descr','price','img','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE regional_dishes SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='price'?Math.max(0,+q.body[k]||0):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
+app.delete('/api/admin/regional-dishes/:id',admin,w((q,r)=>{const row=one('SELECT img FROM regional_dishes WHERE id=?',q.params.id);if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});db.prepare('DELETE FROM regional_dishes WHERE id=?').run(q.params.id);r.json({ok:1});}));
+app.get('/api/admin/heritage',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM heritage ORDER BY sort_order,id').all())));
+app.post('/api/admin/heritage',admin,w((q,r)=>{need(q.body,'title');const type=['image','video'].includes(q.body.media_type)?q.body.media_type:'image';const id=Number(db.prepare('INSERT INTO heritage(title,caption,media_type,img,media_url,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(String(q.body.title).slice(0,160),String(q.body.caption||'').slice(0,600),type,String(q.body.img||''),String(q.body.media_url||'').slice(0,500),q.body.active===0?0:1,Math.trunc(+q.body.sort_order||0)).lastInsertRowid);r.json({ok:1,id});}));
+app.put('/api/admin/heritage/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','caption','media_type','img','media_url','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE heritage SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='media_type'?(['image','video'].includes(q.body[k])?q.body[k]:'image'):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
+app.delete('/api/admin/heritage/:id',admin,w((q,r)=>{const row=one('SELECT img FROM heritage WHERE id=?',q.params.id);if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});db.prepare('DELETE FROM heritage WHERE id=?').run(q.params.id);r.json({ok:1});}));
+app.get('/api/admin/whatsapp/status',admin,(q,r)=>r.json(whatsappStatus()));
 app.get('/check.html',(q,r,n)=>E.ENABLE_CHECK==='0'?r.status(404).send('Not found'):n());
 app.use((q,r,n)=>{
   const host=String(q.hostname||'').toLowerCase();
