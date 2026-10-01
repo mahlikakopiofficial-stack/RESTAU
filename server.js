@@ -1112,6 +1112,12 @@ app.use((q,r,n)=>{
   const host=String(q.hostname||'').toLowerCase();
   const configuredAdminHost=String(E.ADMIN_HOST||'admin.pinoyambula.com').toLowerCase();
   const isAdminHost=host===configuredAdminHost||host==='admin.localhost';
+  if(isAdminHost&&q.path==='/website'){
+    const publicBase=String(E.PUBLIC_BASE_URL||'').replace(/\/+$/,'');
+    if(publicBase)return r.redirect(publicBase);
+    if(host==='admin.localhost')return r.redirect(`http://localhost:${PORT}`);
+    return r.status(503).send('Customer website URL is not configured');
+  }
   if(isAdminHost && (q.path==='/'||q.path==='/index.html')) return r.sendFile(path.join(__dirname,'public','admin.html'));
   if(!isAdminHost && q.path==='/admin.html' && E.NODE_ENV==='production') return r.status(404).send('Not found');
   n();

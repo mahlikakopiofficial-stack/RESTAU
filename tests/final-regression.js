@@ -20,6 +20,7 @@ for(const f of ['server.js','lib/gmail.js','lib/notifications.js','public/app.js
 t('orders + production gate',()=>{assert(server.includes("app.post('/api/order'"));assert(server.includes("E.ENABLE_CHECK==='0'"));assert(server.includes("st.accepting!=='1'"))});
 t('secure auth/reset',()=>{assert(server.includes('password_reset_tokens'));assert(server.includes('auth_version'));assert(server.includes("app.post('/api/password-reset'"));assert(server.includes("app.post('/api/password-reset/confirm'"));assert(server.includes('sendPasswordResetEmail'));assert(gmail.includes('gmail.send'));assert(!gmail.includes('smtp.gmail.com'))});
 t('admin portal isolation',()=>{assert(server.includes('configuredAdminHost'));assert(server.includes("host==='admin.localhost"));assert(fixes.includes('admin.html'));assert(index.includes('Admin'))});
+t('admin website navigation',()=>{assert(server.includes("q.path==='/website'"));assert(server.includes('PUBLIC_BASE_URL'));assert(/location\.href=.*website/.test(admin))});
 t('customer profile + nationality',()=>{assert(server.includes("'customers','nationality'"));assert(account.includes('name="nationality"'));assert(fixes.includes('Select nationality'))});
 t('delivery map pin',()=>{assert(server.includes("'orders','lat'"));assert(server.includes("'orders','lng'"));assert(server.includes("'orders','map_url'"));assert(fixes.includes('Use my current map location'));assert(fixes.includes('well-known nearby building'))});
 t('driver + order chat',()=>{assert(server.includes("'orders','driver_name'"));assert(server.includes("'orders','driver_phone'"));assert(server.includes("app.get('/api/customer/orders/:id/chat'"));assert(server.includes("app.post('/api/customer/orders/:id/chat'"));assert(account.includes('Driver name:'));assert(account.includes('Driver number:'));assert(account.includes('Chat about this order'))});
@@ -43,6 +44,9 @@ t('enhanced customer UX v2',()=>{
   assert(master.includes('addExchangeConverter'));
   assert(master.includes('master-menu-photo'));
   assert(master.includes('openMenuPreview'));
+  assert(index.includes('renderCard=window.card||card'));
+  assert(index.includes('.map(renderCard)'));
+  assert(master.includes('preview-ingredients'));
   assert(master.includes('gallery-carousel'));
   assert(master.includes('master-slide-hit'));
   assert(master.includes('nav ul li>a,nav ul li>button'));

@@ -52,9 +52,9 @@ const card=i=>`<div class="card"><div class="ph" style="${i.img?`background-imag
   <button class="btn s" style="float:right" onclick="add(${i.id})">Add</button>
 </p></div></div>`;
 function setCat(c){cat=c;renderMenu()}
-function renderMenu(){$('#tabs').innerHTML=CATS.map(c=>`<button class="${c==cat?'on':''}" aria-pressed="${c==cat}" onclick="setCat('${c}')">${c}</button>`).join('');const query=$('#menu-search').value.trim().toLowerCase(),L=items.filter(i=>i.cat==cat&&(!query||`${i.name} ${i.descr} ${i.region}`.toLowerCase().includes(query)));
+function renderMenu(){$('#tabs').innerHTML=CATS.map(c=>`<button class="${c==cat?'on':''}" aria-pressed="${c==cat}" onclick="setCat('${c}')">${c}</button>`).join('');const query=$('#menu-search').value.trim().toLowerCase(),L=items.filter(i=>i.cat==cat&&(!query||`${i.name} ${i.descr} ${i.region}`.toLowerCase().includes(query))),renderCard=window.card||card;
 $('#menu-summary').textContent=L.length?`${L.length} ${L.length===1?'dish':'dishes'} in ${cat}`:`No dishes found in ${cat}. Try another search or category.`;
-$('#menu-list').innerHTML=cat=='Other Asian'?[...new Set(L.map(i=>i.region))].map(r=>`<h3 class="menu-region">${esc(r)}</h3><div class="grid">${L.filter(i=>i.region==r).map(card).join('')}</div>`).join(''):`<div class="grid">${L.map(card).join('')}</div>`}
+$('#menu-list').innerHTML=cat=='Other Asian'?[...new Set(L.map(i=>i.region))].map(r=>`<h3 class="menu-region">${esc(r)}</h3><div class="grid">${L.filter(i=>i.region==r).map(renderCard).join('')}</div>`).join(''):`<div class="grid">${L.map(renderCard).join('')}</div>`}
 const sv=()=>{localStorage.setItem('cart',JSON.stringify(cart));renderCart()};
 function add(id){cart[id]=(cart[id]||0)+1;sv();toast('Added to cart')}
 function chg(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];sv()}

@@ -245,7 +245,8 @@ function patchMenu(){
       d.innerHTML='<div class="close-row"><button type="button" class="btn s o" aria-label="Close menu preview">✕</button></div><div id="menuPreviewBody"></div>';
       d.querySelector('button').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close()});document.body.appendChild(d);
     }
-    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p><p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
+    const ingredients=String(i.ingredients||'').trim();
+    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p>'+(ingredients?'<section class="preview-ingredients"><h3>Ingredients</h3><p>'+escm(ingredients)+'</p></section>':'')+'<p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
     d.querySelector('#menuPreviewBody button.btn').onclick=()=>{add(i.id);d.close()};
     if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
   };

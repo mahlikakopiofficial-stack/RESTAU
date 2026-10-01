@@ -6,7 +6,7 @@ const K='at',A=(u,m,b)=>api('/admin'+u,m,b,K),TABS=['Overview','Orders','Menu','
 async function lg(e){e.preventDefault();try{localStorage.setItem(K,(await api('/admin/login','POST',Object.fromEntries(new FormData(e.target)),K)).token);show()}catch(x){toast(x.message)}}
 function out(){localStorage.removeItem(K);location.reload()}
 function show(){const ok=!!tk(K);$('#login').hidden=ok;$('#app').hidden=!ok;if(ok)go(cur)}
-async function go(t){cur=t;$('#side').innerHTML=TABS.map(x=>`<button class="${x==t?'on':''}" onclick="go('${x}')">${x}</button>`).join('')+'<button onclick="location.href=\'index.html\'">← Website</button><button onclick="out()">Logout</button>';
+async function go(t){cur=t;$('#side').innerHTML=TABS.map(x=>`<button class="${x==t?'on':''}" onclick="go('${x}')">${x}</button>`).join('')+'<button onclick="location.href=\'/website\'">← Website</button><button onclick="out()">Logout</button>';
 try{CUR=(await api('/config')).currency;$('#main').innerHTML=`<h2>${t}</h2>`+await R[t]();if(A_after)A_after();A_after=null}catch(x){if(/login/i.test(x.message)){out()}else toast(x.message)}}
 let A_after=null;
 const tbl=(rows,cols)=>`<div class="tw"><table><tr>${cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr>${rows.map(r=>`<tr>${cols.map(c=>`<td data-label="${c[0]}">${c[1](r)}</td>`).join('')}</tr>`).join('')||'<tr><td>No records yet</td></tr>'}</table></div>`;
