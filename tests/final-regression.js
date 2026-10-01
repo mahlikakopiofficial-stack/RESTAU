@@ -34,5 +34,20 @@ t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deplo
 t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('sendPasswordResetEmail'))});
 t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/exchange-rate'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
 t('master enhancement customer UX',()=>{assert(index.includes('master-enhancements.js'));assert(admin.includes('master-enhancements.js'));assert(master.includes('menu_default_icon'));assert(master.includes('master-promo'));assert(master.includes('Regional Filipino Favorites'));assert(master.includes('Ancient Script &amp; Filipino Heritage'));assert(master.includes('whatsapp_opt_in'));assert(master.includes('master-carousel'));assert(master.includes('receipt_logo_url'));});
+t('enhanced customer UX v2',()=>{
+  assert(server.includes('al_mulla_php_rate'));
+  assert(server.includes('Al Mulla Exchange reference'));
+  assert(server.includes('duration_days'));
+  assert(server.includes('moreRegional'));
+  assert(index.includes('id="exchange-converter"'));
+  assert(master.includes('addExchangeConverter'));
+  assert(master.includes('master-menu-photo'));
+  assert(master.includes('openMenuPreview'));
+  assert(master.includes('gallery-carousel'));
+  assert(master.includes('master-slide-hit'));
+  assert(master.includes('nav ul li>a,nav ul li>button'));
+  assert(master.includes('Al Mulla PHP reference rate'));
+  assert(master.includes('Admin can adjust start date, duration, or the final end date'));
+});
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
 if(tests.length){console.error('\nTEST RESULT: FAIL');process.exit(1)}else console.log('\nTEST RESULT: PASS');
