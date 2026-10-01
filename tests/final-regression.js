@@ -13,9 +13,10 @@ const deploy=read('deploy.sh');
 const gmail=read('lib/gmail.js');
 const notifications=read('lib/notifications.js');
 const app=read('public/app.js');
+const master=read('public/master-enhancements.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
-for(const f of ['server.js','lib/gmail.js','lib/notifications.js','public/app.js','public/final-fixes.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+for(const f of ['server.js','lib/gmail.js','lib/notifications.js','public/app.js','public/final-fixes.js','public/master-enhancements.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
 t('orders + production gate',()=>{assert(server.includes("app.post('/api/order'"));assert(server.includes("E.ENABLE_CHECK==='0'"));assert(server.includes("st.accepting!=='1'"))});
 t('secure auth/reset',()=>{assert(server.includes('password_reset_tokens'));assert(server.includes('auth_version'));assert(server.includes("app.post('/api/password-reset'"));assert(server.includes("app.post('/api/password-reset/confirm'"));assert(server.includes('sendPasswordResetEmail'));assert(gmail.includes('gmail.send'));assert(!gmail.includes('smtp.gmail.com'))});
 t('admin portal isolation',()=>{assert(server.includes('configuredAdminHost'));assert(server.includes("host==='admin.localhost"));assert(fixes.includes('admin.html'));assert(index.includes('Admin'))});
@@ -31,4 +32,8 @@ t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not e
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
 t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('sendPasswordResetEmail'))});
+t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/exchange-rate'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
+t('master enhancement customer UX',()=>{assert(index.includes('master-enhancements.js'));assert(admin.includes('master-enhancements.js'));assert(master.includes('menu_default_icon'));assert(master.includes('master-promo'));assert(master.includes('Regional Filipino Favorites'));assert(master.includes('Ancient Script &amp; Filipino Heritage'));assert(master.includes('whatsapp_opt_in'));assert(master.includes('master-carousel'));assert(master.includes('receipt_logo_url'));});
+t('no pork generic catering icon',()=>{assert(!index.includes('onclick="setCat(\'Catering\')"><div class="e">🐖</div>')});
+});
 if(tests.length){console.error('\nTEST RESULT: FAIL');process.exit(1)}else console.log('\nTEST RESULT: PASS');
