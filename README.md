@@ -7,6 +7,17 @@ Node + Express + SQLite. Pages: `index.html` (customer site), `account.html` (cu
 
 The admin hostname is intentionally separate from the customer hostname. Keep the current DuckDNS admin hostname while testing; it can be changed later through `ADMIN_HOST` when the final domain is ready.
 
+## Production status
+The current production deployment has been verified with:
+
+- Node 22+ runtime
+- PM2 application process online
+- Nginx configuration passing `nginx -t`
+- Customer HTTPS health endpoint returning HTTP 200
+- Admin HTTPS health endpoint returning HTTP 200
+- Final regression suite passing
+- Customer and admin hosts using the same application source/runtime
+
 ## One-command deploy/update
 Run as root on the DigitalOcean Ubuntu droplet:
 
@@ -39,10 +50,12 @@ The database-backed restaurant name is also managed from **Admin → Settings** 
 Recommended production synchronization:
 
     cd /var/www/resto
+    cp .env ".env.backup-$(date +%Y%m%d-%H%M%S)"
     su - resto -c 'cd /var/www/resto && git fetch origin && git reset --hard origin/main'
     su - resto -c 'cd /var/www/resto && npm install --omit=dev'
     su - resto -c 'cd /var/www/resto && npm run check'
     su - resto -c 'cd /var/www/resto && npm test'
+    nginx -t
     systemctl restart pm2-resto.service
 
 Then verify:
@@ -51,7 +64,7 @@ Then verify:
     curl -fsS https://admin-pinoy-ambula.duckdns.org/api/health
     su - resto -c 'pm2 status'
 
-This keeps the customer site, admin portal, server code, tests, and runtime on the same Git commit.
+This keeps the customer site, admin portal, server code, tests, and runtime on the same Git commit while preserving the production `.env` separately.
 
 ## Function check page
 `/check.html` creates `__TEST__` records. Production deploys keep this route disabled (`ENABLE_CHECK=0`). Only enable it on a trusted staging deployment.
@@ -69,3 +82,6 @@ Customer password reset uses the Gmail provider configured through environment v
 
 ## Payments
 Cash on Delivery is live. Card selection is stored but a real card charge requires a payment gateway integration.
+
+## Security
+See `SECURITY.md` for production secret-handling and deployment safety guidance.
