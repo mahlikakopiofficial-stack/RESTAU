@@ -142,13 +142,16 @@ const moreRegional=[
 ];
 const mr=db.prepare('INSERT INTO regional_dishes(name,region,descr,price,sort_order) VALUES(?,?,?,?,?)');
 moreRegional.forEach((x,i)=>{if(!db.prepare('SELECT 1 FROM regional_dishes WHERE name=?').get(x[0]))mr.run(x[0],x[1],x[2],x[3],20+i);});
-if(!db.prepare('SELECT COUNT(*) n FROM announcements').get().n){
+{
   const samples=[
     ['Mabuhay! New PinoyAmbula updates','New Filipino favorites and cultural features are now live. Check the menu and gallery.','','Explore','/#menu',10],
     ['Kain tayo!','Orders, subscriptions and delivery updates are ready. Salamat po!','','View menu','/#menu',5]
   ];
   const ia=db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)');
-  samples.forEach(x=>ia.run(x[0],x[1],x[2],x[3],x[4],x[5],'','',1));
+  samples.forEach(x=>{
+    if(!db.prepare('SELECT 1 FROM announcements WHERE title=?').get(x[0]))
+      ia.run(x[0],x[1],x[2],x[3],x[4],x[5],'','',1);
+  });
 }
 const sampleGallery=[
   ['Baybayin script — public-domain reference','https://commons.wikimedia.org/wiki/Special:Redirect/file/Baybayin_script_tagalog_wi.svg'],
