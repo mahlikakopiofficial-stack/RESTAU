@@ -110,7 +110,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT);CREATE T
 for(const c of['ALTER TABLE testimonials ADD COLUMN approved INTEGER DEFAULT 1',"ALTER TABLE inquiries ADD COLUMN status TEXT DEFAULT 'New'","ALTER TABLE plans ADD COLUMN includes TEXT DEFAULT '[]'"])try{db.exec(c)}catch(e){}
 if(!db.prepare('SELECT COUNT(*) n FROM plans').get().n)PLANS.forEach(p=>db.prepare('INSERT INTO plans(id,name,price,descr,active,includes) VALUES(?,?,?,?,1,?)').run(p.id,p.name,p.price,p.desc,JSON.stringify(p.id==='lunch26'?['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']:p.id==='dinner26'?['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']:['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery'])));
 const planInc=db.prepare("SELECT COUNT(*) n FROM plans WHERE includes IS NULL OR includes='' OR includes='[]'").get().n;if(planInc){db.prepare("UPDATE plans SET includes=? WHERE id='lunch26'").run(JSON.stringify(['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='dinner26'").run(JSON.stringify(['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='both26'").run(JSON.stringify(['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']))}
-const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',kwd_php_rate:'',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'60',theme_style:'filipino-heritage'};
+const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',al_mulla_php_rate:'203.885',al_mulla_source_url:'https://www.almullaexchange.com/',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'360',theme_style:'filipino-heritage'};
 for(const k in DEF)db.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)').run(k,DEF[k]);
 db.prepare('UPDATE settings SET v=? WHERE k=? AND v=?').run(DEF.hero_text,'hero_text','Home-style Filipino cooking made with love — from everyday meals to fiesta catering. Delivered to your door, pay cash on delivery.');
 const S=()=>Object.fromEntries(db.prepare('SELECT k,v FROM settings').all().map(x=>[x.k,x.v]));
@@ -127,6 +127,34 @@ if(!db.prepare('SELECT COUNT(*) n FROM regional_dishes').get().n){
   ];
   const ri=db.prepare('INSERT INTO regional_dishes(name,region,descr,price,sort_order) VALUES(?,?,?,?,?)');
   regional.forEach((x,i)=>ri.run(x[0],x[1],x[2],x[3],i));
+}
+if(!db.prepare('SELECT COUNT(*) n FROM announcements').get().n){
+  const samples=[
+    ['Mabuhay! New PinoyAmbula updates','New Filipino favorites and cultural features are now live. Check the menu and gallery.','','Explore','/#menu',10],
+    ['Kain tayo!','Orders, subscriptions and delivery updates are ready. Salamat po!','','View menu','/#menu',5]
+  ];
+  const ia=db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)');
+  samples.forEach(x=>ia.run(x[0],x[1],x[2],x[3],x[4],x[5],'','',1));
+}
+const sampleGallery=[
+  ['Baybayin script — public-domain reference','https://commons.wikimedia.org/wiki/Special:Redirect/file/Baybayin_script_tagalog_wi.svg'],
+  ['Bahay Kubo — Tboli nipa hut','https://commons.wikimedia.org/wiki/Special:Redirect/file/Bahay_kubo.jpg'],
+  ['Filipino weaving culture','https://commons.wikimedia.org/wiki/Special:Redirect/file/Weaving_Culture_in_the_Philippines.jpg'],
+  ['Fiesta salo-salo','https://commons.wikimedia.org/wiki/Special:Redirect/file/Fiesta_Salo-Salo_Foods_in_the_Philippines_%281%29.jpg']
+];
+for(const [caption,img] of sampleGallery){
+  if(!db.prepare('SELECT 1 FROM gallery WHERE caption=?').get(caption))
+    db.prepare('INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,?,?,?)').run(img,caption,'image','');
+}
+const sampleHeritage=[
+  ['Baybayin script','Traditional Philippine writing system reference; image from Wikimedia Commons.','image','https://commons.wikimedia.org/wiki/Special:Redirect/file/Baybayin_script_tagalog_wi.svg',''],
+  ['Bahay Kubo','Traditional Philippine raised house; image from Wikimedia Commons.','image','https://commons.wikimedia.org/wiki/Special:Redirect/file/Bahay_kubo.jpg',''],
+  ['Weaving culture','Philippine handloom weaving tradition; image from Wikimedia Commons.','image','https://commons.wikimedia.org/wiki/Special:Redirect/file/Weaving_Culture_in_the_Philippines.jpg',''],
+  ['Fiesta salo-salo','Shared food and community celebration; image from Wikimedia Commons.','image','https://commons.wikimedia.org/wiki/Special:Redirect/file/Fiesta_Salo-Salo_Foods_in_the_Philippines_%281%29.jpg','']
+];
+for(const [title,caption,media_type,img,media_url] of sampleHeritage){
+  if(!db.prepare('SELECT 1 FROM heritage WHERE title=?').get(title))
+    db.prepare('INSERT INTO heritage(title,caption,media_type,img,media_url,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(title,caption,media_type,img,media_url,1,99);
 }
 const notificationOnce=async(eventKey,recipient,text)=>{
   if(!eventKey||!recipient||!whatsappConfigured())return {skipped:true};
@@ -702,7 +730,8 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
   if(table==='subs'){
     const allowed=['Active','Paused','Completed','Cancelled'];
     if(!allowed.includes(status))throw new Error('Invalid subscription status');
-    const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
+    if(b.duration_days!==undefined&&!keys.includes('duration_days'))keys.push('duration_days');
+  const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
     if(!before)throw new Error('Subscription not found');
     db.prepare('UPDATE subs SET status=? WHERE id=?').run(status,q.params.id);
     const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
@@ -744,7 +773,7 @@ app.post('/api/orders/:id/received',cust,w((q,r)=>{
   r.json({ok:1,received:true});
 }));
 app.put('/api/admin/subs/:id',admin,w((q,r)=>{
-  const b=q.body,allowed=['name','email','phone','address','paci','start','end','payment_method','payment_status'];
+  const b=q.body,allowed=['name','email','phone','address','paci','start','end','duration_days','payment_method','payment_status'];
   const keys=Object.keys(b).filter(key=>allowed.includes(key));
   if(!keys.length)throw new Error('Nothing to update');
   if((b.email!==undefined)&&b.email&&!/^\S+@\S+\.\S+$/.test(String(b.email)))throw new Error('Valid email required');
@@ -755,7 +784,17 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
   if(!current)throw new Error('Subscription not found');
   const start=b.start||current.start;
   let end=b.end||current.end;
-  if(b.start!==undefined||b.duration_days!==undefined){const duration=Math.max(1,Math.min(366,Math.trunc(+b.duration_days||current.duration_days||26)));const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+duration-1);end=d.toISOString().slice(0,10);b.end=end;b.duration_days=duration;if(!keys.includes('end'))keys.push('end');}
+  let duration=Math.max(1,Math.min(366,Math.trunc(+b.duration_days||current.duration_days||26)));
+  if((b.start!==undefined||b.duration_days!==undefined)&&b.end===undefined){
+    const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+duration-1);end=d.toISOString().slice(0,10);b.end=end;
+    if(!keys.includes('end'))keys.push('end');
+  }
+  if(b.end!==undefined&&b.duration_days===undefined&&start&&b.end){
+    const a=new Date(start+'T00:00:00Z'),z=new Date(String(b.end)+'T00:00:00Z');
+    duration=Math.max(1,Math.round((z-a)/86400000)+1);b.duration_days=duration;
+    if(!keys.includes('duration_days'))keys.push('duration_days');
+  }
+  if(b.duration_days!==undefined&&b.end===undefined&&b.start===undefined)b.duration_days=duration;
   if(start>end)throw new Error('End date must be on or after start date');
   const before=one('SELECT * FROM subs WHERE id=?',q.params.id);
   if(!before)throw new Error('Subscription not found');
@@ -998,23 +1037,20 @@ app.get('/api/announcements',(q,r)=>{
 });
 app.get('/api/regional-dishes',(q,r)=>r.json(db.prepare("SELECT id,name,region,descr,price,img FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
-let exchangeCache={rate:null,updatedAt:0,source:'Unavailable'};
+let exchangeCache={rate:null,updatedAt:0,source:'Unavailable',source_url:''};
 async function getExchangeRate(){
-  const st=S(),minutes=Math.max(5,Math.min(1440,+(st.exchange_rate_refresh_minutes||60)));
-  if(exchangeCache.rate&&Date.now()-exchangeCache.updatedAt<minutes*60000)return exchangeCache;
-  try{
-    const response=await fetch('https://api.frankfurter.app/latest?from=KWD&to=PHP');
-    const data=await response.json().catch(()=>({}));
-    const rate=Number(data?.rates?.PHP);
-    if(!response.ok||!(rate>0))throw new Error('No KWD/PHP rate');
-    exchangeCache={rate,updatedAt:Date.now(),source:'Frankfurter'};
-  }catch(error){
-    const fallback=Number(st.kwd_php_rate);
-    exchangeCache={rate:fallback>0?fallback:null,updatedAt:Date.now(),source:fallback>0?'Admin fallback':'Unavailable'};
-  }
+  const st=S(),minutes=Math.max(5,Math.min(1440,+(st.exchange_rate_refresh_minutes||360)));
+  if(exchangeCache.updatedAt&&Date.now()-exchangeCache.updatedAt<minutes*60000)return exchangeCache;
+  const rate=Number(st.al_mulla_php_rate);
+  exchangeCache={
+    rate:rate>0?rate:null,
+    updatedAt:Date.now(),
+    source:rate>0?'Al Mulla Exchange reference':'Unavailable',
+    source_url:String(st.al_mulla_source_url||'https://www.almullaexchange.com/')
+  };
   return exchangeCache;
 }
-app.get('/api/exchange-rate',async(q,r)=>{const st=S();if(st.exchange_rate_enabled==='0')return r.json({enabled:false});const x=await getExchangeRate();r.json({enabled:true,rate:x.rate,updated_at:x.updatedAt?new Date(x.updatedAt).toISOString():null,source:x.source,reference:'1 KWD = PHP'});});
+app.get('/api/exchange-rate',async(q,r)=>{const st=S();if(st.exchange_rate_enabled==='0')return r.json({enabled:false});const x=await getExchangeRate();r.json({enabled:true,rate:x.rate,updated_at:x.updatedAt?new Date(x.updatedAt).toISOString():null,source:x.source,source_url:x.source_url,reference:'1 KWD = PHP',reference_note:'Reference only; exchange-house rates can change by channel and time.'});});
 app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
 app.post('/api/admin/announcements',admin,w((q,r)=>{need(q.body,'title','message');const b=q.body;const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)').run(String(b.title).slice(0,160),String(b.message).slice(0,1000),String(b.image||''),String(b.cta_label||'').slice(0,80),String(b.cta_url||'').slice(0,500),Math.trunc(+b.priority||0),String(b.starts_at||'').replace('T',' '),String(b.ends_at||'').replace('T',' '),b.active===0?0:1).lastInsertRowid);r.json({ok:1,id});}));
 app.put('/api/admin/announcements/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','message','image','cta_label','cta_url','priority','starts_at','ends_at','active'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE announcements SET '+keys.map(k=>k+'=?').join(',')+',updated_at=CURRENT_TIMESTAMP WHERE id=?').run(...keys.map(k=>k==='priority'?Math.trunc(+q.body[k]||0):k==='starts_at'||k==='ends_at'?String(q.body[k]??'').replace('T',' '):String(q.body[k]??'').slice(0,k==='message'?1000:500)),q.params.id);r.json({ok:1});}));
