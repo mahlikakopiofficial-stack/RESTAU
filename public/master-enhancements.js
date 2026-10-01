@@ -98,16 +98,6 @@ function addCartOptIn(){
       phone.parentElement&&phone.parentElement.insertAdjacentElement('afterend',label);
     }
   }
-  const sub=document.querySelector('#subd form');
-  if(sub&&!sub.querySelector('[name="whatsapp_opt_in"]')){
-    const anchor=sub.querySelector('[name="phone"]');
-    if(anchor){
-      const label=document.createElement('label');
-      label.className='master-optin';
-      label.innerHTML='<input type="checkbox" name="whatsapp_opt_in" value="1"><span>Send subscription updates on WhatsApp to this number. I confirm I use WhatsApp and want these notifications.</span>';
-      anchor.parentElement&&anchor.parentElement.insertAdjacentElement('afterend',label);
-    }
-  }
 }
 
 function cartOutside(){
@@ -284,17 +274,6 @@ function siteBoot(){
     window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},30000);
     window.addEventListener('focus',addPromos);
   }
-  setInterval(addCartOptIn,1200);
-  const form=document.querySelector('#subd form');
-  if(form&&typeof window.updateSubEnd==='function'){
-    const update=window.updateSubEnd;
-    window.updateSubEnd=function(){
-      const p=(typeof plans!=='undefined'?plans:[]).find(x=>x.id===$('#subd [name=plan]')?.value),start=$('#sub-start')?.value;
-      if(!p||!start)return update();
-      const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+Math.max(1,+p.duration_days||1)-1);
-      $('#sub-end').value=d.toISOString().slice(0,10);
-    };
-  }
 }
 
 function masterSettingsFields(base,s){
@@ -384,13 +363,13 @@ function adminBoot(){
       ['Start',s=>'<input type="date" value="'+escm(s.start)+'" onchange="masterSaveSub('+s.id+',this.value,null,null)">'],
       ['Duration',s=>'<input type="number" min="1" max="366" value="'+(s.duration_days||26)+'" style="width:90px" onchange="masterSaveSub('+s.id+',null,+this.value,null)">'],
       ['End',s=>'<input type="date" value="'+escm(s.end)+'" onchange="masterSaveSub('+s.id+',null,null,this.value)">'],
-      ['WhatsApp updates',s=>'<label><input type="checkbox" aria-label="WhatsApp updates opt-in" style="width:auto" '+(s.whatsapp_opt_in?'checked':'')+' onchange="masterSaveSub('+s.id+',null,null,null,this.checked?1:0)"> Opted in</label>'],
+      ['WhatsApp updates',s=>'<label><input type="checkbox" aria-label="Record customer consent for subscription WhatsApp updates" style="width:auto" '+(s.whatsapp_opt_in?'checked':'')+' onchange="masterSaveSub('+s.id+',null,null,null,this.checked?1:0)"> Customer consent recorded</label>'],
       ['Price',s=>money(s.price)],
       ['Status',s=>sel('subs',s.id,s.status,['Active','Paused','Completed','Cancelled'])]]);
   };
   window.masterSaveSub=async(id,start,duration,end,whatsapp)=>{
     const body={};if(start)body.start=start;if(duration)body.duration_days=duration;if(end)body.end=end;if(whatsapp!==undefined)body.whatsapp_opt_in=whatsapp;
-    try{await A('/subs/'+id,'PUT',body);toast(end?'Validity end date updated':'Subscription schedule updated');go('Subscriptions')}catch(e){toast(e.message)}
+    try{await A('/subs/'+id,'PUT',body);toast(whatsapp!==undefined?'WhatsApp consent updated':end?'Validity end date updated':'Subscription schedule updated');go('Subscriptions')}catch(e){toast(e.message)}
   };
   window.pr=async function(id){
     const order=(window._ol||[]).find(x=>x.id===id);if(!order)return;

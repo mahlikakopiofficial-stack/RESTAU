@@ -293,20 +293,12 @@
     <dialog id="subd">
       <h3>Subscribe — <span id="pn"></span></h3>
       <form onsubmit="subm(event)" style="margin-top: 10px">
-        <input type="hidden" name="plan" /><label>Name *</label
-        ><input name="name" required /><label>Email *</label
+        <input type="hidden" name="plan" />
+        <input type="hidden" name="start" id="sub-start" />
+        <label>Name *</label><input name="name" required /><label>Email *</label
         ><input name="email" type="email" autocomplete="email" required /><label
           >Phone *</label
-        ><input name="phone" type="tel" required /><label>Start date *</label
-        ><input
-          name="start"
-          id="sub-start"
-          type="date"
-          required
-          onchange="updateSubEnd()"
-        /><label>Calculated end date</label
-        ><input id="sub-end" type="date" readonly /><label
-          >Drop location / address *</label
+        ><input name="phone" type="tel" required /><label>Drop location / address *</label
         ><textarea name="address" rows="2" required></textarea
         ><label>PACI number of building (optional)</label
         ><input name="paci" inputmode="numeric" /><label>Payment method</label
@@ -315,7 +307,7 @@
           <option value="CARD">Card (gateway confirmation required)</option>
         </select>
         <p id="sub-pay-note" style="font-size: 0.85rem; margin-bottom: 8px">
-          End date is calculated from the selected plan duration.
+          The restaurant will manage your subscription schedule.
         </p>
         <button class="btn">Confirm</button>
         <button type="button" class="btn o" onclick="$('#subd').close()">
@@ -595,12 +587,6 @@
               "Subscription #" +
               result.id +
               "\n" +
-              "Start: " +
-              result.start +
-              "\n" +
-              "End: " +
-              result.end +
-              "\n" +
               "Price: " +
               money(result.price),
           );
@@ -615,24 +601,12 @@
         }
       }
 
-      function updateSubEnd() {
-        const p = plans.find((x) => x.id === $("#subd [name=plan]").value),
-          start = $("#sub-start").value;
-        if (!p || !start) return;
-        const end = new Date(start + "T00:00:00Z");
-        end.setUTCDate(
-          end.getUTCDate() + Math.max(1, +p.duration_days || 30) - 1,
-        );
-        $("#sub-end").value = end.toISOString().slice(0, 10);
-      }
       function subOpen(id) {
         const p = plans.find((x) => x.id == id);
         if (!p) return;
         $("#pn").textContent = p.name;
         $("#subd [name=plan]").value = id;
-        $("#sub-start").min = new Date().toISOString().slice(0, 10);
-        $("#sub-start").value = $("#sub-start").min;
-        updateSubEnd();
+        $("#sub-start").value = new Date().toISOString().slice(0, 10);
         $('#sub-pay-method option[value="CARD"]').disabled =
           !config.payment_card;
         $("#sub-pay-note").textContent =
