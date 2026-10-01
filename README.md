@@ -1,46 +1,71 @@
 # PinoyAmbula — Filipino Restaurant Website
-Node + Express + SQLite. Pages: `index.html` (site), `account.html` (customer), `admin.html` (dashboard), `check.html` (function check).
+Node + Express + SQLite. Pages: `index.html` (customer site), `account.html` (customer account), and the host-protected `admin.html` (admin dashboard).
 
-## One-command deploy (fresh Ubuntu droplet, run as root)
-    curl -fsSL https://raw.githubusercontent.com/mahlikakopiofficial-stack/RESTAU/main/deploy.sh | REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambulakw.duckdns.org EMAIL=you@mail.com bash
-Omit `DOMAIN`/`EMAIL` to serve over the droplet IP without HTTPS. Re-run the same command to update. Private repo: use `REPO=https://TOKEN@github.com/mahlikakopiofficial-stack/RESTAU.git` and copy `deploy.sh` to the droplet instead of curl.
+## Current production hosts
+- Customer site: `https://pinoyambulakw.duckdns.org`
+- Admin portal: `https://admin-pinoy-ambula.duckdns.org`
+
+The admin hostname is intentionally separate from the customer hostname. Keep the current DuckDNS admin hostname while testing; it can be changed later through `ADMIN_HOST` when the final domain is ready.
+
+## One-command deploy/update
+Run as root on the DigitalOcean Ubuntu droplet:
+
+    REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambulakw.duckdns.org ADMIN_HOST=admin-pinoy-ambula.duckdns.org EMAIL=you@mail.com bash deploy.sh
+
+The deployment script installs/keeps Node 22+, pulls `origin/main`, runs syntax checks and the regression suite, starts PM2, configures Nginx for both hosts, and attempts HTTPS when DNS resolves. Re-run it after a GitHub update to synchronize production with `main`.
 
 ## Run locally
     npm install && cp .env.example .env   # edit .env
-    npm start   # http://localhost:3000  → open /check.html
+    npm start   # http://localhost:3000
 
-## Deploy on DigitalOcean (Ubuntu 22.04 droplet)
-    apt update && apt install -y build-essential python3 git nginx ufw
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt install -y nodejs && npm i -g pm2
-    ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw --force enable
-    git clone https://github.com/mahlikakopiofficial-stack/RESTAU.git /var/www/resto && cd /var/www/resto
-    npm ci --omit=dev && cp .env.example .env && nano .env      # set SECRET + ADMIN_PASSWORD
-    pm2 start server.js --name resto && pm2 save && pm2 startup
+## DigitalOcean production setup
+The production application runs from `/var/www/resto` under the `resto` Linux user. PM2 runs the Node/Express server on `127.0.0.1:3000`; Nginx provides the public HTTPS endpoints.
 
-Nginx `/etc/nginx/sites-available/resto` (then `ln -s` into sites-enabled, `nginx -t && systemctl reload nginx`):
+Node 22+ is required by the application and Capacitor configuration.
 
-    server { listen 80; server_name YOUR_DOMAIN; client_max_body_size 6m;
-      location / { proxy_pass http://127.0.0.1:3000; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $remote_addr; } }
+## Environment
+`.env.example` is the safe template. Never commit the real `.env`, passwords, Gmail app passwords, or signing secrets.
 
-HTTPS: `apt install -y certbot python3-certbot-nginx && certbot --nginx -d YOUR_DOMAIN`
+Important production values include:
 
-## Update after changes
-    cd /var/www/resto && git pull && npm ci --omit=dev && pm2 restart resto
+    RESTO_NAME=PinoyAmbula
+    PUBLIC_BASE_URL=https://pinoyambulakw.duckdns.org
+    ADMIN_HOST=admin-pinoy-ambula.duckdns.org
+    GMAIL_FROM_NAME=PinoyAmbula
 
-`data/` (database) and `uploads/` (photos) are git-ignored, so pulls never overwrite them. Back them up (DigitalOcean snapshots or `rsync`).
+The database-backed restaurant name is also managed from **Admin → Settings** after the first initialization.
+
+## Update after GitHub changes
+Recommended production synchronization:
+
+    cd /var/www/resto
+    su - resto -c 'cd /var/www/resto && git fetch origin && git reset --hard origin/main'
+    su - resto -c 'cd /var/www/resto && npm install --omit=dev'
+    su - resto -c 'cd /var/www/resto && npm run check'
+    su - resto -c 'cd /var/www/resto && npm test'
+    systemctl restart pm2-resto.service
+
+Then verify:
+
+    curl -fsS https://pinoyambulakw.duckdns.org/api/health
+    curl -fsS https://admin-pinoy-ambula.duckdns.org/api/health
+    su - resto -c 'pm2 status'
+
+This keeps the customer site, admin portal, server code, tests, and runtime on the same Git commit.
 
 ## Function check page
-`/check.html` creates `__TEST__` records. Production deploys keep this route disabled (`ENABLE_CHECK=0`), including on updates. To run it, enable it only on a trusted staging deployment, restart the app, and disable it again before public use.
+`/check.html` creates `__TEST__` records. Production deploys keep this route disabled (`ENABLE_CHECK=0`). Only enable it on a trusted staging deployment.
 
-## Settings live in the database
-`.env` values (RESTO_NAME, CURRENCY, DELIVERY_FEE) only seed the **first** run. After that change them in **Admin → Settings** (name, phone, hours, delivery fee, minimum order, open/closed switch, homepage text + banner photo). Plan names/prices: **Admin → Plans**.
-With `NODE_ENV=production` the server refuses to start with a weak `SECRET` or a default admin password.
+## Admin portal
+The admin dashboard is served only when the request hostname matches `ADMIN_HOST` (or `admin.localhost` for local development). In production, `/admin.html` on the customer hostname is blocked.
 
-## Backups (daily, keep 14 days)
-    apt install -y sqlite3 && mkdir -p /var/backups/resto
-    crontab -e   # add:
-    0 3 * * * sqlite3 /var/www/resto/data/resto.db ".backup '/var/backups/resto/db-$(date +\%F).db'" && tar czf /var/backups/resto/uploads-$(date +\%F).tgz -C /var/www/resto uploads && find /var/backups/resto -mtime +14 -delete
-Also enable DigitalOcean droplet backups for a second copy.
+Admin areas include orders, menu, gallery, customers, subscriptions, inquiries, newsletter, testimonials, plans, and settings.
+
+## Password reset email
+Customer password reset uses the Gmail provider configured through environment variables. The admin portal can request a secure password-reset email for a customer with a valid email address.
+
+## Backups
+`data/` (SQLite database) and `uploads/` (photos) are git-ignored, so GitHub deployments do not overwrite production data. Keep daily database/uploads backups and DigitalOcean droplet backups.
 
 ## Payments
-Cash on Delivery is live. Card is **off by default** (no gateway connected): turn it on in Admin → Settings only after a payment gateway is integrated.
+Cash on Delivery is live. Card selection is stored but a real card charge requires a payment gateway integration.
