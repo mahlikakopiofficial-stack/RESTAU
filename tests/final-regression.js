@@ -1,5 +1,6 @@
 const assert=require('assert');
 const fs=require('fs');
+const vm=require('vm');
 const path=require('path');
 const {execFileSync}=require('child_process');
 const root=path.join(__dirname,'..');
@@ -17,6 +18,7 @@ const master=read('public/master-enhancements.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
 for(const f of ['server.js','lib/gmail.js','lib/notifications.js','public/app.js','public/final-fixes.js','public/master-enhancements.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+t('admin inline script syntax',()=>{const scripts=[...admin.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`admin-inline-${index+1}.js`}))});
 t('orders + production gate',()=>{assert(server.includes("app.post('/api/order'"));assert(server.includes("E.ENABLE_CHECK==='0'"));assert(server.includes("st.accepting!=='1'"))});
 t('secure auth/reset',()=>{assert(server.includes('password_reset_tokens'));assert(server.includes('auth_version'));assert(server.includes("app.post('/api/password-reset'"));assert(server.includes("app.post('/api/password-reset/confirm'"));assert(server.includes('sendPasswordResetEmail'));assert(gmail.includes('gmail.send'));assert(!gmail.includes('smtp.gmail.com'))});
 t('admin portal isolation',()=>{assert(server.includes('configuredAdminHost'));assert(server.includes("host==='admin.localhost"));assert(fixes.includes('admin.html'));assert(index.includes('Admin'))});
