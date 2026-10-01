@@ -189,4 +189,4 @@ async function addGalleryVideo(e){e.preventDefault();try{await A('/gallery','POS
 async function issueReset(id){if(!confirm('Send this customer a secure password-reset email? The customer must have a valid email address.'))return;try{const result=await A('/customers/'+id+'/reset-password','POST',{});toast(result.message||'Password reset email sent')}catch(error){toast(error.message)}}
 async function ui(id,k,v){try{await A('/items/'+id,'PUT',{[k]:v});toast('Saved')}catch(x){toast(x.message)}}
 async function at(e){e.preventDefault();try{await A('/testimonials','POST',Object.fromEntries(new FormData(e.target)));go('Testimonials')}catch(x){toast(x.message)}}
-show()</script><script src="enhancements.js"></script><script src="final-fixes.js"></script></body></html>
+show()</script><script src="enhancements.js"></script><script src="final-fixes.js"></script><script src="master-enhancements.js"></script></body></html>
