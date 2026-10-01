@@ -128,6 +128,20 @@ if(!db.prepare('SELECT COUNT(*) n FROM regional_dishes').get().n){
   const ri=db.prepare('INSERT INTO regional_dishes(name,region,descr,price,sort_order) VALUES(?,?,?,?,?)');
   regional.forEach((x,i)=>ri.run(x[0],x[1],x[2],x[3],i));
 }
+const moreRegional=[
+  ['Sisig','Central Luzon','Sizzling chopped pork or seafood with calamansi and aromatics, strongly associated with Pampanga.',3.200],
+  ['Bringhe','Central Luzon','Kapampangan-style festive rice dish cooked with coconut milk and chicken.',3.000],
+  ['Pinangat','Bicol Region','Taro leaves simmered with coconut and savory filling, a Bicol classic.',2.900],
+  ['Binagol','Eastern Visayas','Sweet taro-based delicacy traditionally prepared in a polished coconut shell.',2.200],
+  ['Moron','Eastern Visayas','Sticky rice delicacy wrapped in banana leaves, associated with Leyte.',2.000],
+  ['Chicken Binakol','Western Visayas','Chicken soup with coconut water and young coconut, popular in the Visayas.',3.100],
+  ['Kinunot na Isda','Bicol Region','Flaked fish cooked with coconut cream and leafy aromatics.',3.100],
+  ['Sinuglaw','Davao Region','Grilled fish and kinilaw-style seafood combined with vinegar and aromatics.',3.400],
+  ['Lechon Manok','Visayas and Mindanao','Grilled or roasted whole chicken commonly served at family gatherings.',9.500],
+  ['Pastil','Bangsamoro Region','Seasoned shredded meat or fish served over rice and wrapped for easy meals.',1.900]
+];
+const mr=db.prepare('INSERT INTO regional_dishes(name,region,descr,price,sort_order) VALUES(?,?,?,?,?)');
+moreRegional.forEach((x,i)=>{if(!db.prepare('SELECT 1 FROM regional_dishes WHERE name=?').get(x[0]))mr.run(x[0],x[1],x[2],x[3],20+i);});
 if(!db.prepare('SELECT COUNT(*) n FROM announcements').get().n){
   const samples=[
     ['Mabuhay! New PinoyAmbula updates','New Filipino favorites and cultural features are now live. Check the menu and gallery.','','Explore','/#menu',10],
