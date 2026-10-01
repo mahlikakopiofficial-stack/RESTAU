@@ -1,92 +1,518 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin — PinoyAmbula</title><meta name="robots" content="noindex"><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7b2d26"><script src="/runtime-config.js"></script><script src="/pwa.js"></script></head><body>
-<div class="box" id="login"><h2>Admin Login</h2><form onsubmit="lg(event)"><label>Password</label><input name="password" type="password" required><button class="btn">Login</button> <a class="btn o" href="index.html">Back to site</a></form></div>
-<div class="adm" id="app" hidden><div id="side"></div><div id="main"></div></div>
-<script src="app.js"></script><script>
-const K='at',A=(u,m,b)=>api('/admin'+u,m,b,K),TABS=['Overview','Orders','Menu','Gallery','Regional Dishes','Heritage','Announcements','Customers','Subscriptions','Reports','Inquiries','Newsletter','Testimonials','Plans','Settings'],CATS=['Regular','Budget','Drinks','Catering','Other Asian'];let cur='Overview';
-async function lg(e){e.preventDefault();try{localStorage.setItem(K,(await api('/admin/login','POST',Object.fromEntries(new FormData(e.target)),K)).token);show()}catch(x){toast(x.message)}}
-function out(){localStorage.removeItem(K);location.reload()}
-function show(){const ok=!!tk(K);$('#login').hidden=ok;$('#app').hidden=!ok;if(ok)go(cur)}
-async function go(t){cur=t;$('#side').innerHTML=TABS.map(x=>`<button class="${x==t?'on':''}" onclick="go('${x}')">${x}</button>`).join('')+'<button onclick="location.href=\'/website\'">← Website</button><button onclick="out()">Logout</button>';
-try{CUR=(await api('/config')).currency;$('#main').innerHTML=`<h2>${t}</h2>`+await R[t]();if(A_after)A_after();A_after=null}catch(x){if(/login/i.test(x.message)){out()}else toast(x.message)}}
-let A_after=null;
-const tbl=(rows,cols)=>`<div class="tw"><table><tr>${cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr>${rows.map(r=>`<tr>${cols.map(c=>`<td data-label="${c[0]}">${c[1](r)}</td>`).join('')}</tr>`).join('')||'<tr><td>No records yet</td></tr>'}</table></div>`;
-const del=(t,id)=>`<button class="btn s o" onclick="rm('${t}',${id})">Delete</button>`;
-async function rm(t,id){if(confirm('Delete?')){await A('/'+t+'/'+id,'DELETE');go(cur)}}
-const sel=(t,id,v,o)=>`<select onchange="A('/status/${t}/${id}','PUT',{status:this.value}).then(()=>toast('Updated'))">${o.map(x=>`<option${x==v?' selected':''}>${x}</option>`).join('')}</select>`;
-async function upl(f,qs){if(!f)return;const fd=new FormData();fd.append('file',f);try{await A('/upload?'+qs,'POST',fd);toast('Image saved')}catch(e){toast(e.message)}}
-function pickItemImage(id,event){event.stopPropagation();const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async()=>{if(input.files[0]){await upl(input.files[0],'target=item&id='+id);go(cur)}};input.click()}
-function dz(el,qs,multi){const run=async fs=>{for(const f of(multi?fs:[fs[0]]))await upl(f,qs);go(cur)};
-el.ondragover=e=>{e.preventDefault();el.classList.add('hot')};el.ondragleave=()=>el.classList.remove('hot');el.ondrop=e=>{e.preventDefault();el.classList.remove('hot');run([...e.dataTransfer.files])};
-el.onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.multiple=!!multi;i.onchange=()=>run([...i.files]);i.click()}}
-const R={
-async Reports(){const today=new Date().toISOString().slice(0,10),from=window._reportFrom||today,to=window._reportTo||today,r=await A('/report-range?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to));window._lastReport=r;return '<div class="report-actions"><label>From <input id="reportFrom" type="date" value="'+from+'"></label><label>To <input id="reportTo" type="date" value="'+to+'"></label><button class="btn s" onclick="window._reportFrom=document.getElementById(\'reportFrom\').value;window._reportTo=document.getElementById(\'reportTo\').value;go(\'Reports\')">Refresh</button><button class="btn s o" onclick="printReport()">🖨 Print</button><button class="btn s o" onclick="exportReport()">⬇ CSV</button></div><div class="grid"><div class="card report-kpi">Sales<b>'+money(r.revenue)+'</b></div><div class="card report-kpi">Orders<b>'+r.orders+'</b></div><div class="card report-kpi">Delivered<b>'+r.delivered+'</b></div><div class="card report-kpi">Cancelled<b>'+r.cancelled+'</b></div><div class="card report-kpi">Paid revenue<b>'+money(r.paidRevenue)+'</b></div><div class="card report-kpi">Average order<b>'+money(r.averageOrder)+'</b></div><div class="card report-kpi">New subscriptions<b>'+r.newSubscriptions+'</b></div><div class="card report-kpi">Active subscriptions<b>'+r.activeSubscriptions+'</b></div></div><h3>Top menu items</h3>'+tbl(r.topItems,[['Item',x=>esc(x.name)],['Qty sold',x=>x.qty]])+'<h3>Orders</h3>'+tbl(r.ordersList,[['#',x=>x.id],['Date',x=>esc(x.created)],['Customer',x=>esc(x.name)],['Status',x=>esc(x.status)],['Total',x=>money(x.total)]])},
-async Overview(){const s=await A('/stats');return`<div class="grid">${[['New orders',s.newOrders],['All orders',s.orders],['Revenue (excl. cancelled)',money(s.revenue)],['Customers',s.customers],['Active subscriptions',s.activeSubs],['Inquiries',s.inquiries],['Newsletter subscribers',s.subscribers]].map(x=>`<div class="card stat">${x[0]}<b>${x[1]}</b></div>`).join('')}</div>`},
-async Orders(){const o=await A('/list/orders'),f=window._of||'All',L=f=='All'?o:o.filter(x=>x.status==f);window._ol=o;window._max=Math.max(0,...o.map(x=>x.id));
-A_after=()=>{clearInterval(window._poll);window._poll=setInterval(async()=>{if(cur!='Orders')return clearInterval(window._poll);try{const n=await A('/list/orders');if(Math.max(0,...n.map(x=>x.id))>window._max){beep();toast('🔔 New order!');go('Orders')}}catch(e){}},30000)};
-return`<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${['All','Pending','New','Confirmed','Preparing','Out for delivery','Delivered','Cancelled','Completed'].map(x=>`<option${x==f?' selected':''}>${x}</option>`).join('')}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>Checks for new orders every 30s</small></p>`+tbl(L,[['#',r=>r.id],['Date',r=>esc(r.created)],['Customer',r=>`${esc(r.name)}<br>${esc(r.phone)}`],['Drop location',r=>`${esc(r.address)}${r.paci?`<br><b>PACI:</b> ${esc(r.paci)}`:''}${r.notes?`<br><i>${esc(r.notes)}</i>`:''}`],['Items',r=>JSON.parse(r.items).map(i=>i.qty+'× '+esc(i.name)).join('<br>')],['Payment',r=>esc(r.pay||'COD')],
-['Subtotal',r=>money(r.subtotal||r.total)],
-['Discount',r=>money(r.discount||0)],
-['Total',r=>money(r.total)],['Status',r=>sel('orders',r.id,r.status,['Pending','New','Confirmed','Preparing','Out for delivery','Delivered','Cancelled','Completed'])],['',r=>`<button class="btn s o" onclick="pr(${r.id})">🖨</button>`]])},
-async Menu(){const it=await A('/list/items');A_after=()=>{$$('.idz').forEach(el=>dz(el,'target=item&id='+el.dataset.id))};
-return`<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmit="ai(event)"><b>Add dish</b><div class="f2"><input name="name" placeholder="Name" required><input name="price" type="number" step="0.001" placeholder="Price" required><select name="cat">${['Regular','Budget','Drinks','Catering','Other Asian'].map(c=>`<option>${c}</option>`).join('')}</select><input name="region" placeholder="Country (Filipino / Japan / Korea…)"><input name="emoji" placeholder="Legacy icon (not used as default)"><input name="descr" placeholder="Description"><textarea name="ingredients" rows="2" placeholder="Full ingredients, comma-separated"></textarea></div><button class="btn s">Add</button></form>
-<p style="margin-bottom:10px">Manage each dish photo with its image controls.</p><div class="grid">${it.map(i=>`<div class="card"><div class="ph idz" data-id="${i.id}" style="position:relative;cursor:pointer;${i.img?`background-image:url('${esc(i.img)}')`:''}">${i.img?'':esc(i.emoji)}<span class="menu-photo-actions"><button type="button" title="Add or replace menu image" aria-label="Add or replace menu image" onclick="pickItemImage(${i.id},event)">▣</button><button type="button" title="Remove menu image" aria-label="Remove menu image" onclick="event.stopPropagation();clearImage('item',${i.id})" ${i.img?'':'disabled'}>×</button></span></div><div class="p mini"><input value="${esc(i.name)}" onchange="ui(${i.id},'name',this.value)"><input type="number" step="0.001" value="${i.price}" onchange="ui(${i.id},'price',+this.value)" placeholder="Regular price">
-<input type="number" step="0.001" value="${i.discount_price||''}" onchange="ui(${i.id},'discount_price',this.value)" placeholder="Discount price"><select onchange="ui(${i.id},'cat',this.value)">${CATS.map(c=>`<option${c==i.cat?' selected':''}>${c}</option>`).join('')}</select><input value="${esc(i.region)}" onchange="ui(${i.id},'region',this.value)" placeholder="Country"><input value="${esc(i.descr)}" onchange="ui(${i.id},'descr',this.value)" placeholder="Description"><textarea rows="2" onchange="ui(${i.id},'ingredients',this.value)" placeholder="Full ingredients">${esc(i.ingredients||'')}</textarea><input value="${esc(i.emoji)}" onchange="ui(${i.id},'emoji',this.value)" style="width:80px"><label><input type="checkbox" style="width:auto" ${i.active?'checked':''} onchange="ui(${i.id},'active',this.checked?1:0)"> Available</label> ${del('items',i.id)}</div></div>`).join('')}</div>`},
-async Gallery(){const g=await A('/list/gallery');A_after=()=>{dz($('#gdz'),'target=gallery',1);$$('.gdz').forEach(el=>dz(el,'target=gallery&id='+el.dataset.id))};
-return`<div class="drop" id="gdz">⬆ Add gallery photos</div><form class="card mini" style="padding:14px;margin:14px 0" onsubmit="addGalleryVideo(event)"><b>Add a video embed</b><input name="caption" maxlength="200" placeholder="Caption"><input name="url" type="url" placeholder="YouTube, TikTok, or Facebook video URL" required><button class="btn s">Add video</button></form><div class="grid">${g.map(x=>`<div class="card">${x.media_type==='video'&&x.media_url?`<iframe class="gallery-embed" src="${esc(x.media_url)}" title="${esc(x.caption||'Gallery video')}" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`:`<div class="ph gdz" data-id="${x.id}" style="height:160px;cursor:pointer;${x.img?`background-image:url('${esc(x.img)}')`:''}">${x.img?'':'🍽️'}</div>`}<div class="p" style="padding:8px"><input aria-label="Gallery caption" value="${esc(x.caption)}" onchange="up2('gallery','${x.id}','caption',this.value)">${del('gallery',x.id)}</div></div>`).join('')}</div>`},
-async Customers(){return `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Use the secure password-reset email when a customer needs account access.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>`+tbl(await A('/list/customers'),[['#',r=>r.id],['Name',r=>esc(r.name)],['Phone',r=>esc(r.phone)],['Email',r=>esc(r.email)],['Orders',r=>r.orders],['Spent',r=>money(r.spent)],['Joined',r=>esc(r.created)],['Account access',r=>`<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`],['',r=>del('customers',r.id)]])},
-async Subscriptions(){return `<p class="small">Edit Start, End, Duration and WhatsApp opt-in directly. Start or Duration changes recalculate End; End changes recalculate Duration.</p><button class="btn s o" onclick="exp('subs')">⬇ CSV</button><br><br>`+tbl(await A('/list/subs'),[['#',r=>r.id],['Customer',r=>`${esc(r.name)}<br>${esc(r.phone)}`],['Drop location',r=>esc(r.address)+(r.paci?`<br><b>PACI:</b> ${esc(r.paci)}`:'')],['Plan',r=>esc(r.plan)],['Start',r=>`<input type="date" value="${esc(r.start)}" onchange="up2('subs',${r.id},'start',this.value)">`],['End',r=>`<input type="date" value="${esc(r.end)}" onchange="up2('subs',${r.id},'end',this.value)">`],['Duration',r=>`<input type="number" min="1" max="366" value="${r.duration_days||26}" onchange="up2('subs',${r.id},'duration_days',+this.value)">`],['WhatsApp',r=>`<input type="checkbox" style="width:auto" ${r.whatsapp_opt_in?'checked':''} onchange="up2('subs',${r.id},'whatsapp_opt_in',this.checked?1:0)">`],['Price',r=>money(r.price)],['Status',r=>sel('subs',r.id,r.status,['Active','Paused','Completed','Cancelled'])]])},
-async Inquiries(){return `<button class="btn s o" onclick="exp('inquiries')">⬇ CSV</button><br><br>`+tbl(await A('/list/inquiries'),[['Date',r=>esc(r.created)],['Name',r=>esc(r.name)],['Contact',r=>esc(r.phone)+'<br>'+esc(r.email)],['Topic',r=>esc(r.type)],['Message',r=>esc(r.msg)],['Status',r=>sel('inquiries',r.id,r.status||'New',['New','Read','Replied'])],['',r=>del('inquiries',r.id)]])},
-async Newsletter(){const n=await A('/list/newsletter');window._em=n.map(x=>x.email).join(', ');return`<button class="btn s" onclick="navigator.clipboard.writeText(_em).then(()=>toast('Emails copied'))">Copy all emails</button> <button class="btn s o" onclick="exp('newsletter')">⬇ CSV</button><br><br>`+tbl(n,[['Email',r=>esc(r.email)],['Date',r=>esc(r.created)],['',r=>del('newsletter',r.id)]])},
-async Testimonials(){const t=await A('/list/testimonials');return`<form class="card mini" style="padding:14px;margin-bottom:16px" onsubmit="at(event)"><b>Add testimonial</b><input name="name" placeholder="Customer name" required><textarea name="text" placeholder="Review" required></textarea><input name="stars" type="number" min="1" max="5" value="5"><button class="btn s">Add</button></form>`+tbl(t,[['Name',r=>esc(r.name)],['Review',r=>esc(r.text)],['★',r=>r.stars],['Shown on site',r=>`<input type="checkbox" style="width:auto" ${r.approved?'checked':''} onchange="A('/testimonials/${r.id}','PUT',{approved:this.checked?1:0}).then(()=>toast('Saved'))">`],['',r=>del('testimonials',r.id)]])},
-async Plans(){const p=await A('/list/plans');return`<p style="margin-bottom:10px">Names and prices update on the website immediately.</p>`+tbl(p,[['Plan',r=>`<input value="${esc(r.name)}" onchange="up2('plans','${r.id}','name',this.value)">`],['Description',r=>`<input value="${esc(r.descr)}" onchange="up2('plans','${r.id}','descr',this.value)">`],['Price (26 days)',r=>`<input type="number" step="any" value="${r.price}" style="width:110px" onchange="up2('plans','${r.id}','price',+this.value)">`],['Active',r=>`<input type="checkbox" style="width:auto" ${r.active?'checked':''} onchange="up2('plans','${r.id}','active',this.checked?1:0)">`]])},
-async Settings(){const s=await A('/settings'),f=(k,l,t='text')=>`<label>${l}</label><input name="${k}" type="${t}"${t=='number'?' step="any"':''} value="${esc(s[k])}">`;A_after=()=>dz($('#hdz'),'target=hero');
-return`
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"
+    />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin — PinoyAmbula</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7b2d26" />
+    <script src="/runtime-config.js"></script>
+    <script src="/pwa.js"></script>
+  </head>
+  <body>
+    <div class="box" id="login">
+      <h2>Admin Login</h2>
+      <form onsubmit="lg(event)">
+        <label>Password</label
+        ><input name="password" type="password" required /><button class="btn">
+          Login
+        </button>
+        <a class="btn o" href="index.html">Back to site</a>
+      </form>
+    </div>
+    <div class="adm" id="app" hidden>
+      <div id="side"></div>
+      <div id="main"></div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+      const K = "at",
+        A = (u, m, b) => api("/admin" + u, m, b, K),
+        TABS = [
+          "Overview",
+          "Orders",
+          "Menu",
+          "Gallery",
+          "Regional Dishes",
+          "Heritage",
+          "Announcements",
+          "Customers",
+          "Subscriptions",
+          "Reports",
+          "Inquiries",
+          "Newsletter",
+          "Testimonials",
+          "Plans",
+          "Settings",
+        ],
+        CATS = ["Regular", "Budget", "Drinks", "Catering", "Other Asian"];
+      let cur = "Overview";
+      async function lg(e) {
+        e.preventDefault();
+        try {
+          localStorage.setItem(
+            K,
+            (
+              await api(
+                "/admin/login",
+                "POST",
+                Object.fromEntries(new FormData(e.target)),
+                K,
+              )
+            ).token,
+          );
+          show();
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      function out() {
+        localStorage.removeItem(K);
+        location.reload();
+      }
+      function show() {
+        const ok = !!tk(K);
+        $("#login").hidden = ok;
+        $("#app").hidden = !ok;
+        if (ok) go(cur);
+      }
+      async function go(t) {
+        cur = t;
+        $("#side").innerHTML =
+          TABS.map(
+            (x) =>
+              `<button class="${x == t ? "on" : ""}" onclick="go('${x}')">${x}</button>`,
+          ).join("") +
+          '<button onclick="location.href=\'/website\'">← Website</button><button onclick="out()">Logout</button>';
+        try {
+          CUR = (await api("/config")).currency;
+          $("#main").innerHTML = `<h2>${t}</h2>` + (await R[t]());
+          if (A_after) A_after();
+          A_after = null;
+        } catch (x) {
+          if (/login/i.test(x.message)) {
+            out();
+          } else toast(x.message);
+        }
+      }
+      let A_after = null;
+      const tbl = (rows, cols) =>
+        `<div class="tw"><table><tr>${cols.map((c) => `<th>${c[0]}</th>`).join("")}</tr>${rows.map((r) => `<tr>${cols.map((c) => `<td data-label="${c[0]}">${c[1](r)}</td>`).join("")}</tr>`).join("") || "<tr><td>No records yet</td></tr>"}</table></div>`;
+      const del = (t, id) =>
+        `<button class="btn s o" onclick="rm('${t}',${id})">Delete</button>`;
+      async function rm(t, id) {
+        if (confirm("Delete?")) {
+          await A("/" + t + "/" + id, "DELETE");
+          go(cur);
+        }
+      }
+      const sel = (t, id, v, o) =>
+        `<select onchange="A('/status/${t}/${id}','PUT',{status:this.value}).then(()=>toast('Updated'))">${o.map((x) => `<option${x == v ? " selected" : ""}>${x}</option>`).join("")}</select>`;
+      async function upl(f, qs) {
+        if (!f) return;
+        const fd = new FormData();
+        fd.append("file", f);
+        try {
+          await A("/upload?" + qs, "POST", fd);
+          toast("Image saved");
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      function pickItemImage(id, event) {
+        event.stopPropagation();
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = async () => {
+          if (input.files[0]) {
+            await upl(input.files[0], "target=item&id=" + id);
+            go(cur);
+          }
+        };
+        input.click();
+      }
+      function dz(el, qs, multi) {
+        const run = async (fs) => {
+          for (const f of multi ? fs : [fs[0]]) await upl(f, qs);
+          go(cur);
+        };
+        el.ondragover = (e) => {
+          e.preventDefault();
+          el.classList.add("hot");
+        };
+        el.ondragleave = () => el.classList.remove("hot");
+        el.ondrop = (e) => {
+          e.preventDefault();
+          el.classList.remove("hot");
+          run([...e.dataTransfer.files]);
+        };
+        el.onclick = () => {
+          const i = document.createElement("input");
+          i.type = "file";
+          i.accept = "image/*";
+          i.multiple = !!multi;
+          i.onchange = () => run([...i.files]);
+          i.click();
+        };
+      }
+      const R = {
+        async Reports() {
+          const today = new Date().toISOString().slice(0, 10),
+            from = window._reportFrom || today,
+            to = window._reportTo || today,
+            r = await A(
+              "/report-range?from=" +
+                encodeURIComponent(from) +
+                "&to=" +
+                encodeURIComponent(to),
+            );
+          window._lastReport = r;
+          return (
+            '<div class="report-actions"><label>From <input id="reportFrom" type="date" value="' +
+            from +
+            '"></label><label>To <input id="reportTo" type="date" value="' +
+            to +
+            '"></label><button class="btn s" onclick="window._reportFrom=document.getElementById(\'reportFrom\').value;window._reportTo=document.getElementById(\'reportTo\').value;go(\'Reports\')">Refresh</button><button class="btn s o" onclick="printReport()">🖨 Print</button><button class="btn s o" onclick="exportReport()">⬇ CSV</button></div><div class="grid"><div class="card report-kpi">Sales<b>' +
+            money(r.revenue) +
+            '</b></div><div class="card report-kpi">Orders<b>' +
+            r.orders +
+            '</b></div><div class="card report-kpi">Delivered<b>' +
+            r.delivered +
+            '</b></div><div class="card report-kpi">Cancelled<b>' +
+            r.cancelled +
+            '</b></div><div class="card report-kpi">Paid revenue<b>' +
+            money(r.paidRevenue) +
+            '</b></div><div class="card report-kpi">Average order<b>' +
+            money(r.averageOrder) +
+            '</b></div><div class="card report-kpi">New subscriptions<b>' +
+            r.newSubscriptions +
+            '</b></div><div class="card report-kpi">Active subscriptions<b>' +
+            r.activeSubscriptions +
+            "</b></div></div><h3>Top menu items</h3>" +
+            tbl(r.topItems, [
+              ["Item", (x) => esc(x.name)],
+              ["Qty sold", (x) => x.qty],
+            ]) +
+            "<h3>Orders</h3>" +
+            tbl(r.ordersList, [
+              ["#", (x) => x.id],
+              ["Date", (x) => esc(x.created)],
+              ["Customer", (x) => esc(x.name)],
+              ["Status", (x) => esc(x.status)],
+              ["Total", (x) => money(x.total)],
+            ])
+          );
+        },
+        async Overview() {
+          const s = await A("/stats");
+          return `<div class="grid">${[
+            ["New orders", s.newOrders],
+            ["All orders", s.orders],
+            ["Revenue (excl. cancelled)", money(s.revenue)],
+            ["Customers", s.customers],
+            ["Active subscriptions", s.activeSubs],
+            ["Inquiries", s.inquiries],
+            ["Newsletter subscribers", s.subscribers],
+          ]
+            .map((x) => `<div class="card stat">${x[0]}<b>${x[1]}</b></div>`)
+            .join("")}</div>`;
+        },
+        async Orders() {
+          const o = await A("/list/orders"),
+            f = window._of || "All",
+            L = f == "All" ? o : o.filter((x) => x.status == f);
+          window._ol = o;
+          window._max = Math.max(0, ...o.map((x) => x.id));
+          A_after = () => {
+            clearInterval(window._poll);
+            window._poll = setInterval(async () => {
+              if (cur != "Orders") return clearInterval(window._poll);
+              try {
+                const n = await A("/list/orders");
+                if (Math.max(0, ...n.map((x) => x.id)) > window._max) {
+                  beep();
+                  toast("🔔 New order!");
+                  go("Orders");
+                }
+              } catch (e) {}
+            }, 30000);
+          };
+          return (
+            `<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>Checks for new orders every 30s</small></p>` +
+            tbl(L, [
+              ["#", (r) => r.id],
+              ["Date", (r) => esc(r.created)],
+              ["Customer", (r) => `${esc(r.name)}<br>${esc(r.phone)}`],
+              [
+                "Drop location",
+                (r) =>
+                  `${esc(r.address)}${r.paci ? `<br><b>PACI:</b> ${esc(r.paci)}` : ""}${r.notes ? `<br><i>${esc(r.notes)}</i>` : ""}`,
+              ],
+              [
+                "Items",
+                (r) =>
+                  JSON.parse(r.items)
+                    .map((i) => i.qty + "× " + esc(i.name))
+                    .join("<br>"),
+              ],
+              ["Payment", (r) => esc(r.pay || "COD")],
+              ["Subtotal", (r) => money(r.subtotal || r.total)],
+              ["Discount", (r) => money(r.discount || 0)],
+              ["Total", (r) => money(r.total)],
+              [
+                "Status",
+                (r) =>
+                  sel("orders", r.id, r.status, [
+                    "Pending",
+                    "New",
+                    "Confirmed",
+                    "Preparing",
+                    "Out for delivery",
+                    "Delivered",
+                    "Cancelled",
+                    "Completed",
+                  ]),
+              ],
+              [
+                "",
+                (r) =>
+                  `<button class="btn s o" onclick="pr(${r.id})">🖨</button>`,
+              ],
+            ])
+          );
+        },
+        async Menu() {
+          const it = await A("/list/items");
+          A_after = () => {
+            $$(".idz").forEach((el) =>
+              dz(el, "target=item&id=" + el.dataset.id),
+            );
+          };
+          return `<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmit="ai(event)"><b>Add dish</b><div class="f2"><input name="name" placeholder="Name" required><input name="price" type="number" step="0.001" placeholder="Price" required><select name="cat">${["Regular", "Budget", "Drinks", "Catering", "Other Asian"].map((c) => `<option>${c}</option>`).join("")}</select><input name="region" placeholder="Country (Filipino / Japan / Korea…)"><input name="emoji" placeholder="Legacy icon (not used as default)"><input name="descr" placeholder="Description"><textarea name="ingredients" rows="2" placeholder="Full ingredients, comma-separated"></textarea></div><button class="btn s">Add</button></form>
+<p style="margin-bottom:10px">Manage each dish photo with its image controls.</p><div class="grid">${it
+            .map(
+              (
+                i,
+              ) => `<div class="card"><div class="ph idz" data-id="${i.id}" style="position:relative;cursor:pointer;${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji)}<span class="menu-photo-actions"><button type="button" title="Add or replace menu image" aria-label="Add or replace menu image" onclick="pickItemImage(${i.id},event)">▣</button><button type="button" title="Remove menu image" aria-label="Remove menu image" onclick="event.stopPropagation();clearImage('item',${i.id})" ${i.img ? "" : "disabled"}>×</button></span></div><div class="p mini"><input value="${esc(i.name)}" onchange="ui(${i.id},'name',this.value)"><input type="number" step="0.001" value="${i.price}" onchange="ui(${i.id},'price',+this.value)" placeholder="Regular price">
+<input type="number" step="0.001" value="${i.discount_price || ""}" onchange="ui(${i.id},'discount_price',this.value)" placeholder="Discount price"><select onchange="ui(${i.id},'cat',this.value)">${CATS.map((c) => `<option${c == i.cat ? " selected" : ""}>${c}</option>`).join("")}</select><input value="${esc(i.region)}" onchange="ui(${i.id},'region',this.value)" placeholder="Country"><input value="${esc(i.descr)}" onchange="ui(${i.id},'descr',this.value)" placeholder="Description"><textarea rows="2" onchange="ui(${i.id},'ingredients',this.value)" placeholder="Full ingredients">${esc(i.ingredients || "")}</textarea><input value="${esc(i.emoji)}" onchange="ui(${i.id},'emoji',this.value)" style="width:80px"><label><input type="checkbox" style="width:auto" ${i.active ? "checked" : ""} onchange="ui(${i.id},'active',this.checked?1:0)"> Available</label> ${del("items", i.id)}</div></div>`,
+            )
+            .join("")}</div>`;
+        },
+        async Gallery() {
+          const g = await A("/list/gallery");
+          A_after = () => {
+            dz($("#gdz"), "target=gallery", 1);
+            $$(".gdz").forEach((el) =>
+              dz(el, "target=gallery&id=" + el.dataset.id),
+            );
+          };
+          return `<div class="drop" id="gdz">⬆ Add gallery photos</div><form class="card mini" style="padding:14px;margin:14px 0" onsubmit="addGalleryVideo(event)"><b>Add a video embed</b><input name="caption" maxlength="200" placeholder="Caption"><input name="url" type="url" placeholder="YouTube, TikTok, or Facebook video URL" required><button class="btn s">Add video</button></form><div class="grid">${g.map((x) => `<div class="card">${x.media_type === "video" && x.media_url ? `<iframe class="gallery-embed" src="${esc(x.media_url)}" title="${esc(x.caption || "Gallery video")}" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>` : `<div class="ph gdz" data-id="${x.id}" style="height:160px;cursor:pointer;${x.img ? `background-image:url('${esc(x.img)}')` : ""}">${x.img ? "" : "🍽️"}</div>`}<div class="p" style="padding:8px"><input aria-label="Gallery caption" value="${esc(x.caption)}" onchange="up2('gallery','${x.id}','caption',this.value)">${del("gallery", x.id)}</div></div>`).join("")}</div>`;
+        },
+        async Customers() {
+          return (
+            `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Use the secure password-reset email when a customer needs account access.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>` +
+            tbl(await A("/list/customers"), [
+              ["#", (r) => r.id],
+              ["Name", (r) => esc(r.name)],
+              ["Phone", (r) => esc(r.phone)],
+              ["Email", (r) => esc(r.email)],
+              ["Orders", (r) => r.orders],
+              ["Spent", (r) => money(r.spent)],
+              ["Joined", (r) => esc(r.created)],
+              [
+                "Account access",
+                (r) =>
+                  `<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`,
+              ],
+              ["", (r) => del("customers", r.id)],
+            ])
+          );
+        },
+        async Subscriptions() {
+          return (
+            `<p class="small">Edit Start, End, Duration and WhatsApp opt-in directly. Start or Duration changes recalculate End; End changes recalculate Duration.</p><button class="btn s o" onclick="exp('subs')">⬇ CSV</button><br><br>` +
+            tbl(await A("/list/subs"), [
+              ["#", (r) => r.id],
+              ["Customer", (r) => `${esc(r.name)}<br>${esc(r.phone)}`],
+              [
+                "Drop location",
+                (r) =>
+                  esc(r.address) +
+                  (r.paci ? `<br><b>PACI:</b> ${esc(r.paci)}` : ""),
+              ],
+              ["Plan", (r) => esc(r.plan)],
+              [
+                "Start",
+                (r) =>
+                  `<input type="date" value="${esc(r.start)}" onchange="up2('subs',${r.id},'start',this.value)">`,
+              ],
+              [
+                "End",
+                (r) =>
+                  `<input type="date" value="${esc(r.end)}" onchange="up2('subs',${r.id},'end',this.value)">`,
+              ],
+              [
+                "Duration",
+                (r) =>
+                  `<input type="number" min="1" max="366" value="${r.duration_days || 26}" onchange="up2('subs',${r.id},'duration_days',+this.value)">`,
+              ],
+              [
+                "WhatsApp",
+                (r) =>
+                  `<input type="checkbox" style="width:auto" ${r.whatsapp_opt_in ? "checked" : ""} onchange="up2('subs',${r.id},'whatsapp_opt_in',this.checked?1:0)">`,
+              ],
+              ["Price", (r) => money(r.price)],
+              [
+                "Status",
+                (r) =>
+                  sel("subs", r.id, r.status, [
+                    "Active",
+                    "Paused",
+                    "Completed",
+                    "Cancelled",
+                  ]),
+              ],
+            ])
+          );
+        },
+        async Inquiries() {
+          return (
+            `<button class="btn s o" onclick="exp('inquiries')">⬇ CSV</button><br><br>` +
+            tbl(await A("/list/inquiries"), [
+              ["Date", (r) => esc(r.created)],
+              ["Name", (r) => esc(r.name)],
+              ["Contact", (r) => esc(r.phone) + "<br>" + esc(r.email)],
+              ["Topic", (r) => esc(r.type)],
+              ["Message", (r) => esc(r.msg)],
+              [
+                "Status",
+                (r) =>
+                  sel("inquiries", r.id, r.status || "New", [
+                    "New",
+                    "Read",
+                    "Replied",
+                  ]),
+              ],
+              ["", (r) => del("inquiries", r.id)],
+            ])
+          );
+        },
+        async Newsletter() {
+          const n = await A("/list/newsletter");
+          window._em = n.map((x) => x.email).join(", ");
+          return (
+            `<button class="btn s" onclick="navigator.clipboard.writeText(_em).then(()=>toast('Emails copied'))">Copy all emails</button> <button class="btn s o" onclick="exp('newsletter')">⬇ CSV</button><br><br>` +
+            tbl(n, [
+              ["Email", (r) => esc(r.email)],
+              ["Date", (r) => esc(r.created)],
+              ["", (r) => del("newsletter", r.id)],
+            ])
+          );
+        },
+        async Testimonials() {
+          const t = await A("/list/testimonials");
+          return (
+            `<form class="card mini" style="padding:14px;margin-bottom:16px" onsubmit="at(event)"><b>Add testimonial</b><input name="name" placeholder="Customer name" required><textarea name="text" placeholder="Review" required></textarea><input name="stars" type="number" min="1" max="5" value="5"><button class="btn s">Add</button></form>` +
+            tbl(t, [
+              ["Name", (r) => esc(r.name)],
+              ["Review", (r) => esc(r.text)],
+              ["★", (r) => r.stars],
+              [
+                "Shown on site",
+                (r) =>
+                  `<input type="checkbox" style="width:auto" ${r.approved ? "checked" : ""} onchange="A('/testimonials/${r.id}','PUT',{approved:this.checked?1:0}).then(()=>toast('Saved'))">`,
+              ],
+              ["", (r) => del("testimonials", r.id)],
+            ])
+          );
+        },
+        async Plans() {
+          const p = await A("/list/plans");
+          return (
+            `<p style="margin-bottom:10px">Names and prices update on the website immediately.</p>` +
+            tbl(p, [
+              [
+                "Plan",
+                (r) =>
+                  `<input value="${esc(r.name)}" onchange="up2('plans','${r.id}','name',this.value)">`,
+              ],
+              [
+                "Description",
+                (r) =>
+                  `<input value="${esc(r.descr)}" onchange="up2('plans','${r.id}','descr',this.value)">`,
+              ],
+              [
+                "Price (26 days)",
+                (r) =>
+                  `<input type="number" step="any" value="${r.price}" style="width:110px" onchange="up2('plans','${r.id}','price',+this.value)">`,
+              ],
+              [
+                "Active",
+                (r) =>
+                  `<input type="checkbox" style="width:auto" ${r.active ? "checked" : ""} onchange="up2('plans','${r.id}','active',this.checked?1:0)">`,
+              ],
+            ])
+          );
+        },
+        async Settings() {
+          const s = await A("/settings"),
+            f = (k, l, t = "text") =>
+              `<label>${l}</label><input name="${k}" type="${t}"${t == "number" ? ' step="any"' : ""} value="${esc(s[k])}">`;
+          A_after = () => dz($("#hdz"), "target=hero");
+          return `
 <form onsubmit="ss(event)" class="card" style="padding:16px;max-width:650px">
 
 <h3>Restaurant</h3>
-${f('name','Restaurant name')}
-${f('phone','Phone')}
-${f('whatsapp','WhatsApp number')}
-${f('location','Location')}
-${f('map_url','Google Maps URL')}
-<label>Opening hours</label><textarea name="hours" rows="4" placeholder="Mon–Sat: 10:00–22:00\nSun: Closed">${esc(s.hours||'')}</textarea>
-${f('facebook','Facebook URL')}
-${f('instagram','Instagram URL')}
-${f('currency','Currency code (e.g. KWD)')}
-${f('fee','Delivery fee','number')}
-${f('min_order','Minimum order (0 = none)','number')}
+${f("name", "Restaurant name")}
+${f("phone", "Phone")}
+${f("whatsapp", "WhatsApp number")}
+${f("location", "Location")}
+${f("map_url", "Google Maps URL")}
+<label>Opening hours</label><textarea name="hours" rows="4" placeholder="Mon–Sat: 10:00–22:00\nSun: Closed">${esc(s.hours || "")}</textarea>
+${f("facebook", "Facebook URL")}
+${f("instagram", "Instagram URL")}
+${f("currency", "Currency code (e.g. KWD)")}
+${f("fee", "Delivery fee", "number")}
+${f("min_order", "Minimum order (0 = none)", "number")}
 
 <h3 style="margin-top:20px">Ordering</h3>
 <label>Accepting orders</label>
 <select name="accepting">
-<option value="1"${s.accepting=='1'?' selected':''}>Open — accepting orders</option>
-<option value="0"${s.accepting=='0'?' selected':''}>Closed — pause orders</option>
+<option value="1"${s.accepting == "1" ? " selected" : ""}>Open — accepting orders</option>
+<option value="0"${s.accepting == "0" ? " selected" : ""}>Closed — pause orders</option>
 </select>
 
 <label>Order approval</label>
 <select name="approval_mode">
-<option value="AUTO"${s.approval_mode!='ADMIN'?' selected':''}>Automatic confirmation</option>
-<option value="ADMIN"${s.approval_mode=='ADMIN'?' selected':''}>Admin must approve</option>
+<option value="AUTO"${s.approval_mode != "ADMIN" ? " selected" : ""}>Automatic confirmation</option>
+<option value="ADMIN"${s.approval_mode == "ADMIN" ? " selected" : ""}>Admin must approve</option>
 </select>
 
 <h3 style="margin-top:20px">Payment</h3>
-<label><input type="checkbox" name="payment_cod" value="1" style="width:auto"${s.payment_cod!=='0'?' checked':''}> Cash on Delivery</label>
-<label><input type="checkbox" name="payment_card" value="1" style="width:auto"${s.payment_card==='1'?' checked':''}> Card payment option</label>
+<label><input type="checkbox" name="payment_cod" value="1" style="width:auto"${s.payment_cod !== "0" ? " checked" : ""}> Cash on Delivery</label>
+<label><input type="checkbox" name="payment_card" value="1" style="width:auto"${s.payment_card === "1" ? " checked" : ""}> Card payment option</label>
 <p style="font-size:.8rem;opacity:.7">Card selection is stored with the order. A real card charge requires a payment gateway integration.</p>
 
 <h3 style="margin-top:20px">Promo</h3>
-<label><input type="checkbox" name="promo_enabled" value="1" style="width:auto"${s.promo_enabled!=='0'?' checked':''}> Enable promo code</label>
-${f('promo_code','Promo code')}
+<label><input type="checkbox" name="promo_enabled" value="1" style="width:auto"${s.promo_enabled !== "0" ? " checked" : ""}> Enable promo code</label>
+${f("promo_code", "Promo code")}
 <label>Promo type</label>
 <select name="promo_type">
-<option value="percent"${s.promo_type!='fixed'?' selected':''}>Percentage</option>
-<option value="fixed"${s.promo_type=='fixed'?' selected':''}>Fixed amount</option>
+<option value="percent"${s.promo_type != "fixed" ? " selected" : ""}>Percentage</option>
+<option value="fixed"${s.promo_type == "fixed" ? " selected" : ""}>Fixed amount</option>
 </select>
-${f('promo_value','Promo value','number')}
+${f("promo_value", "Promo value", "number")}
 
 <h3 style="margin-top:20px">Branding</h3>
-${f('logo_url','Logo URL')}
-${f('hero_title','Homepage headline')}
+${f("logo_url", "Logo URL")}
+${f("hero_title", "Homepage headline")}
 <label>Homepage text</label>
 <textarea name="hero_text" rows="3">${esc(s.hero_text)}</textarea>
 
@@ -94,100 +520,288 @@ ${f('hero_title','Homepage headline')}
 </form>
 
 <p style="margin:14px 0 6px">Homepage banner photo:</p>
-<div class="drop" id="hdz" style="max-width:650px;${s.hero_img?`background:url('${esc(s.hero_img)}') center/cover;color:#fff;height:140px`:''}">⬆ Drop banner image here</div>
-`}};
-const beep=()=>{try{const c=new AudioContext(),o=c.createOscillator();o.connect(c.destination);o.start();setTimeout(()=>o.stop(),250)}catch(e){}};
-async function exp(t){try{const r=await fetch(API_ORIGIN+'/api/admin/export/'+t,{headers:{Authorization:'Bearer '+tk(K)}});if(!r.ok)throw Error('Export failed');const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=t+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}catch(e){toast(e.message)}}
-async function pr(id){
-  const r=_ol.find(x=>x.id==id);
-  if(!r)return;
-  try{
-    const st=await A('/settings');
-    const w=open('','_blank','width=520,height=820');
-    if(!w)throw new Error('Please allow pop-ups to print the receipt.');
+<div class="drop" id="hdz" style="max-width:650px;${s.hero_img ? `background:url('${esc(s.hero_img)}') center/cover;color:#fff;height:140px` : ""}">⬆ Drop banner image here</div>
+`;
+        },
+      };
+      const beep = () => {
+        try {
+          const c = new AudioContext(),
+            o = c.createOscillator();
+          o.connect(c.destination);
+          o.start();
+          setTimeout(() => o.stop(), 250);
+        } catch (e) {}
+      };
+      async function exp(t) {
+        try {
+          const r = await fetch(API_ORIGIN + "/api/admin/export/" + t, {
+            headers: { Authorization: "Bearer " + tk(K) },
+          });
+          if (!r.ok) throw Error("Export failed");
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(await r.blob());
+          a.download = t + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+          a.click();
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      async function pr(id) {
+        const r = _ol.find((x) => x.id == id);
+        if (!r) return;
+        try {
+          const st = await A("/settings");
+          const w = open("", "_blank", "width=520,height=820");
+          if (!w) throw new Error("Please allow pop-ups to print the receipt.");
 
-    const items=JSON.parse(r.items||'[]');
-    const currency=String(st.currency||CUR||'KWD');
-    const fmt=v=>Number(v||0).toFixed(3)+' '+currency;
-    const delivery=Math.max(0,(+r.total||0)-(+r.subtotal||+r.total||0)+(+r.discount||0));
-    const itemRows=items.map(i=>{
-      const qty=Math.max(1,+i.qty||1);
-      const unit=+i.price||0;
-      return '<tr><td>'+esc(i.name)+'</td><td style="text-align:center">'+qty+'</td><td style="text-align:right">'+fmt(unit)+'</td><td style="text-align:right">'+fmt(unit*qty)+'</td></tr>';
-    }).join('');
-    const mapLink=r.map_url?'<a href="'+esc(r.map_url)+'" target="_blank" rel="noopener">Open delivery location map</a>':'';
+          const items = JSON.parse(r.items || "[]");
+          const currency = String(st.currency || CUR || "KWD");
+          const fmt = (v) => Number(v || 0).toFixed(3) + " " + currency;
+          const delivery = Math.max(
+            0,
+            (+r.total || 0) -
+              (+r.subtotal || +r.total || 0) +
+              (+r.discount || 0),
+          );
+          const itemRows = items
+            .map((i) => {
+              const qty = Math.max(1, +i.qty || 1);
+              const unit = +i.price || 0;
+              return (
+                "<tr><td>" +
+                esc(i.name) +
+                '</td><td style="text-align:center">' +
+                qty +
+                '</td><td style="text-align:right">' +
+                fmt(unit) +
+                '</td><td style="text-align:right">' +
+                fmt(unit * qty) +
+                "</td></tr>"
+              );
+            })
+            .join("");
+          const mapLink = r.map_url
+            ? '<a href="' +
+              esc(r.map_url) +
+              '" target="_blank" rel="noopener">Open delivery location map</a>'
+            : "";
 
-    w.document.write('<!doctype html><html><head><title>'+esc((st.name||'PinoyAmbula')+' — Delivery Receipt #'+r.id)+'</title>'+
-      '<meta name="viewport" content="width=device-width,initial-scale=1"><style>'+
-      'body{font-family:Arial,sans-serif;color:#202b25;margin:0;padding:24px;line-height:1.45}.receipt{max-width:760px;margin:auto}'+
-      'h1{margin:0 0 4px;font-size:25px}h2{font-size:17px;margin:0 0 8px}.muted{color:#66736c;font-size:12px}'+
-      '.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}.box{border:1px solid #ddd8cc;border-radius:10px;padding:13px}'+
-      '.row{display:flex;justify-content:space-between;gap:12px;padding:4px 0}table{width:100%;border-collapse:collapse;margin:10px 0 16px}'+
-      'th,td{border-bottom:1px solid #e7e2d9;padding:8px 6px;text-align:left;font-size:13px}th{font-size:12px;background:#f6f0e4}'+
-      '.total{font-size:18px;font-weight:700}.status{display:inline-block;padding:4px 9px;border-radius:999px;background:#f3ead8}'+
-      '.notes{white-space:pre-wrap}.footer{margin-top:22px;border-top:1px solid #ddd8cc;padding-top:12px;font-size:11px;color:#66736c}'+
-      '.print{margin-bottom:16px;padding:9px 14px;border:0;border-radius:7px;background:#b63a2b;color:#fff;font-weight:700;cursor:pointer}@media print{body{padding:0}.print{display:none}.box{break-inside:avoid}}'+
-      '</style></head><body><div class="receipt"><button class="print" onclick="print()">Print receipt</button>'+
-      '<div style="text-align:center"><h1>'+esc(st.name||'PinoyAmbula')+'</h1>'+
-      (st.location?'<div>'+esc(st.location)+'</div>':'')+
-      (st.phone?'<div>Phone: '+esc(st.phone)+'</div>':'')+
-      (st.whatsapp?'<div>WhatsApp: '+esc(st.whatsapp)+'</div>':'')+
-      (st.hours?'<div class="muted">Hours: '+esc(st.hours)+'</div>':'')+
-      '</div><hr style="border:0;border-top:2px solid #202b25;margin:16px 0">'+
-      '<div class="row"><b>Delivery Receipt</b><b>#'+esc(r.id)+'</b></div>'+
-      '<div class="row muted"><span>Order date</span><span>'+esc(r.created)+'</span></div>'+
-      '<div class="row"><span>Status</span><span class="status">'+esc(r.status||'New')+'</span></div>'+
-      '<div class="row"><span>Payment</span><span>'+esc(r.pay||'COD')+' · '+esc(r.payment_status||'Pending')+'</span></div>'+
-      '<div class="grid"><div class="box"><h2>Customer</h2><div><b>'+esc(r.name||'')+'</b></div>'+
-      '<div>Phone: '+esc(r.phone||'—')+'</div><div>Email: '+esc(r.email||'—')+'</div><div>PACI: '+esc(r.paci||'—')+'</div></div>'+
-      '<div class="box"><h2>Delivery</h2><div>'+esc(r.address||'—')+'</div><div>Delivery fee: '+fmt(delivery)+'</div>'+
-      (r.lat!=null&&r.lng!=null?'<div>Coordinates: '+esc(r.lat)+', '+esc(r.lng)+'</div>':'')+
-      (mapLink?'<div style="margin-top:8px">'+mapLink+'</div>':'')+
-      '</div></div>'+
-      '<div class="box"><h2>Order items</h2><table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Line total</th></tr></thead><tbody>'+
-      itemRows+'</tbody></table><div class="row"><span>Subtotal</span><span>'+fmt(r.subtotal||r.total)+'</span></div>'+
-      '<div class="row"><span>Discount</span><span>-'+fmt(r.discount||0)+'</span></div><div class="row"><span>Delivery</span><span>'+fmt(delivery)+'</span></div>'+
-      '<div class="row total"><span>Total</span><span>'+fmt(r.total)+'</span></div></div>'+
-      (r.notes?'<div class="box"><h2>Customer notes</h2><div class="notes">'+esc(r.notes)+'</div></div>':'')+
-      (r.driver_name||r.driver_phone||r.eta||r.status_message||r.delivered_at||r.received_at?'<div class="box"><h2>Delivery tracking</h2>'+
-        (r.driver_name?'<div>Driver: '+esc(r.driver_name)+'</div>':'')+
-        (r.driver_phone?'<div>Driver phone: '+esc(r.driver_phone)+'</div>':'')+
-        (r.eta?'<div>ETA: '+esc(r.eta)+'</div>':'')+
-        (r.status_message?'<div>Status message: '+esc(r.status_message)+'</div>':'')+
-        (r.delivered_at?'<div>Delivered: '+esc(r.delivered_at)+'</div>':'')+
-        (r.received_at?'<div>Customer received: '+esc(r.received_at)+'</div>':'')+
-      '</div>':'')+
-      '<div class="footer">Thank you for ordering from '+esc(st.name||'PinoyAmbula')+'. Keep this receipt for your records.'+
-      (st.facebook?'<br>Facebook: '+esc(st.facebook):'')+
-      (st.instagram?'<br>Instagram: '+esc(st.instagram):'')+
-      '</div></div></body></html>');
-    w.document.close();
-    w.focus();
-    setTimeout(()=>w.print(),250);
-  }catch(e){toast(e.message)}
-}
-async function up2(t,id,k,v){try{await A('/'+t+'/'+id,'PUT',{[k]:v});toast('Saved')}catch(x){toast(x.message)}}
-async function ss(e){
-  e.preventDefault();
+          w.document.write(
+            "<!doctype html><html><head><title>" +
+              esc((st.name || "PinoyAmbula") + " — Delivery Receipt #" + r.id) +
+              "</title>" +
+              '<meta name="viewport" content="width=device-width,initial-scale=1"><style>' +
+              "body{font-family:Arial,sans-serif;color:#202b25;margin:0;padding:24px;line-height:1.45}.receipt{max-width:760px;margin:auto}" +
+              "h1{margin:0 0 4px;font-size:25px}h2{font-size:17px;margin:0 0 8px}.muted{color:#66736c;font-size:12px}" +
+              ".grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}.box{border:1px solid #ddd8cc;border-radius:10px;padding:13px}" +
+              ".row{display:flex;justify-content:space-between;gap:12px;padding:4px 0}table{width:100%;border-collapse:collapse;margin:10px 0 16px}" +
+              "th,td{border-bottom:1px solid #e7e2d9;padding:8px 6px;text-align:left;font-size:13px}th{font-size:12px;background:#f6f0e4}" +
+              ".total{font-size:18px;font-weight:700}.status{display:inline-block;padding:4px 9px;border-radius:999px;background:#f3ead8}" +
+              ".notes{white-space:pre-wrap}.footer{margin-top:22px;border-top:1px solid #ddd8cc;padding-top:12px;font-size:11px;color:#66736c}" +
+              ".print{margin-bottom:16px;padding:9px 14px;border:0;border-radius:7px;background:#b63a2b;color:#fff;font-weight:700;cursor:pointer}@media print{body{padding:0}.print{display:none}.box{break-inside:avoid}}" +
+              '</style></head><body><div class="receipt"><button class="print" onclick="print()">Print receipt</button>' +
+              '<div style="text-align:center"><h1>' +
+              esc(st.name || "PinoyAmbula") +
+              "</h1>" +
+              (st.location ? "<div>" + esc(st.location) + "</div>" : "") +
+              (st.phone ? "<div>Phone: " + esc(st.phone) + "</div>" : "") +
+              (st.whatsapp
+                ? "<div>WhatsApp: " + esc(st.whatsapp) + "</div>"
+                : "") +
+              (st.hours
+                ? '<div class="muted">Hours: ' + esc(st.hours) + "</div>"
+                : "") +
+              '</div><hr style="border:0;border-top:2px solid #202b25;margin:16px 0">' +
+              '<div class="row"><b>Delivery Receipt</b><b>#' +
+              esc(r.id) +
+              "</b></div>" +
+              '<div class="row muted"><span>Order date</span><span>' +
+              esc(r.created) +
+              "</span></div>" +
+              '<div class="row"><span>Status</span><span class="status">' +
+              esc(r.status || "New") +
+              "</span></div>" +
+              '<div class="row"><span>Payment</span><span>' +
+              esc(r.pay || "COD") +
+              " · " +
+              esc(r.payment_status || "Pending") +
+              "</span></div>" +
+              '<div class="grid"><div class="box"><h2>Customer</h2><div><b>' +
+              esc(r.name || "") +
+              "</b></div>" +
+              "<div>Phone: " +
+              esc(r.phone || "—") +
+              "</div><div>Email: " +
+              esc(r.email || "—") +
+              "</div><div>PACI: " +
+              esc(r.paci || "—") +
+              "</div></div>" +
+              '<div class="box"><h2>Delivery</h2><div>' +
+              esc(r.address || "—") +
+              "</div><div>Delivery fee: " +
+              fmt(delivery) +
+              "</div>" +
+              (r.lat != null && r.lng != null
+                ? "<div>Coordinates: " +
+                  esc(r.lat) +
+                  ", " +
+                  esc(r.lng) +
+                  "</div>"
+                : "") +
+              (mapLink
+                ? '<div style="margin-top:8px">' + mapLink + "</div>"
+                : "") +
+              "</div></div>" +
+              '<div class="box"><h2>Order items</h2><table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Line total</th></tr></thead><tbody>' +
+              itemRows +
+              '</tbody></table><div class="row"><span>Subtotal</span><span>' +
+              fmt(r.subtotal || r.total) +
+              "</span></div>" +
+              '<div class="row"><span>Discount</span><span>-' +
+              fmt(r.discount || 0) +
+              '</span></div><div class="row"><span>Delivery</span><span>' +
+              fmt(delivery) +
+              "</span></div>" +
+              '<div class="row total"><span>Total</span><span>' +
+              fmt(r.total) +
+              "</span></div></div>" +
+              (r.notes
+                ? '<div class="box"><h2>Customer notes</h2><div class="notes">' +
+                  esc(r.notes) +
+                  "</div></div>"
+                : "") +
+              (r.driver_name ||
+              r.driver_phone ||
+              r.eta ||
+              r.status_message ||
+              r.delivered_at ||
+              r.received_at
+                ? '<div class="box"><h2>Delivery tracking</h2>' +
+                  (r.driver_name
+                    ? "<div>Driver: " + esc(r.driver_name) + "</div>"
+                    : "") +
+                  (r.driver_phone
+                    ? "<div>Driver phone: " + esc(r.driver_phone) + "</div>"
+                    : "") +
+                  (r.eta ? "<div>ETA: " + esc(r.eta) + "</div>" : "") +
+                  (r.status_message
+                    ? "<div>Status message: " + esc(r.status_message) + "</div>"
+                    : "") +
+                  (r.delivered_at
+                    ? "<div>Delivered: " + esc(r.delivered_at) + "</div>"
+                    : "") +
+                  (r.received_at
+                    ? "<div>Customer received: " + esc(r.received_at) + "</div>"
+                    : "") +
+                  "</div>"
+                : "") +
+              '<div class="footer">Thank you for ordering from ' +
+              esc(st.name || "PinoyAmbula") +
+              ". Keep this receipt for your records." +
+              (st.facebook ? "<br>Facebook: " + esc(st.facebook) : "") +
+              (st.instagram ? "<br>Instagram: " + esc(st.instagram) : "") +
+              "</div></div></body></html>",
+          );
+          w.document.close();
+          w.focus();
+          setTimeout(() => w.print(), 250);
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      async function up2(t, id, k, v) {
+        try {
+          await A("/" + t + "/" + id, "PUT", { [k]: v });
+          toast("Saved");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function ss(e) {
+        e.preventDefault();
 
-  const fd=new FormData(e.target);
-  const b=Object.fromEntries(fd);
+        const fd = new FormData(e.target);
+        const b = Object.fromEntries(fd);
 
-  ['payment_cod','payment_card','promo_enabled'].forEach(k=>{
-    b[k]=fd.has(k)?'1':'0';
-  });
+        ["payment_cod", "payment_card", "promo_enabled"].forEach((k) => {
+          b[k] = fd.has(k) ? "1" : "0";
+        });
 
-  try{
-    await A('/settings','PUT',b);
-    toast('Settings saved');
-    go('Settings');
-  }catch(x){
-    toast(x.message);
-  }
-}
-async function ai(e){e.preventDefault();try{await A('/items','POST',Object.fromEntries(new FormData(e.target)));go('Menu')}catch(x){toast(x.message)}}
-async function addGalleryVideo(e){e.preventDefault();try{await A('/gallery','POST',Object.fromEntries(new FormData(e.target)));toast('Video added');go('Gallery')}catch(x){toast(x.message)}}
-async function issueReset(id){if(!confirm('Send this customer a secure password-reset email? The customer must have a valid email address.'))return;try{const result=await A('/customers/'+id+'/reset-password','POST',{});toast(result.message||'Password reset email sent')}catch(error){toast(error.message)}}
-async function ui(id,k,v){try{await A('/items/'+id,'PUT',{[k]:v});toast('Saved')}catch(x){toast(x.message)}}
-async function at(e){e.preventDefault();try{await A('/testimonials','POST',Object.fromEntries(new FormData(e.target)));go('Testimonials')}catch(x){toast(x.message)}}
-show()</script><script src="enhancements.js"></script><script src="final-fixes.js"></script><script src="master-enhancements.js"></script></body></html>
+        try {
+          await A("/settings", "PUT", b);
+          toast("Settings saved");
+          go("Settings");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function ai(e) {
+        e.preventDefault();
+        try {
+          await A("/items", "POST", Object.fromEntries(new FormData(e.target)));
+          go("Menu");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function addGalleryVideo(e) {
+        e.preventDefault();
+        try {
+          await A(
+            "/gallery",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          toast("Video added");
+          go("Gallery");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function issueReset(id) {
+        if (
+          !confirm(
+            "Send this customer a secure password-reset email? The customer must have a valid email address.",
+          )
+        )
+          return;
+        try {
+          const result = await A(
+            "/customers/" + id + "/reset-password",
+            "POST",
+            {},
+          );
+          toast(result.message || "Password reset email sent");
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+      async function ui(id, k, v) {
+        try {
+          await A("/items/" + id, "PUT", { [k]: v });
+          toast("Saved");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function at(e) {
+        e.preventDefault();
+        try {
+          await A(
+            "/testimonials",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          go("Testimonials");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      show();
+    </script>
+    <script src="enhancements.js"></script>
+    <script src="final-fixes.js"></script>
+    <script src="master-enhancements.js"></script>
+  </body>
+</html>

@@ -1,116 +1,534 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Account — PinoyAmbula</title><link rel="stylesheet" href="style.css?v=20261001-auth1"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7b2d26"><script src="/runtime-config.js"></script><script src="/pwa.js?v=20261001-auth1"></script></head><body>
-<div class="banig"></div><nav><div class="wrap"><a class="logo" href="index.html">🌼 Lutong Bahay</a><ul class="row"><li><a href="index.html#menu">Menu</a></li><li><a href="index.html">Home</a></li></ul></div></nav>
-<div class="wrap"><div class="box" id="auth"><h2 id="ttl">Login</h2><form onsubmit="go(event)"><div id="reg-fields" hidden><label>Name</label><input name="name"><label>Email</label><input name="email" type="email" autocomplete="email"><label>Delivery address</label><textarea name="address" rows="2" autocomplete="street-address"></textarea><label>PACI number</label><input name="paci" inputmode="numeric"><label>Birthday</label><input name="birthday" type="date"><label>Nationality</label><input name="nationality" autocomplete="country-name"></div><label>Phone</label><input name="phone" type="tel" autocomplete="tel" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required minlength="6"><button class="btn" id="sb">Login</button> <button type="button" class="btn o" onclick="tog()" id="tg">Create account</button><button type="button" id="forgot-link" class="text-button" onclick="event.preventDefault();event.stopPropagation();$('#recovery').showModal()">Forgot password?</button></form></div>
-<dialog id="recovery"><h3>Reset your password</h3><p>Enter the email address registered on your PinoyAmbula account. We will email you a secure, one-time reset link.</p><form onsubmit="requestPasswordReset(event)"><label>Email</label><input name="email" type="email" autocomplete="email" required><button class="btn">Email reset link</button> <button type="button" class="btn o" onclick="$('#recovery').close()">Close</button></form></dialog>
-<div id="me" hidden style="padding:30px 0"><h2 id="hi"></h2><p><button class="btn s o" onclick="out()">Logout</button> <a class="btn s" href="index.html#menu">Order food</a></p><section id="loyalty" style="padding:12px 0"><h3>Loyalty</h3><p id="loyalty-progress"></p><div id="loyalty-rewards"></div></section><h3 style="margin:20px 0 8px">My orders</h3>
-<div id="order-tracker" style="margin:15px 0"><div id="orderStep"></div></div>
-<div class="tw"><table id="ot"></table></div><h3 style="margin:20px 0 8px">My 26-day subscriptions</h3><div class="tw"><table id="st"></table></div>
-<dialog id="orderChatDialog"><h3 id="orderChatTitle">Order chat</h3><div id="orderChatMessages" style="max-height:360px;overflow:auto;margin:10px 0"></div><form onsubmit="sendOrderChat(event)"><textarea name="message" rows="3" maxlength="4000" required placeholder="Message the restaurant about this order..."></textarea><button class="btn">Send message</button> <button type="button" class="btn o" onclick="closeOrderChat()">Close</button></form></dialog>
-<section id="support-chat" style="margin:24px 0">
-<h3>Chat with PinoyAmbula</h3>
-<p style="font-size:.9rem;opacity:.75">No automatic replies. Send your message here and the restaurant team will reply from the Admin dashboard.</p>
-<div id="chat-list"></div>
-<form id="new-chat-form" onsubmit="newChat(event)" class="card" style="padding:14px;max-width:620px">
-<label>Topic<select name="type"><option>General Support</option><option>Order Question</option><option>Delivery Question</option><option>Subscription Question</option><option>Other</option></select></label>
-<label>Message<textarea name="message" rows="4" maxlength="4000" required placeholder="How can we help?"></textarea></label>
-<button class="btn">Send to restaurant</button>
-</form>
-<div id="chat-box" hidden class="card" style="padding:14px;max-width:620px;margin-top:14px">
-<div id="chat-title" style="font-weight:700;margin-bottom:8px"></div><div id="chat-messages" style="max-height:320px;overflow:auto"></div>
-<form onsubmit="replyChat(event)" style="margin-top:12px"><textarea name="message" rows="3" maxlength="4000" required placeholder="Write a reply..."></textarea><button class="btn">Send message</button></form>
-</div></section></div></div>
-<script src="app.js"></script><script>
-let reg=false;function tog(){reg=!reg;$('#reg-fields').hidden=!reg;$('#reg-fields [name=name]').required=reg;$('#forgot-link').hidden=reg;$('#ttl').textContent=$('#sb').textContent=reg?'Register':'Login';$('#tg').textContent=reg?'I have an account':'Create account'}
-async function go(e){e.preventDefault();const button=$('#sb');try{button.disabled=true;const data=Object.fromEntries(new FormData(e.target));const r=await api(reg?'/register':'/login','POST',data);if(!r.token)throw new Error('Login failed: no session token returned.');localStorage.setItem('ct',r.token);await load();if(!$('#auth').hidden)throw new Error('Login succeeded but the account page could not load.');await loadChats()}catch(x){toast(x.message)}finally{button.disabled=false}}
-async function requestPasswordReset(e){e.preventDefault();try{const result=await api('/password-reset','POST',Object.fromEntries(new FormData(e.target)));$('#recovery').close();e.target.reset();toast(result.message)}catch(error){toast(error.message)}}
-async function confirmReceipt(id){try{await api('/orders/'+id+'/received','POST',{});toast('Thanks for confirming delivery');load()}catch(error){toast(error.message)}}
-function out(){localStorage.removeItem('ct');location.reload()}
-let activeChatId=null,chatTimer=null;
-let activeOrderChatId=null,orderChatTimer=null;
-function closeOrderChat(){if(orderChatTimer)clearInterval(orderChatTimer);orderChatTimer=null;const d=$('#orderChatDialog');if(d)d.close();}
-async function openOrderChat(orderId){
-  activeOrderChatId=orderId;
-  const d=$('#orderChatDialog');
-  if(!d)return;
-  if(orderChatTimer)clearInterval(orderChatTimer);
-  const refresh=async()=>{
-    try{
-      const data=await api('/customer/orders/'+orderId+'/chat');
-      $('#orderChatTitle').textContent='Chat about Order #'+orderId+' · '+data.order.status;
-      if(!data.inquiry){
-        $('#orderChatMessages').innerHTML='<p style="opacity:.7">No messages yet. Send a message below to start the conversation with the restaurant.</p>';
-      }else{
-        $('#orderChatMessages').innerHTML=data.messages.map(m=>'<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:'+(m.author==='admin'?'#fff3d6':'#eef5ff')+'"><b>'+(m.author==='admin'?'Restaurant':'You')+'</b><div style="font-size:.75rem;opacity:.65">'+esc(m.created)+'</div><p style="margin:5px 0;white-space:pre-wrap">'+esc(m.message)+'</p></article>').join('');
-        $('#orderChatMessages').scrollTop=$('#orderChatMessages').scrollHeight;
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"
+    />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>My Account — PinoyAmbula</title>
+    <link rel="stylesheet" href="style.css?v=20261001-auth1" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7b2d26" />
+    <script src="/runtime-config.js"></script>
+    <script src="/pwa.js?v=20261001-auth1"></script>
+  </head>
+  <body>
+    <div class="banig"></div>
+    <nav>
+      <div class="wrap">
+        <a class="logo" href="index.html">🌼 Lutong Bahay</a>
+        <ul class="row">
+          <li><a href="index.html#menu">Menu</a></li>
+          <li><a href="index.html">Home</a></li>
+        </ul>
+      </div>
+    </nav>
+    <div class="wrap">
+      <div class="box" id="auth">
+        <h2 id="ttl">Login</h2>
+        <form onsubmit="go(event)">
+          <div id="reg-fields" hidden>
+            <label>Name</label><input name="name" /><label>Email</label
+            ><input name="email" type="email" autocomplete="email" /><label
+              >Delivery address</label
+            ><textarea
+              name="address"
+              rows="2"
+              autocomplete="street-address"
+            ></textarea
+            ><label>PACI number</label
+            ><input name="paci" inputmode="numeric" /><label>Birthday</label
+            ><input name="birthday" type="date" /><label>Nationality</label
+            ><input name="nationality" autocomplete="country-name" />
+          </div>
+          <label>Phone</label
+          ><input name="phone" type="tel" autocomplete="tel" required /><label
+            >Password</label
+          ><input
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            minlength="6"
+          /><button class="btn" id="sb">Login</button>
+          <button type="button" class="btn o" onclick="tog()" id="tg">
+            Create account</button
+          ><button
+            type="button"
+            id="forgot-link"
+            class="text-button"
+            onclick="event.preventDefault();event.stopPropagation();$('#recovery').showModal()"
+          >
+            Forgot password?
+          </button>
+        </form>
+      </div>
+      <dialog id="recovery">
+        <h3>Reset your password</h3>
+        <p>
+          Enter the email address registered on your PinoyAmbula account. We
+          will email you a secure, one-time reset link.
+        </p>
+        <form onsubmit="requestPasswordReset(event)">
+          <label>Email</label
+          ><input
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+          /><button class="btn">Email reset link</button>
+          <button type="button" class="btn o" onclick="$('#recovery').close()">
+            Close
+          </button>
+        </form>
+      </dialog>
+      <div id="me" hidden style="padding: 30px 0">
+        <h2 id="hi"></h2>
+        <p>
+          <button class="btn s o" onclick="out()">Logout</button>
+          <a class="btn s" href="index.html#menu">Order food</a>
+        </p>
+        <section id="loyalty" style="padding: 12px 0">
+          <h3>Loyalty</h3>
+          <p id="loyalty-progress"></p>
+          <div id="loyalty-rewards"></div>
+        </section>
+        <h3 style="margin: 20px 0 8px">My orders</h3>
+        <div id="order-tracker" style="margin: 15px 0">
+          <div id="orderStep"></div>
+        </div>
+        <div class="tw"><table id="ot"></table></div>
+        <h3 style="margin: 20px 0 8px">My 26-day subscriptions</h3>
+        <div class="tw"><table id="st"></table></div>
+        <dialog id="orderChatDialog">
+          <h3 id="orderChatTitle">Order chat</h3>
+          <div
+            id="orderChatMessages"
+            style="max-height: 360px; overflow: auto; margin: 10px 0"
+          ></div>
+          <form onsubmit="sendOrderChat(event)">
+            <textarea
+              name="message"
+              rows="3"
+              maxlength="4000"
+              required
+              placeholder="Message the restaurant about this order..."
+            ></textarea
+            ><button class="btn">Send message</button>
+            <button type="button" class="btn o" onclick="closeOrderChat()">
+              Close
+            </button>
+          </form>
+        </dialog>
+        <section id="support-chat" style="margin: 24px 0">
+          <h3>Chat with PinoyAmbula</h3>
+          <p style="font-size: 0.9rem; opacity: 0.75">
+            No automatic replies. Send your message here and the restaurant team
+            will reply from the Admin dashboard.
+          </p>
+          <div id="chat-list"></div>
+          <form
+            id="new-chat-form"
+            onsubmit="newChat(event)"
+            class="card"
+            style="padding: 14px; max-width: 620px"
+          >
+            <label
+              >Topic<select name="type">
+                <option>General Support</option>
+                <option>Order Question</option>
+                <option>Delivery Question</option>
+                <option>Subscription Question</option>
+                <option>Other</option>
+              </select></label
+            >
+            <label
+              >Message<textarea
+                name="message"
+                rows="4"
+                maxlength="4000"
+                required
+                placeholder="How can we help?"
+              ></textarea>
+            </label>
+            <button class="btn">Send to restaurant</button>
+          </form>
+          <div
+            id="chat-box"
+            hidden
+            class="card"
+            style="padding: 14px; max-width: 620px; margin-top: 14px"
+          >
+            <div
+              id="chat-title"
+              style="font-weight: 700; margin-bottom: 8px"
+            ></div>
+            <div
+              id="chat-messages"
+              style="max-height: 320px; overflow: auto"
+            ></div>
+            <form onsubmit="replyChat(event)" style="margin-top: 12px">
+              <textarea
+                name="message"
+                rows="3"
+                maxlength="4000"
+                required
+                placeholder="Write a reply..."
+              ></textarea
+              ><button class="btn">Send message</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+      let reg = false;
+      function tog() {
+        reg = !reg;
+        $("#reg-fields").hidden = !reg;
+        $("#reg-fields [name=name]").required = reg;
+        $("#forgot-link").hidden = reg;
+        $("#ttl").textContent = $("#sb").textContent = reg
+          ? "Register"
+          : "Login";
+        $("#tg").textContent = reg ? "I have an account" : "Create account";
       }
-    }catch(error){toast(error.message);closeOrderChat()}
-  };
-  d.showModal();
-  await refresh();
-  orderChatTimer=setInterval(refresh,5000);
-}
-async function sendOrderChat(e){
-  e.preventDefault();
-  if(!activeOrderChatId)return;
-  try{
-    await api('/customer/orders/'+activeOrderChatId+'/chat','POST',Object.fromEntries(new FormData(e.target)));
-    e.target.reset();
-    await openOrderChat(activeOrderChatId);
-  }catch(error){toast(error.message)}
-}
-async function loadChats(){
-  if(!tk('ct'))return;
-  try{
-    const rows=await api('/customer/inquiries');
-    $('#chat-list').innerHTML=rows.length
-      ? rows.map(r=>'<button type="button" class="btn s o" style="margin:4px 4px 4px 0" onclick="openChat('+r.id+')">'+esc(r.type||'Support')+' · '+esc(r.status||'New')+' · '+esc(r.created)+'</button>').join('')
-      : '<p>No conversations yet. Start a new message below.</p>';
-    if(rows.length&&!activeChatId)openChat(rows[0].id);
-  }catch(error){toast('Chat could not load: '+error.message)}
-}
-async function openChat(id){
-  activeChatId=id;
-  $('#chat-box').hidden=false;
-  if(chatTimer)clearInterval(chatTimer);
-  const refresh=async()=>{try{
-    const rows=await api('/customer/inquiries/'+id+'/messages');
-    $('#chat-title').textContent='Conversation #'+id;
-    $('#chat-messages').innerHTML=rows.map(m=>'<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:'+(m.author==='admin'?'#fff3d6':'#eef5ff')+'"><b>'+(m.author==='admin'?'Restaurant':'You')+'</b><div style="font-size:.75rem;opacity:.65">'+esc(m.created)+'</div><p style="margin:5px 0;white-space:pre-wrap">'+esc(m.message)+'</p></article>').join('');
-    $('#chat-messages').scrollTop=$('#chat-messages').scrollHeight;
-  }catch(error){toast(error.message)}};
-  await refresh();
-  chatTimer=setInterval(refresh,5000);
-}
-async function newChat(e){
-  e.preventDefault();
-  try{
-    const r=await api('/customer/inquiries','POST',Object.fromEntries(new FormData(e.target)));
-    e.target.reset();toast('Message sent to the restaurant');await loadChats();await openChat(r.id);
-  }catch(error){toast(error.message)}
-}
-async function replyChat(e){
-  e.preventDefault();
-  if(!activeChatId)return;
-  try{
-    await api('/customer/inquiries/'+activeChatId+'/messages','POST',Object.fromEntries(new FormData(e.target)));
-    e.target.reset();await openChat(activeChatId);
-  }catch(error){toast(error.message)}
-}
-async function load(){
-  if(!tk('ct'))return;
-  try{
-    const c=await api('/config');
-    CUR=c.currency;
-    const m=await api('/me');
-    $('#auth').hidden=true;
-    $('#me').hidden=false;
-    $('#hi').textContent='Mabuhay, '+m.name+'!';
-    $('#loyalty-progress').textContent=`${m.delivered} completed deliveries. Rewards unlock at 5 (20% off), 8 (free delivery), and 10 (one free meal).`;
-    $('#loyalty-rewards').textContent=m.rewards.length?`Available: ${m.rewards.map(reward=>reward.label).join(' · ')}`:'Keep ordering to unlock your next reward.';
-    const steps=['Pending','Confirmed','Preparing','Out for delivery','Delivered'];
-    $('#ot').innerHTML='<tr><th>Date</th><th>Items</th><th>Total</th><th>Delivery updates</th></tr>'+(m.orders.map(o=>{const status=String(o.status||'Pending');const current=steps.indexOf(status);const tracker=steps.map((x,i)=>{const done=current>=i;const here=status===x;return '<span style="display:inline-block;margin-right:8px;font-weight:'+(here?'700':'400')+'">'+(done?'✓ ':'')+esc(x)+'</span>';}).join('');const driverBlock=status==='Out for delivery'?'<div class="order-driver" style="margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ead9b8;background:#fffaf0"><b>Driver</b><br>'+(o.driver_name?'<span>Driver name: '+esc(o.driver_name)+'</span><br>':'<span>Driver name: pending</span><br>')+(o.driver_phone?'<span>Driver number: <a href="tel:'+esc(o.driver_phone)+'">'+esc(o.driver_phone)+'</a> <a target="_blank" rel="noopener" href="https://wa.me/'+String(o.driver_phone).replace(/[^0-9]/g,'')+'">WhatsApp</a></span>':'<span>Driver number: pending</span>')+'</div>':'';const receipt=o.received_at?'Received confirmed':(['Delivered','Completed'].includes(status)?'<button class="btn s" onclick="confirmReceipt('+o.id+')">Confirm received</button>':'');const orderChat=['Delivered','Completed'].includes(status)?'':'<button class="btn s o" type="button" onclick="openOrderChat('+o.id+')">Chat about this order</button>';return '<tr><td>'+esc(o.created)+'</td><td>'+JSON.parse(o.items||'[]').map(i=>i.qty+'× '+esc(i.name)).join(', ')+'</td><td>'+money(o.total)+'</td><td><b>'+esc(status)+'</b><div style="font-size:.78rem;margin-top:5px">'+tracker+'</div>'+driverBlock+'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+orderChat+receipt+'</div></td></tr>';}).join('')||'<tr><td colspan="4">No orders yet</td></tr>');
-    $('#order-tracker').innerHTML='<strong>Order status and delivery details are shown with each order.</strong>';
-    $('#st').innerHTML='<tr><th>#</th><th>Plan</th><th>Email</th><th>Start</th><th>End</th><th>Payment</th><th>Status</th></tr>'+(m.subs.map(s=>'<tr><td>'+s.id+'</td><td>'+esc(s.plan)+'</td><td>'+esc(s.email||'')+'</td><td>'+s.start+'</td><td>'+s.end+'</td><td>'+esc(s.payment_method||'COD')+' · '+esc(s.payment_status||'Pending')+'</td><td>'+esc(s.status)+'</td></tr>').join('')||'<tr><td colspan="7">No subscriptions yet</td></tr>');
-  }catch(x){if(x.message==='Login required')localStorage.removeItem('ct');toast(x.message==='Login required'?'Please log in again to view your account.':'Your account could not load. Check your connection and try again.');}
-}
-load().then(loadChats)</script><script src="final-fixes.js?v=20261001-auth1"></script></body></html>
+      async function go(e) {
+        e.preventDefault();
+        const button = $("#sb");
+        try {
+          button.disabled = true;
+          const data = Object.fromEntries(new FormData(e.target));
+          const r = await api(reg ? "/register" : "/login", "POST", data);
+          if (!r.token)
+            throw new Error("Login failed: no session token returned.");
+          localStorage.setItem("ct", r.token);
+          await load();
+          if (!$("#auth").hidden)
+            throw new Error(
+              "Login succeeded but the account page could not load.",
+            );
+          await loadChats();
+        } catch (x) {
+          toast(x.message);
+        } finally {
+          button.disabled = false;
+        }
+      }
+      async function requestPasswordReset(e) {
+        e.preventDefault();
+        try {
+          const result = await api(
+            "/password-reset",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          $("#recovery").close();
+          e.target.reset();
+          toast(result.message);
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+      async function confirmReceipt(id) {
+        try {
+          await api("/orders/" + id + "/received", "POST", {});
+          toast("Thanks for confirming delivery");
+          load();
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+      function out() {
+        localStorage.removeItem("ct");
+        location.reload();
+      }
+      let activeChatId = null,
+        chatTimer = null;
+      let activeOrderChatId = null,
+        orderChatTimer = null;
+      function closeOrderChat() {
+        if (orderChatTimer) clearInterval(orderChatTimer);
+        orderChatTimer = null;
+        const d = $("#orderChatDialog");
+        if (d) d.close();
+      }
+      async function openOrderChat(orderId) {
+        activeOrderChatId = orderId;
+        const d = $("#orderChatDialog");
+        if (!d) return;
+        if (orderChatTimer) clearInterval(orderChatTimer);
+        const refresh = async () => {
+          try {
+            const data = await api("/customer/orders/" + orderId + "/chat");
+            $("#orderChatTitle").textContent =
+              "Chat about Order #" + orderId + " · " + data.order.status;
+            if (!data.inquiry) {
+              $("#orderChatMessages").innerHTML =
+                '<p style="opacity:.7">No messages yet. Send a message below to start the conversation with the restaurant.</p>';
+            } else {
+              $("#orderChatMessages").innerHTML = data.messages
+                .map(
+                  (m) =>
+                    '<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:' +
+                    (m.author === "admin" ? "#fff3d6" : "#eef5ff") +
+                    '"><b>' +
+                    (m.author === "admin" ? "Restaurant" : "You") +
+                    '</b><div style="font-size:.75rem;opacity:.65">' +
+                    esc(m.created) +
+                    '</div><p style="margin:5px 0;white-space:pre-wrap">' +
+                    esc(m.message) +
+                    "</p></article>",
+                )
+                .join("");
+              $("#orderChatMessages").scrollTop =
+                $("#orderChatMessages").scrollHeight;
+            }
+          } catch (error) {
+            toast(error.message);
+            closeOrderChat();
+          }
+        };
+        d.showModal();
+        await refresh();
+        orderChatTimer = setInterval(refresh, 5000);
+      }
+      async function sendOrderChat(e) {
+        e.preventDefault();
+        if (!activeOrderChatId) return;
+        try {
+          await api(
+            "/customer/orders/" + activeOrderChatId + "/chat",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          e.target.reset();
+          await openOrderChat(activeOrderChatId);
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+      async function loadChats() {
+        if (!tk("ct")) return;
+        try {
+          const rows = await api("/customer/inquiries");
+          $("#chat-list").innerHTML = rows.length
+            ? rows
+                .map(
+                  (r) =>
+                    '<button type="button" class="btn s o" style="margin:4px 4px 4px 0" onclick="openChat(' +
+                    r.id +
+                    ')">' +
+                    esc(r.type || "Support") +
+                    " · " +
+                    esc(r.status || "New") +
+                    " · " +
+                    esc(r.created) +
+                    "</button>",
+                )
+                .join("")
+            : "<p>No conversations yet. Start a new message below.</p>";
+          if (rows.length && !activeChatId) openChat(rows[0].id);
+        } catch (error) {
+          toast("Chat could not load: " + error.message);
+        }
+      }
+      async function openChat(id) {
+        activeChatId = id;
+        $("#chat-box").hidden = false;
+        if (chatTimer) clearInterval(chatTimer);
+        const refresh = async () => {
+          try {
+            const rows = await api("/customer/inquiries/" + id + "/messages");
+            $("#chat-title").textContent = "Conversation #" + id;
+            $("#chat-messages").innerHTML = rows
+              .map(
+                (m) =>
+                  '<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:' +
+                  (m.author === "admin" ? "#fff3d6" : "#eef5ff") +
+                  '"><b>' +
+                  (m.author === "admin" ? "Restaurant" : "You") +
+                  '</b><div style="font-size:.75rem;opacity:.65">' +
+                  esc(m.created) +
+                  '</div><p style="margin:5px 0;white-space:pre-wrap">' +
+                  esc(m.message) +
+                  "</p></article>",
+              )
+              .join("");
+            $("#chat-messages").scrollTop = $("#chat-messages").scrollHeight;
+          } catch (error) {
+            toast(error.message);
+          }
+        };
+        await refresh();
+        chatTimer = setInterval(refresh, 5000);
+      }
+      async function newChat(e) {
+        e.preventDefault();
+        try {
+          const r = await api(
+            "/customer/inquiries",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          e.target.reset();
+          toast("Message sent to the restaurant");
+          await loadChats();
+          await openChat(r.id);
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+      async function replyChat(e) {
+        e.preventDefault();
+        if (!activeChatId) return;
+        try {
+          await api(
+            "/customer/inquiries/" + activeChatId + "/messages",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          e.target.reset();
+          await openChat(activeChatId);
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+      async function load() {
+        if (!tk("ct")) return;
+        try {
+          const c = await api("/config");
+          CUR = c.currency;
+          const m = await api("/me");
+          $("#auth").hidden = true;
+          $("#me").hidden = false;
+          $("#hi").textContent = "Mabuhay, " + m.name + "!";
+          $("#loyalty-progress").textContent =
+            `${m.delivered} completed deliveries. Rewards unlock at 5 (20% off), 8 (free delivery), and 10 (one free meal).`;
+          $("#loyalty-rewards").textContent = m.rewards.length
+            ? `Available: ${m.rewards.map((reward) => reward.label).join(" · ")}`
+            : "Keep ordering to unlock your next reward.";
+          const steps = [
+            "Pending",
+            "Confirmed",
+            "Preparing",
+            "Out for delivery",
+            "Delivered",
+          ];
+          $("#ot").innerHTML =
+            "<tr><th>Date</th><th>Items</th><th>Total</th><th>Delivery updates</th></tr>" +
+            (m.orders
+              .map((o) => {
+                const status = String(o.status || "Pending");
+                const current = steps.indexOf(status);
+                const tracker = steps
+                  .map((x, i) => {
+                    const done = current >= i;
+                    const here = status === x;
+                    return (
+                      '<span style="display:inline-block;margin-right:8px;font-weight:' +
+                      (here ? "700" : "400") +
+                      '">' +
+                      (done ? "✓ " : "") +
+                      esc(x) +
+                      "</span>"
+                    );
+                  })
+                  .join("");
+                const driverBlock =
+                  status === "Out for delivery"
+                    ? '<div class="order-driver" style="margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ead9b8;background:#fffaf0"><b>Driver</b><br>' +
+                      (o.driver_name
+                        ? "<span>Driver name: " +
+                          esc(o.driver_name) +
+                          "</span><br>"
+                        : "<span>Driver name: pending</span><br>") +
+                      (o.driver_phone
+                        ? '<span>Driver number: <a href="tel:' +
+                          esc(o.driver_phone) +
+                          '">' +
+                          esc(o.driver_phone) +
+                          '</a> <a target="_blank" rel="noopener" href="https://wa.me/' +
+                          String(o.driver_phone).replace(/[^0-9]/g, "") +
+                          '">WhatsApp</a></span>'
+                        : "<span>Driver number: pending</span>") +
+                      "</div>"
+                    : "";
+                const receipt = o.received_at
+                  ? "Received confirmed"
+                  : ["Delivered", "Completed"].includes(status)
+                    ? '<button class="btn s" onclick="confirmReceipt(' +
+                      o.id +
+                      ')">Confirm received</button>'
+                    : "";
+                const orderChat = ["Delivered", "Completed"].includes(status)
+                  ? ""
+                  : '<button class="btn s o" type="button" onclick="openOrderChat(' +
+                    o.id +
+                    ')">Chat about this order</button>';
+                return (
+                  "<tr><td>" +
+                  esc(o.created) +
+                  "</td><td>" +
+                  JSON.parse(o.items || "[]")
+                    .map((i) => i.qty + "× " + esc(i.name))
+                    .join(", ") +
+                  "</td><td>" +
+                  money(o.total) +
+                  "</td><td><b>" +
+                  esc(status) +
+                  '</b><div style="font-size:.78rem;margin-top:5px">' +
+                  tracker +
+                  "</div>" +
+                  driverBlock +
+                  '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' +
+                  orderChat +
+                  receipt +
+                  "</div></td></tr>"
+                );
+              })
+              .join("") || '<tr><td colspan="4">No orders yet</td></tr>');
+          $("#order-tracker").innerHTML =
+            "<strong>Order status and delivery details are shown with each order.</strong>";
+          $("#st").innerHTML =
+            "<tr><th>#</th><th>Plan</th><th>Email</th><th>Start</th><th>End</th><th>Payment</th><th>Status</th></tr>" +
+            (m.subs
+              .map(
+                (s) =>
+                  "<tr><td>" +
+                  s.id +
+                  "</td><td>" +
+                  esc(s.plan) +
+                  "</td><td>" +
+                  esc(s.email || "") +
+                  "</td><td>" +
+                  s.start +
+                  "</td><td>" +
+                  s.end +
+                  "</td><td>" +
+                  esc(s.payment_method || "COD") +
+                  " · " +
+                  esc(s.payment_status || "Pending") +
+                  "</td><td>" +
+                  esc(s.status) +
+                  "</td></tr>",
+              )
+              .join("") ||
+              '<tr><td colspan="7">No subscriptions yet</td></tr>');
+        } catch (x) {
+          if (x.message === "Login required") localStorage.removeItem("ct");
+          toast(
+            x.message === "Login required"
+              ? "Please log in again to view your account."
+              : "Your account could not load. Check your connection and try again.",
+          );
+        }
+      }
+      load().then(loadChats);
+    </script>
+    <script src="final-fixes.js?v=20261001-auth1"></script>
+  </body>
+</html>

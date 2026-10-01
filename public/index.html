@@ -1,219 +1,813 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PinoyAmbula — Filipino Kitchen</title><meta name="description" content="Authentic Filipino home cooking, catering and delivery"><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7b2d26"><script src="/runtime-config.js"></script><script src="/pwa.js"></script></head><body>
-<div class="banig"></div><div id="closed" class="strip" hidden style="background:var(--r);color:#fff">⏸ We are closed for orders right now — browse the menu and come back soon!</div>
-<nav><div class="wrap"><a class="logo" href="#home">🌼 PinoyAmbula</a><button id="burger" onclick="$('#nl').classList.toggle('open')" aria-label="Menu">☰</button>
-<ul id="nl" onclick="this.classList.remove('open')"><li><a href="#home">Home</a></li><li><a href="#services">Services</a></li><li><a href="#menu">Menu</a></li><li><a href="#plans">26-Day Plan</a></li><li><a href="#gallery">Gallery</a></li><li><a href="#reviews">Reviews</a></li><li><a href="#contact">Contact</a></li><li><a href="account.html">Account</a></li><li><button class="btn s" onclick="cartT()">🛒 Cart (<span id="cc">0</span>)</button></li></ul></div></nav>
-<button id="cart-fab" class="btn" type="button" onclick="cartT()" aria-label="Open shopping cart">🛒 Cart <span id="cart-count-fab">0</span></button>
-<header class="hero" id="home"><div class="wrap"><h1 id="hh">Mabuhay! Kain Tayo 🇵🇭</h1><p id="hp">Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.</p><a class="btn y" href="#menu">Order Now</a> <a class="btn o" style="color:#fff;border-color:#fff" href="#plans">Subscribe 26 Days</a></div></header>
-<div class="strip">🌼 Bayanihan · Handaan · Pamilya — sharing food is how Filipinos say "welcome"</div>
-<section id="exchange-converter" aria-label="KWD to PHP converter"></section>
-<section id="services"><div class="wrap"><div class="t"><h2>Our Services</h2><p>Tap a service to see its menu</p></div><div class="grid">
-<a class="card" href="#menu" onclick="setCat('Regular')"><div class="e">🍛</div><h3>Regular Meals</h3><p>Classic Filipino ulam &amp; rice</p></a>
-<a class="card" href="#menu" onclick="setCat('Budget')"><div class="e">🍳</div><h3>Budget Meals</h3><p>Filling silog meals, easy on the wallet</p></a>
-<a class="card" href="#menu" onclick="setCat('Drinks')"><div class="e">🧋</div><h3>Drinks</h3><p>Sago't gulaman, buko, halo-halo</p></a>
-<a class="card" href="#menu" onclick="setCat('Catering')"><div class="e">🍽️</div><h3>Catering</h3><p>Party trays &amp; lechon for any handaan</p></a></div></div></section>
-<section id="menu" class="alt"><div class="wrap"><div class="t"><h2>Our Menu</h2><p>Filipino favorites plus dishes from around Asia</p></div><label class="menu-search-label" for="menu-search">Find a dish</label><input id="menu-search" class="menu-search" type="search" placeholder="Search dishes or ingredients" oninput="renderMenu()"><div class="tabs" id="tabs"></div><p id="menu-summary" class="menu-summary" aria-live="polite"></p><div id="menu-list"></div></div></section>
-<section id="plans"><div class="wrap"><div class="t"><h2>26-Day Meal Subscription</h2><p>Daily delivery for 26 days — payment status confirmed with the restaurant</p></div><div class="grid" id="plan-list"></div></div></section>
-<section id="gallery" class="alt"><div class="wrap"><div class="t"><h2>Gallery</h2></div><div class="grid" id="gal"></div></div></section>
-<section id="reviews"><div class="wrap"><div class="t"><h2>What Our Customers Say</h2></div><div class="grid" id="rev"></div><details style="max-width:480px;margin:24px auto 0"><summary class="btn s o" style="display:inline-block">✍ Write a review</summary><form onsubmit="rvw(event)" style="margin-top:12px"><label>Name *</label><input name="name" required><label>Stars</label><select name="stars"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select><label>Your review *</label><textarea name="text" rows="3" required></textarea><button class="btn s">Submit</button></form></details></div></section>
-<section id="newsletter" class="alt"><div class="wrap" style="max-width:520px;text-align:center"><div class="t"><h2>Newsletter</h2><p>Get promos and new dishes in your inbox</p></div><form onsubmit="nl(event)"><input name="email" type="email" placeholder="you@email.com" required><button class="btn b">Subscribe</button></form></div></section>
-<section id="contact"><div class="wrap" style="max-width:640px"><div class="t"><h2>Inquiry / Contact</h2><p>Catering, party orders, questions — we reply fast</p></div><form onsubmit="inq(event)"><div class="f2"><div><label>Name *</label><input name="name" required></div><div><label>Phone</label><input name="phone" type="tel"></div></div><label>Email</label><input name="email" type="email"><label>Topic</label><select name="type"><option>General</option><option>Catering</option><option>Party order</option><option>Subscription</option><option>Feedback</option></select><label>Message *</label><textarea name="msg" rows="4" required></textarea><button class="btn">Send inquiry</button></form></div></section>
-<footer>
-  <p id="ft">🌼 PinoyAmbula — Salamat po!</p>
-  <p id="contact-links" style="margin-top:8px;font-size:.9rem"></p>
-  <p id="social-links" style="margin-top:8px;font-size:.9rem"></p>
-  <p style="margin-top:8px;font-size:.85rem">
-    <a href="#home">Back to top</a>
-    <a href="account.html">My account</a>
-    <a href="admin.html">Admin</a>
-    
-  </p>
-</footer>
-<aside id="cart"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Your Order</h3><button class="btn s o" onclick="cartT()">✕</button></div><div id="lines"></div><div id="totals"></div>
-<form onsubmit="place(event)" style="margin-top:12px"><label>Name *</label><input name="name" required><label>Email</label><input name="email" type="email" autocomplete="email"><label>Phone *</label><input name="phone" type="tel" required><label>Drop location / address *</label><textarea name="address" rows="2" placeholder="Area, block, street, building, floor" required></textarea><label>PACI number of building (optional — helps our rider find you)</label><input name="paci" inputmode="numeric" placeholder="e.g. 12345678"><label>Notes</label><input name="notes"><label>Payment method *</label>
-<select name="pay" id="pay-method" required>
-  <option value="COD">Cash on Delivery</option>
-  <option value="CARD">Card</option>
-</select>
-<p id="card-pay-note" style="font-size:.8rem;opacity:.7">Card orders are recorded as pending until a payment gateway is connected.</p>
-<label for="loyalty_reward">Loyalty reward</label><select name="loyalty_reward" id="loyalty_reward" onchange="renderCart()"><option value="0">No reward</option></select>
-<label>Promo code</label>
-<input name="promo_code" id="promo-code" placeholder="Optional" oninput="renderCart()">
-<p id="promo-help" style="font-size:.8rem;opacity:.7"></p>
-<p id="checkout-hint" class="checkout-hint" aria-live="polite"></p><button id="checkout-submit" class="btn" style="width:100%">Place Order</button></form></aside>
-<dialog id="subd"><h3>Subscribe — <span id="pn"></span></h3><form onsubmit="subm(event)" style="margin-top:10px"><input type="hidden" name="plan"><label>Name *</label><input name="name" required><label>Email *</label><input name="email" type="email" autocomplete="email" required><label>Phone *</label><input name="phone" type="tel" required><label>Start date *</label><input name="start" id="sub-start" type="date" required onchange="updateSubEnd()"><label>Calculated end date</label><input id="sub-end" type="date" readonly><label>Drop location / address *</label><textarea name="address" rows="2" required></textarea><label>PACI number of building (optional)</label><input name="paci" inputmode="numeric"><label>Payment method</label><select name="payment_method" id="sub-pay-method"><option value="COD">Cash on Delivery</option><option value="CARD">Card (gateway confirmation required)</option></select><p id="sub-pay-note" style="font-size:.85rem;margin-bottom:8px">End date is calculated from the selected plan duration.</p><button class="btn">Confirm</button> <button type="button" class="btn o" onclick="$('#subd').close()">Close</button></form></dialog>
-<script src="app.js"></script>
-<script>
-let items=[],cart=JSON.parse(localStorage.getItem('cart')||'{}'),cat='Regular',FEE=0,config={};const CATS=['Regular','Budget','Drinks','Catering','Other Asian'];
-const itemPrice=i=>i.discount_price>0&&i.discount_price<i.price?i.discount_price:i.price;
-const card=i=>`<div class="card"><div class="ph" style="${i.img?`background-image:url('${esc(i.img)}')`:''}">${i.img?'':esc(i.emoji||'🍽️')}</div><div class="p"><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
-  ${i.discount_price>0&&i.discount_price<i.price
-    ? '<del style="opacity:.6">'+money(i.price)+'</del> <span class="pr">'+money(i.discount_price)+'</span>'
-    : '<span class="pr">'+money(i.price)+'</span>'}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"
+    />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PinoyAmbula — Filipino Kitchen</title>
+    <meta
+      name="description"
+      content="Authentic Filipino home cooking, catering and delivery"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7b2d26" />
+    <script src="/runtime-config.js"></script>
+    <script src="/pwa.js"></script>
+  </head>
+  <body>
+    <div class="banig"></div>
+    <div
+      id="closed"
+      class="strip"
+      hidden
+      style="background: var(--r); color: #fff"
+    >
+      ⏸ We are closed for orders right now — browse the menu and come back
+      soon!
+    </div>
+    <nav>
+      <div class="wrap">
+        <a class="logo" href="#home">🌼 PinoyAmbula</a
+        ><button
+          id="burger"
+          onclick="$('#nl').classList.toggle('open')"
+          aria-label="Menu"
+        >
+          ☰
+        </button>
+        <ul id="nl" onclick="this.classList.remove('open')">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#menu">Menu</a></li>
+          <li><a href="#plans">26-Day Plan</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#reviews">Reviews</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="account.html">Account</a></li>
+          <li>
+            <button class="btn s" onclick="cartT()">
+              🛒 Cart (<span id="cc">0</span>)
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <button
+      id="cart-fab"
+      class="btn"
+      type="button"
+      onclick="cartT()"
+      aria-label="Open shopping cart"
+    >
+      🛒 Cart <span id="cart-count-fab">0</span>
+    </button>
+    <header class="hero" id="home">
+      <div class="wrap">
+        <h1 id="hh">Mabuhay! Kain Tayo 🇵🇭</h1>
+        <p id="hp">
+          Home-style Filipino cooking made with love — from everyday meals to
+          fiesta catering, delivered to your door with payment options at
+          checkout.
+        </p>
+        <a class="btn y" href="#menu">Order Now</a>
+        <a class="btn o" style="color: #fff; border-color: #fff" href="#plans"
+          >Subscribe 26 Days</a
+        >
+      </div>
+    </header>
+    <div class="strip">
+      🌼 Bayanihan · Handaan · Pamilya — sharing food is how Filipinos say
+      "welcome"
+    </div>
+    <div id="exchange-converter" hidden></div>
+    <section id="services">
+      <div class="wrap">
+        <div class="t">
+          <h2>Our Services</h2>
+          <p>Tap a service to see its menu</p>
+        </div>
+        <div class="grid">
+          <a class="card" href="#menu" onclick="setCat('Regular')"
+            ><div class="e">🍛</div>
+            <h3>Regular Meals</h3>
+            <p>Classic Filipino ulam &amp; rice</p></a
+          >
+          <a class="card" href="#menu" onclick="setCat('Budget')"
+            ><div class="e">🍳</div>
+            <h3>Budget Meals</h3>
+            <p>Filling silog meals, easy on the wallet</p></a
+          >
+          <a class="card" href="#menu" onclick="setCat('Drinks')"
+            ><div class="e">🧋</div>
+            <h3>Drinks</h3>
+            <p>Sago't gulaman, buko, halo-halo</p></a
+          >
+          <a class="card" href="#menu" onclick="setCat('Catering')"
+            ><div class="e">🍽️</div>
+            <h3>Catering</h3>
+            <p>Party trays &amp; lechon for any handaan</p></a
+          >
+        </div>
+      </div>
+    </section>
+    <section id="menu" class="alt">
+      <div class="wrap">
+        <div class="t">
+          <h2>Our Menu</h2>
+          <p>Filipino favorites plus dishes from around Asia</p>
+        </div>
+        <label class="menu-search-label" for="menu-search">Find a dish</label
+        ><input
+          id="menu-search"
+          class="menu-search"
+          type="search"
+          placeholder="Search dishes or ingredients"
+          oninput="renderMenu()"
+        />
+        <div class="tabs" id="tabs"></div>
+        <p id="menu-summary" class="menu-summary" aria-live="polite"></p>
+        <div id="menu-list"></div>
+      </div>
+    </section>
+    <section id="plans">
+      <div class="wrap">
+        <div class="t">
+          <h2>26-Day Meal Subscription</h2>
+          <p>
+            Daily delivery for 26 days — payment status confirmed with the
+            restaurant
+          </p>
+        </div>
+        <div class="grid" id="plan-list"></div>
+      </div>
+    </section>
+    <section id="gallery" class="alt">
+      <div class="wrap">
+        <div class="t"><h2>Gallery</h2></div>
+        <div class="grid" id="gal"></div>
+      </div>
+    </section>
+    <section id="reviews">
+      <div class="wrap">
+        <div class="t"><h2>What Our Customers Say</h2></div>
+        <div class="grid" id="rev"></div>
+        <details style="max-width: 480px; margin: 24px auto 0">
+          <summary class="btn s o" style="display: inline-block">
+            ✍ Write a review
+          </summary>
+          <form onsubmit="rvw(event)" style="margin-top: 12px">
+            <label>Name *</label><input name="name" required /><label
+              >Stars</label
+            ><select name="stars">
+              <option>5</option>
+              <option>4</option>
+              <option>3</option>
+              <option>2</option>
+              <option>1</option></select
+            ><label>Your review *</label
+            ><textarea name="text" rows="3" required></textarea
+            ><button class="btn s">Submit</button>
+          </form>
+        </details>
+      </div>
+    </section>
+    <section id="newsletter" class="alt">
+      <div class="wrap" style="max-width: 520px; text-align: center">
+        <div class="t">
+          <h2>Newsletter</h2>
+          <p>Get promos and new dishes in your inbox</p>
+        </div>
+        <form onsubmit="nl(event)">
+          <input
+            name="email"
+            type="email"
+            placeholder="you@email.com"
+            required
+          /><button class="btn b">Subscribe</button>
+        </form>
+      </div>
+    </section>
+    <section id="contact">
+      <div class="wrap" style="max-width: 640px">
+        <div class="t">
+          <h2>Inquiry / Contact</h2>
+          <p>Catering, party orders, questions — we reply fast</p>
+        </div>
+        <form onsubmit="inq(event)">
+          <div class="f2">
+            <div><label>Name *</label><input name="name" required /></div>
+            <div><label>Phone</label><input name="phone" type="tel" /></div>
+          </div>
+          <label>Email</label><input name="email" type="email" /><label
+            >Topic</label
+          ><select name="type">
+            <option>General</option>
+            <option>Catering</option>
+            <option>Party order</option>
+            <option>Subscription</option>
+            <option>Feedback</option></select
+          ><label>Message *</label
+          ><textarea name="msg" rows="4" required></textarea
+          ><button class="btn">Send inquiry</button>
+        </form>
+      </div>
+    </section>
+    <footer>
+      <p id="ft">🌼 PinoyAmbula — Salamat po!</p>
+      <p id="contact-links" style="margin-top: 8px; font-size: 0.9rem"></p>
+      <p id="social-links" style="margin-top: 8px; font-size: 0.9rem"></p>
+      <p style="margin-top: 8px; font-size: 0.85rem">
+        <a href="#home">Back to top</a>
+        <a href="account.html">My account</a>
+        <a href="admin.html">Admin</a>
+      </p>
+    </footer>
+    <aside id="cart">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <h3>Your Order</h3>
+        <button class="btn s o" onclick="cartT()">✕</button>
+      </div>
+      <div id="lines"></div>
+      <div id="totals"></div>
+      <form onsubmit="place(event)" style="margin-top: 12px">
+        <label>Name *</label><input name="name" required /><label>Email</label
+        ><input name="email" type="email" autocomplete="email" /><label
+          >Phone *</label
+        ><input name="phone" type="tel" required /><label
+          >Drop location / address *</label
+        ><textarea
+          name="address"
+          rows="2"
+          placeholder="Area, block, street, building, floor"
+          required
+        ></textarea
+        ><label
+          >PACI number of building (optional — helps our rider find you)</label
+        ><input
+          name="paci"
+          inputmode="numeric"
+          placeholder="e.g. 12345678"
+        /><label>Notes</label><input name="notes" /><label
+          >Payment method *</label
+        >
+        <select name="pay" id="pay-method" required>
+          <option value="COD">Cash on Delivery</option>
+          <option value="CARD">Card</option>
+        </select>
+        <p id="card-pay-note" style="font-size: 0.8rem; opacity: 0.7">
+          Card orders are recorded as pending until a payment gateway is
+          connected.
+        </p>
+        <label for="loyalty_reward">Loyalty reward</label
+        ><select
+          name="loyalty_reward"
+          id="loyalty_reward"
+          onchange="renderCart()"
+        >
+          <option value="0">No reward</option>
+        </select>
+        <label>Promo code</label>
+        <input
+          name="promo_code"
+          id="promo-code"
+          placeholder="Optional"
+          oninput="renderCart()"
+        />
+        <p id="promo-help" style="font-size: 0.8rem; opacity: 0.7"></p>
+        <p id="checkout-hint" class="checkout-hint" aria-live="polite"></p>
+        <button id="checkout-submit" class="btn" style="width: 100%">
+          Place Order
+        </button>
+      </form>
+    </aside>
+    <dialog id="subd">
+      <h3>Subscribe — <span id="pn"></span></h3>
+      <form onsubmit="subm(event)" style="margin-top: 10px">
+        <input type="hidden" name="plan" /><label>Name *</label
+        ><input name="name" required /><label>Email *</label
+        ><input name="email" type="email" autocomplete="email" required /><label
+          >Phone *</label
+        ><input name="phone" type="tel" required /><label>Start date *</label
+        ><input
+          name="start"
+          id="sub-start"
+          type="date"
+          required
+          onchange="updateSubEnd()"
+        /><label>Calculated end date</label
+        ><input id="sub-end" type="date" readonly /><label
+          >Drop location / address *</label
+        ><textarea name="address" rows="2" required></textarea
+        ><label>PACI number of building (optional)</label
+        ><input name="paci" inputmode="numeric" /><label>Payment method</label
+        ><select name="payment_method" id="sub-pay-method">
+          <option value="COD">Cash on Delivery</option>
+          <option value="CARD">Card (gateway confirmation required)</option>
+        </select>
+        <p id="sub-pay-note" style="font-size: 0.85rem; margin-bottom: 8px">
+          End date is calculated from the selected plan duration.
+        </p>
+        <button class="btn">Confirm</button>
+        <button type="button" class="btn o" onclick="$('#subd').close()">
+          Close
+        </button>
+      </form>
+    </dialog>
+    <script src="app.js"></script>
+    <script>
+      let items = [],
+        cart = JSON.parse(localStorage.getItem("cart") || "{}"),
+        cat = "Regular",
+        FEE = 0,
+        config = {};
+      const CATS = ["Regular", "Budget", "Drinks", "Catering", "Other Asian"];
+      const itemPrice = (i) =>
+        i.discount_price > 0 && i.discount_price < i.price
+          ? i.discount_price
+          : i.price;
+      const card = (
+        i,
+      ) => `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
+  ${
+    i.discount_price > 0 && i.discount_price < i.price
+      ? '<del style="opacity:.6">' +
+        money(i.price) +
+        '</del> <span class="pr">' +
+        money(i.discount_price) +
+        "</span>"
+      : '<span class="pr">' + money(i.price) + "</span>"
+  }
   <button class="btn s" style="float:right" onclick="add(${i.id})">Add</button>
 </p></div></div>`;
-function setCat(c){cat=c;renderMenu()}
-function renderMenu(){$('#tabs').innerHTML=CATS.map(c=>`<button class="${c==cat?'on':''}" aria-pressed="${c==cat}" onclick="setCat('${c}')">${c}</button>`).join('');const query=$('#menu-search').value.trim().toLowerCase(),L=items.filter(i=>i.cat==cat&&(!query||`${i.name} ${i.descr} ${i.region}`.toLowerCase().includes(query))),renderCard=window.card||card;
-$('#menu-summary').textContent=L.length?`${L.length} ${L.length===1?'dish':'dishes'} in ${cat}`:`No dishes found in ${cat}. Try another search or category.`;
-$('#menu-list').innerHTML=cat=='Other Asian'?[...new Set(L.map(i=>i.region))].map(r=>`<h3 class="menu-region">${esc(r)}</h3><div class="grid">${L.filter(i=>i.region==r).map(renderCard).join('')}</div>`).join(''):`<div class="grid">${L.map(renderCard).join('')}</div>`}
-const sv=()=>{localStorage.setItem('cart',JSON.stringify(cart));renderCart()};
-function add(id){cart[id]=(cart[id]||0)+1;sv();toast('Added to cart')}
-function chg(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];sv()}
-function cartT(){$('#cart').classList.toggle('open')}
-let loadedCustomerToken='';
-async function fillCustomerDetails(){
-  const token=tk('ct');
-  if(!token){loadedCustomerToken='';return}
-  if(token===loadedCustomerToken)return;
-  loadedCustomerToken=token;
-  try{
-    const profile=await api('/me');
-    if(tk('ct')!==token||loadedCustomerToken!==token)return;
-    const values={name:profile.name,email:profile.email,phone:profile.phone,address:profile.address||profile.orders?.[0]?.address,paci:profile.paci||profile.orders?.[0]?.paci};
-    Object.entries(values).forEach(([name,value])=>{
-      const field=$(`#cart [name="${name}"]`);
-      if(field&&!field.value&&value)field.value=value;
-    });
-    $('#loyalty_reward').innerHTML='<option value="0">No reward</option>'+profile.rewards.map(reward=>`<option value="${reward.threshold}">${esc(reward.label)}</option>`).join('');
-    renderCart();
-  }catch(error){
-    loadedCustomerToken='';
-    if(error.message==='Login required'){
-      if(tk('ct')===token)localStorage.removeItem('ct');
-    }else toast('Saved details could not load. You can still complete checkout manually.');
-  }
-}
-window.addEventListener('storage',event=>{if(event.key==='ct')fillCustomerDetails()});
-window.addEventListener('focus',fillCustomerDetails);
-fillCustomerDetails();
-function renderCart(){const ids=Object.keys(cart).filter(id=>items.find(i=>i.id==id));let sub=0;const count=ids.reduce((s,id)=>s+cart[id],0);$('#cc').textContent=count;$('#cart-count-fab').textContent=count;
-$('#lines').innerHTML=ids.length?ids.map(id=>{const i=items.find(x=>x.id==id),price=itemPrice(i);sub+=price*cart[id];return`<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${id},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${id},1)">+</button></span><b>${money(price*cart[id])}</b></div>`}).join(''):'<p style="padding:14px 0;opacity:.7">Your cart is empty.</p>';
-const code=String($('#promo-code')?.value||'').trim().toUpperCase(),expected=String(config.promo_code||'').trim().toUpperCase(),validPromo=!!(config.promo_enabled&&code&&expected&&code===expected);let discount=0;
-if(validPromo){const value=Math.max(0,+config.promo_value||0);discount=config.promo_type==='percent'?Math.min(sub,sub*value/100):Math.min(sub,value)}
-const reward=+($('#loyalty_reward')?.value||0);let rewardDiscount=0;if(reward===5)rewardDiscount=sub*.2;if(reward===10){const meal=ids.map(id=>items.find(item=>item.id==id)).filter(item=>item&&['Regular','Budget'].includes(item.cat)).sort((a,b)=>itemPrice(a)-itemPrice(b))[0];if(meal)rewardDiscount=itemPrice(meal)}
-discount=Math.min(sub,discount+rewardDiscount);const delivery=reward===8?0:FEE;
-$('#promo-help').textContent=code?(validPromo?'Promo code applied.':'Promo code not recognized.'):config.promo_enabled&&expected?'Promo code available.':'';
-const total=sub-discount+delivery,minOrder=+config.min_order||0,ready=ids.length>0&&config.accepting!==false&&total>=minOrder;$('#totals').innerHTML=ids.length?`<p>Subtotal: ${money(sub)}${discount?`<br>Discounts: −${money(discount)}`:''}<br>Delivery: ${money(delivery)}<br><b>Total: ${money(total)}</b></p>`:'';$('#checkout-submit').disabled=!ready;$('#checkout-hint').textContent=config.accepting===false?'The restaurant is closed and cannot accept orders right now.':ids.length&&total<minOrder?`Add ${money(minOrder-total)} more to reach the ${money(minOrder)} minimum.`:ids.length?'Ready for checkout.':''}
-async function place(e){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.items=Object.entries(cart).map(([id,qty])=>({id:+id,qty}));
-if(config.accepting===false){toast('The restaurant is closed and cannot accept orders right now.');return}
-if(!f.items.length){toast('Add a dish to your cart first.');return}
-try{const r=await api('/order','POST',f);cart={};sv();e.target.reset();$('#lines').innerHTML=`<p style="padding:10px 0"><b>✅ Order received</b><br>Confirmation: ${esc(r.status)}<br>Total ${money(r.total)} · Payment: ${r.pay==='COD'?'Cash on Delivery':'Card'} (${esc(r.payment_status||'Pending')}).<br><a href="account.html">Track status and delivery in My Account</a></p>`}catch(x){toast(x.message)}}
-async function subm(e){
-  e.preventDefault();
+      function setCat(c) {
+        cat = c;
+        renderMenu();
+      }
+      function renderMenu() {
+        $("#tabs").innerHTML = CATS.map(
+          (c) =>
+            `<button class="${c == cat ? "on" : ""}" aria-pressed="${c == cat}" onclick="setCat('${c}')">${c}</button>`,
+        ).join("");
+        const query = $("#menu-search").value.trim().toLowerCase(),
+          L = items.filter(
+            (i) =>
+              i.cat == cat &&
+              (!query ||
+                `${i.name} ${i.descr} ${i.region}`
+                  .toLowerCase()
+                  .includes(query)),
+          ),
+          renderCard = window.card || card;
+        $("#menu-summary").textContent = L.length
+          ? `${L.length} ${L.length === 1 ? "dish" : "dishes"} in ${cat}`
+          : `No dishes found in ${cat}. Try another search or category.`;
+        $("#menu-list").innerHTML =
+          cat == "Other Asian"
+            ? [...new Set(L.map((i) => i.region))]
+                .map(
+                  (r) =>
+                    `<h3 class="menu-region">${esc(r)}</h3><div class="grid">${L.filter(
+                      (i) => i.region == r,
+                    )
+                      .map(renderCard)
+                      .join("")}</div>`,
+                )
+                .join("")
+            : `<div class="grid">${L.map(renderCard).join("")}</div>`;
+      }
+      const sv = () => {
+        localStorage.setItem("cart", JSON.stringify(cart));
+        renderCart();
+      };
+      function add(id) {
+        cart[id] = (cart[id] || 0) + 1;
+        sv();
+        toast("Added to cart");
+      }
+      function chg(id, d) {
+        cart[id] = (cart[id] || 0) + d;
+        if (cart[id] <= 0) delete cart[id];
+        sv();
+      }
+      function cartT() {
+        $("#cart").classList.toggle("open");
+      }
+      let loadedCustomerToken = "";
+      async function fillCustomerDetails() {
+        const token = tk("ct");
+        if (!token) {
+          loadedCustomerToken = "";
+          return;
+        }
+        if (token === loadedCustomerToken) return;
+        loadedCustomerToken = token;
+        try {
+          const profile = await api("/me");
+          if (tk("ct") !== token || loadedCustomerToken !== token) return;
+          const values = {
+            name: profile.name,
+            email: profile.email,
+            phone: profile.phone,
+            address: profile.address || profile.orders?.[0]?.address,
+            paci: profile.paci || profile.orders?.[0]?.paci,
+          };
+          Object.entries(values).forEach(([name, value]) => {
+            const field = $(`#cart [name="${name}"]`);
+            if (field && !field.value && value) field.value = value;
+          });
+          $("#loyalty_reward").innerHTML =
+            '<option value="0">No reward</option>' +
+            profile.rewards
+              .map(
+                (reward) =>
+                  `<option value="${reward.threshold}">${esc(reward.label)}</option>`,
+              )
+              .join("");
+          renderCart();
+        } catch (error) {
+          loadedCustomerToken = "";
+          if (error.message === "Login required") {
+            if (tk("ct") === token) localStorage.removeItem("ct");
+          } else
+            toast(
+              "Saved details could not load. You can still complete checkout manually.",
+            );
+        }
+      }
+      window.addEventListener("storage", (event) => {
+        if (event.key === "ct") fillCustomerDetails();
+      });
+      window.addEventListener("focus", fillCustomerDetails);
+      fillCustomerDetails();
+      function renderCart() {
+        const ids = Object.keys(cart).filter((id) =>
+          items.find((i) => i.id == id),
+        );
+        let sub = 0;
+        const count = ids.reduce((s, id) => s + cart[id], 0);
+        $("#cc").textContent = count;
+        $("#cart-count-fab").textContent = count;
+        $("#lines").innerHTML = ids.length
+          ? ids
+              .map((id) => {
+                const i = items.find((x) => x.id == id),
+                  price = itemPrice(i);
+                sub += price * cart[id];
+                return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${id},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${id},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
+              })
+              .join("")
+          : '<p style="padding:14px 0;opacity:.7">Your cart is empty.</p>';
+        const code = String($("#promo-code")?.value || "")
+            .trim()
+            .toUpperCase(),
+          expected = String(config.promo_code || "")
+            .trim()
+            .toUpperCase(),
+          validPromo = !!(
+            config.promo_enabled &&
+            code &&
+            expected &&
+            code === expected
+          );
+        let discount = 0;
+        if (validPromo) {
+          const value = Math.max(0, +config.promo_value || 0);
+          discount =
+            config.promo_type === "percent"
+              ? Math.min(sub, (sub * value) / 100)
+              : Math.min(sub, value);
+        }
+        const reward = +($("#loyalty_reward")?.value || 0);
+        let rewardDiscount = 0;
+        if (reward === 5) rewardDiscount = sub * 0.2;
+        if (reward === 10) {
+          const meal = ids
+            .map((id) => items.find((item) => item.id == id))
+            .filter((item) => item && ["Regular", "Budget"].includes(item.cat))
+            .sort((a, b) => itemPrice(a) - itemPrice(b))[0];
+          if (meal) rewardDiscount = itemPrice(meal);
+        }
+        discount = Math.min(sub, discount + rewardDiscount);
+        const delivery = reward === 8 ? 0 : FEE;
+        $("#promo-help").textContent = code
+          ? validPromo
+            ? "Promo code applied."
+            : "Promo code not recognized."
+          : config.promo_enabled && expected
+            ? "Promo code available."
+            : "";
+        const total = sub - discount + delivery,
+          minOrder = +config.min_order || 0,
+          ready =
+            ids.length > 0 && config.accepting !== false && total >= minOrder;
+        $("#totals").innerHTML = ids.length
+          ? `<p>Subtotal: ${money(sub)}${discount ? `<br>Discounts: −${money(discount)}` : ""}<br>Delivery: ${money(delivery)}<br><b>Total: ${money(total)}</b></p>`
+          : "";
+        $("#checkout-submit").disabled = !ready;
+        $("#checkout-hint").textContent =
+          config.accepting === false
+            ? "The restaurant is closed and cannot accept orders right now."
+            : ids.length && total < minOrder
+              ? `Add ${money(minOrder - total)} more to reach the ${money(minOrder)} minimum.`
+              : ids.length
+                ? "Ready for checkout."
+                : "";
+      }
+      async function place(e) {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(e.target));
+        f.items = Object.entries(cart).map(([id, qty]) => ({ id: +id, qty }));
+        if (config.accepting === false) {
+          toast("The restaurant is closed and cannot accept orders right now.");
+          return;
+        }
+        if (!f.items.length) {
+          toast("Add a dish to your cart first.");
+          return;
+        }
+        try {
+          const r = await api("/order", "POST", f);
+          cart = {};
+          sv();
+          e.target.reset();
+          $("#lines").innerHTML =
+            `<p style="padding:10px 0"><b>✅ Order received</b><br>Confirmation: ${esc(r.status)}<br>Total ${money(r.total)} · Payment: ${r.pay === "COD" ? "Cash on Delivery" : "Card"} (${esc(r.payment_status || "Pending")}).<br><a href="account.html">Track status and delivery in My Account</a></p>`;
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function subm(e) {
+        e.preventDefault();
 
-  const form=e.target;
-  const data=Object.fromEntries(new FormData(form));
+        const form = e.target;
+        const data = Object.fromEntries(new FormData(form));
 
-  if(!data.plan){
-    alert("Please select a subscription plan.");
-    return;
-  }
+        if (!data.plan) {
+          alert("Please select a subscription plan.");
+          return;
+        }
 
-  if(!data.name || !data.phone || !data.start || !data.address){
-    alert("Please complete all required fields.");
-    return;
-  }
+        if (!data.name || !data.phone || !data.start || !data.address) {
+          alert("Please complete all required fields.");
+          return;
+        }
 
-  const button=form.querySelector("button[type=submit],button:not([type])");
-  if(button){
-    button.disabled=true;
-    button.textContent="Submitting...";
-  }
+        const button = form.querySelector(
+          "button[type=submit],button:not([type])",
+        );
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Submitting...";
+        }
 
-  try{
-    const response=await fetch(API_ORIGIN+"/api/subscribe",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(data)
-    });
+        try {
+          const response = await fetch(API_ORIGIN + "/api/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
 
-    const result=await response.json();
+          const result = await response.json();
 
-    if(!response.ok){
-      throw new Error(result.error||result.message||"Subscription failed.");
-    }
+          if (!response.ok) {
+            throw new Error(
+              result.error || result.message || "Subscription failed.",
+            );
+          }
 
-    const dialog=document.getElementById("subd");
-    if(dialog && dialog.open) dialog.close();
+          const dialog = document.getElementById("subd");
+          if (dialog && dialog.open) dialog.close();
 
-    form.reset();
+          form.reset();
 
-    alert(
-      "Subscription confirmed!\n\n"+
-      "Subscription #"+result.id+"\n"+
-      "Start: "+result.start+"\n"+
-      "End: "+result.end+"\n"+
-      "Price: "+money(result.price)
-    );
+          alert(
+            "Subscription confirmed!\n\n" +
+              "Subscription #" +
+              result.id +
+              "\n" +
+              "Start: " +
+              result.start +
+              "\n" +
+              "End: " +
+              result.end +
+              "\n" +
+              "Price: " +
+              money(result.price),
+          );
+        } catch (err) {
+          console.error("SUBSCRIPTION ERROR:", err);
+          alert(err.message || "Subscription failed.");
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = "Confirm";
+          }
+        }
+      }
 
-  }catch(err){
-    console.error("SUBSCRIPTION ERROR:",err);
-    alert(err.message||"Subscription failed.");
-  }finally{
-    if(button){
-      button.disabled=false;
-      button.textContent="Confirm";
-    }
-  }
-}
+      function updateSubEnd() {
+        const p = plans.find((x) => x.id === $("#subd [name=plan]").value),
+          start = $("#sub-start").value;
+        if (!p || !start) return;
+        const end = new Date(start + "T00:00:00Z");
+        end.setUTCDate(
+          end.getUTCDate() + Math.max(1, +p.duration_days || 26) - 1,
+        );
+        $("#sub-end").value = end.toISOString().slice(0, 10);
+      }
+      function subOpen(id) {
+        const p = plans.find((x) => x.id == id);
+        if (!p) return;
+        $("#pn").textContent = p.name;
+        $("#subd [name=plan]").value = id;
+        $("#sub-start").min = new Date().toISOString().slice(0, 10);
+        $("#sub-start").value = $("#sub-start").min;
+        updateSubEnd();
+        $('#sub-pay-method option[value="CARD"]').disabled =
+          !config.payment_card;
+        $("#sub-pay-note").textContent =
+          `${p.duration_days || 26} days · Card selections remain pending until a payment gateway is configured.`;
+        $("#subd").showModal();
+      }
+      async function nl(e) {
+        e.preventDefault();
+        try {
+          await api(
+            "/newsletter",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          e.target.reset();
+          toast("Subscribed. Salamat!");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      async function inq(e) {
+        e.preventDefault();
+        try {
+          await api(
+            "/inquiry",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          e.target.reset();
+          toast("Inquiry sent. Salamat!");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      function applyCfg(c) {
+        config = c;
+        const logo = $(".logo");
 
-function updateSubEnd(){const p=plans.find(x=>x.id===$('#subd [name=plan]').value),start=$('#sub-start').value;if(!p||!start)return;const end=new Date(start+'T00:00:00Z');end.setUTCDate(end.getUTCDate()+Math.max(1,+p.duration_days||26)-1);$('#sub-end').value=end.toISOString().slice(0,10)}
-function subOpen(id){const p=plans.find(x=>x.id==id);if(!p)return;$('#pn').textContent=p.name;$('#subd [name=plan]').value=id;$('#sub-start').min=new Date().toISOString().slice(0,10);$('#sub-start').value=$('#sub-start').min;updateSubEnd();$('#sub-pay-method option[value="CARD"]').disabled=!config.payment_card;$('#sub-pay-note').textContent=`${p.duration_days||26} days · Card selections remain pending until a payment gateway is configured.`;$('#subd').showModal()}
-async function nl(e){e.preventDefault();try{await api('/newsletter','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();toast('Subscribed. Salamat!')}catch(x){toast(x.message)}}
-async function inq(e){e.preventDefault();try{await api('/inquiry','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();toast('Inquiry sent. Salamat!')}catch(x){toast(x.message)}}
-function applyCfg(c){
-  config=c;
-  const logo=$('.logo');
+        if (c.logo_url) {
+          logo.innerHTML =
+            '<img src="' +
+            esc(c.logo_url) +
+            '" alt="" style="height:38px;width:auto;vertical-align:middle"> ' +
+            esc(c.name);
+        } else {
+          logo.textContent = "🌼 " + c.name;
+        }
 
-  if(c.logo_url){
-    logo.innerHTML='<img src="'+esc(c.logo_url)+'" alt="" style="height:38px;width:auto;vertical-align:middle"> '+esc(c.name);
-  }else{
-    logo.textContent='🌼 '+c.name;
-  }
+        document.title = c.name + " — Filipino Kitchen";
+        $("#hh").textContent = c.hero_title;
+        $("#hp").textContent = c.hero_text;
+        if (c.hero_img) {
+          const h = $("#home");
+          h.style.backgroundImage = `linear-gradient(135deg,#0038a8cc,#ce1126bb),url('${c.hero_img}')`;
+          h.style.backgroundSize = "cover";
+          h.style.backgroundPosition = "center";
+        }
+        $("#closed").hidden = c.accepting;
 
-  document.title=c.name+' — Filipino Kitchen';
-  $('#hh').textContent=c.hero_title;
-  $('#hp').textContent=c.hero_text;
-if(c.hero_img){const h=$('#home');h.style.backgroundImage=`linear-gradient(135deg,#0038a8cc,#ce1126bb),url('${c.hero_img}')`;h.style.backgroundSize='cover';h.style.backgroundPosition='center'}
-$('#closed').hidden=c.accepting;
+        $("#ft").innerHTML =
+          esc("🌼 " + c.name + " — Salamat po!") +
+          (c.phone
+            ? '<br>📞 <a href="tel:' +
+              esc(c.phone) +
+              '">' +
+              esc(c.phone) +
+              "</a>"
+            : "") +
+          (c.hours ? "<br>🕒 " + esc(c.hours).replace(/\n/g, "<br>") : "");
 
-  $('#ft').innerHTML=esc('🌼 '+c.name+' — Salamat po!')
-    +(c.phone?'<br>📞 <a href="tel:'+esc(c.phone)+'">'+esc(c.phone)+'</a>':'')
-    +(c.hours?'<br>🕒 '+esc(c.hours).replace(/\n/g,'<br>'):'');
+        const maps =
+          c.map_url ||
+          "https://www.google.com/maps/search/?api=1&query=" +
+            encodeURIComponent(c.location || c.name || "PinoyAmbula");
+        $("#contact-links").innerHTML =
+          (c.location
+            ? '<span>📍 <a target="_blank" rel="noopener" href="' +
+              esc(maps) +
+              '">' +
+              esc(c.location) +
+              "</a></span>"
+            : "") +
+          (c.phone ? ' · <a href="tel:' + esc(c.phone) + '">Call</a>' : "") +
+          (c.whatsapp
+            ? ' · <a target="_blank" rel="noopener" href="https://wa.me/' +
+              String(c.whatsapp).replace(/[^0-9]/g, "") +
+              '">WhatsApp</a>'
+            : "");
 
-  const maps=c.map_url||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c.location||c.name||'PinoyAmbula'));
-  $('#contact-links').innerHTML=
-    (c.location?'<span>📍 <a target="_blank" rel="noopener" href="'+esc(maps)+'">'+esc(c.location)+'</a></span>':'')
-    +(c.phone?' · <a href="tel:'+esc(c.phone)+'">Call</a>':'')
-    +(c.whatsapp?' · <a target="_blank" rel="noopener" href="https://wa.me/'+String(c.whatsapp).replace(/[^0-9]/g,'')+'">WhatsApp</a>':'');
+        $("#social-links").innerHTML =
+          (c.facebook
+            ? '<a target="_blank" rel="noopener" href="' +
+              esc(c.facebook) +
+              '">Facebook</a> '
+            : "") +
+          (c.instagram
+            ? '<a target="_blank" rel="noopener" href="' +
+              esc(c.instagram) +
+              '">Instagram</a>'
+            : "");
 
-  $('#social-links').innerHTML=
-    (c.facebook?'<a target="_blank" rel="noopener" href="'+esc(c.facebook)+'">Facebook</a> ':'')
-    +(c.instagram?'<a target="_blank" rel="noopener" href="'+esc(c.instagram)+'">Instagram</a>':'') ;
+        const pay = $("#pay-method");
+        if (pay) {
+          [...pay.options].forEach((o) => {
+            if (o.value === "COD") o.disabled = c.payment_cod === false;
+            if (o.value === "CARD") o.disabled = c.payment_card === false;
+          });
 
-  const pay=$('#pay-method');
-  if(pay){
-    [...pay.options].forEach(o=>{
-      if(o.value==='COD')o.disabled=c.payment_cod===false;
-      if(o.value==='CARD')o.disabled=c.payment_card===false;
-    });
+          const first = [...pay.options].find((o) => !o.disabled);
+          if (first) pay.value = first.value;
+          $("#card-pay-note").hidden = pay.value !== "CARD";
+          pay.onchange = () => {
+            $("#card-pay-note").hidden = pay.value !== "CARD";
+          };
+        }
+        $('#sub-pay-method option[value="COD"]').disabled =
+          c.payment_cod === false;
+        $('#sub-pay-method option[value="CARD"]').disabled =
+          c.payment_card === false;
 
-    const first=[...pay.options].find(o=>!o.disabled);
-    if(first)pay.value=first.value;
-    $('#card-pay-note').hidden=pay.value!=='CARD';
-    pay.onchange=()=>{$('#card-pay-note').hidden=pay.value!=='CARD'};
-  }
-  $('#sub-pay-method option[value="COD"]').disabled=c.payment_cod===false;
-  $('#sub-pay-method option[value="CARD"]').disabled=c.payment_card===false;
-
-  $('#promo-code').disabled=!c.promo_enabled;
-  $('#promo-help').textContent=c.promo_enabled && c.promo_code
-    ? 'Promo code available.'
-    : '';
-}
-async function rvw(e){e.preventDefault();try{await api('/testimonials','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();e.target.closest('details').open=false;toast('Salamat! Your review will appear after approval.')}catch(x){toast(x.message)}}
-let plans=[];
-(async()=>{try{const c=await api('/config');CUR=c.currency;FEE=c.fee;applyCfg(c);items=await api('/menu');plans=await api('/plans');renderMenu();renderCart();
-$('#plan-list').innerHTML=plans.map(p=>`<div class="card">${p.img?`<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" style="width:100%;height:180px;object-fit:cover;border-radius:12px 12px 0 0">`:''}<div class="p"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p>${p.duration_days||26} days</p><p class="pr" style="font-size:1.4rem">${money(p.price)}</p><button class="btn" onclick="subOpen('${p.id}')">Subscribe</button></div></div>`).join('');
-$('#gal').innerHTML=(await api('/gallery')).map(g=>`<div class="card">${g.media_type==='video'&&g.media_url?`<iframe class="gallery-embed" src="${esc(g.media_url)}" title="${esc(g.caption||'Restaurant video')}" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`:`<div class="ph" style="height:200px;${g.img?`background-image:url('${esc(g.img)}')`:''}">${g.img?'':'🍽️'}</div>`}<div class="p" style="padding:8px 12px;text-align:center">${esc(g.caption)}</div></div>`).join('');
-$('#rev').innerHTML=(await api('/testimonials')).map(t=>`<div class="card"><div class="p"><div class="stars">${stars(t.stars)}</div><p class="q">"${esc(t.text)}"</p><p><b>— ${esc(t.name)}</b></p></div></div>`).join('')}catch(x){toast(x.message)}})();
-</script><script src="enhancements.js"></script><script src="final-fixes.js"></script><script src="master-enhancements.js"></script></body></html>
+        $("#promo-code").disabled = !c.promo_enabled;
+        $("#promo-help").textContent =
+          c.promo_enabled && c.promo_code ? "Promo code available." : "";
+      }
+      async function rvw(e) {
+        e.preventDefault();
+        try {
+          await api(
+            "/testimonials",
+            "POST",
+            Object.fromEntries(new FormData(e.target)),
+          );
+          e.target.reset();
+          e.target.closest("details").open = false;
+          toast("Salamat! Your review will appear after approval.");
+        } catch (x) {
+          toast(x.message);
+        }
+      }
+      let plans = [];
+      (async () => {
+        try {
+          const c = await api("/config");
+          CUR = c.currency;
+          FEE = c.fee;
+          applyCfg(c);
+          items = await api("/menu");
+          plans = await api("/plans");
+          renderMenu();
+          renderCart();
+          $("#plan-list").innerHTML = plans
+            .map(
+              (p) =>
+                `<div class="card">${p.img ? `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" style="width:100%;height:180px;object-fit:cover;border-radius:12px 12px 0 0">` : ""}<div class="p"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p>${p.duration_days || 26} days</p><p class="pr" style="font-size:1.4rem">${money(p.price)}</p><button class="btn" onclick="subOpen('${p.id}')">Subscribe</button></div></div>`,
+            )
+            .join("");
+          $("#gal").innerHTML = (await api("/gallery"))
+            .map(
+              (g) =>
+                `<div class="card">${g.media_type === "video" && g.media_url ? `<iframe class="gallery-embed" src="${esc(g.media_url)}" title="${esc(g.caption || "Restaurant video")}" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph" style="height:200px;${g.img ? `background-image:url('${esc(g.img)}')` : ""}">${g.img ? "" : "🍽️"}</div>`}<div class="p" style="padding:8px 12px;text-align:center">${esc(g.caption)}</div></div>`,
+            )
+            .join("");
+          $("#rev").innerHTML = (await api("/testimonials"))
+            .map(
+              (t) =>
+                `<div class="card"><div class="p"><div class="stars">${stars(t.stars)}</div><p class="q">"${esc(t.text)}"</p><p><b>— ${esc(t.name)}</b></p></div></div>`,
+            )
+            .join("");
+        } catch (x) {
+          toast(x.message);
+        }
+      })();
+    </script>
+    <script src="enhancements.js"></script>
+    <script src="final-fixes.js"></script>
+    <script src="master-enhancements.js"></script>
+  </body>
+</html>

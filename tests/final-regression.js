@@ -46,11 +46,15 @@ t('enhanced customer UX v2',()=>{
   assert(master.includes('addExchangeConverter'));
   assert(master.includes('master-menu-photo'));
   assert(master.includes('openMenuPreview'));
-  assert(index.includes('renderCard=window.card||card'));
+  assert(/renderCard\s*=\s*window\.card\s*\|\|\s*card/.test(index));
   assert(index.includes('.map(renderCard)'));
   assert(master.includes('preview-ingredients'));
   assert(master.includes('gallery-carousel'));
   assert(master.includes('master-slide-hit'));
+  assert(master.includes("addEventListener('click',()=>openMediaPreview(rows["));
+  assert(master.includes('master-rate-popover'));
+  assert(master.includes('WhatsApp updates'));
+  assert(!master.includes("['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—']"));
   assert(master.includes('nav ul li>a,nav ul li>button'));
   assert(master.includes('Al Mulla PHP reference rate'));
   assert(master.includes('Admin can adjust start date, duration, or the final end date'));

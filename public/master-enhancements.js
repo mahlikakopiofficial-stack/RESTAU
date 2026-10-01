@@ -34,6 +34,11 @@ function masterCss(){
     '.master-promo img{width:34px;height:34px;object-fit:cover;border-radius:8px}',
     '.master-promo .promo-text{min-width:0}.master-promo strong{display:block}.master-promo span{font-size:.9rem;opacity:.92}',
     '.master-nav-tool{width:38px;height:38px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(123,45,38,.2);color:var(--pa-maroon);cursor:pointer}',
+    '.master-rate-widget{position:fixed;right:16px;bottom:82px;z-index:45}',
+    '.master-rate-button{display:grid;place-content:center;gap:1px;min-width:82px;height:48px;padding:4px 9px;border:1px solid rgba(123,45,38,.25);border-radius:24px;background:#fff;color:var(--pa-maroon);font:inherit;font-size:.72rem;font-weight:800;line-height:1;box-shadow:0 4px 14px #0003;cursor:pointer}',
+    '.master-rate-popover{position:absolute;right:0;bottom:calc(100% + 9px);width:min(236px,calc(100vw - 24px));padding:13px 14px;border:1px solid #dccfb9;border-radius:10px;background:#fff;color:var(--pa-deep);box-shadow:0 10px 28px #0003;opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .16s ease,transform .16s ease,visibility .16s;z-index:46}',
+    '.master-rate-widget:hover .master-rate-popover,.master-rate-widget:focus-within .master-rate-popover,.master-rate-widget.open .master-rate-popover{opacity:1;visibility:visible;transform:translateY(0)}',
+    '.master-rate-value{display:block;font-size:1rem;font-weight:800;color:var(--pa-maroon)}.master-rate-note{margin:5px 0;font-size:.76rem;line-height:1.4}.master-rate-source{font-size:.78rem;color:var(--pa-maroon)}',
     '.master-fly{position:relative}.master-tooltip{position:absolute;right:0;top:44px;background:#fff;color:var(--pa-deep);border:1px solid #dccfb9;border-radius:12px;padding:10px 12px;width:220px;box-shadow:0 10px 28px #0002;display:none;z-index:80;font-size:.82rem;text-align:left}.master-fly.open .master-tooltip{display:block}',
     '.master-section{padding:56px 0}.master-section.alt{background:#f7eedf}',
     '.master-section .t h2{color:var(--pa-maroon)}',
@@ -41,9 +46,9 @@ function masterCss(){
     '.master-carousel-track{display:flex;transition:transform .45s ease;will-change:transform}',
     '.master-slide{flex:0 0 100%;position:relative;min-height:260px;background:#1f2423;color:#fff}',
     '.master-slide img,.master-slide iframe{display:block;width:100%;height:320px;object-fit:cover;border:0;pointer-events:none}',
-    '.master-slide-hit{position:absolute;inset:0;background:transparent;border:0;cursor:pointer;z-index:3}',
+    '.master-slide-hit{position:absolute;inset:0;background:transparent;border:0;cursor:pointer;z-index:1}',
     '.master-slide .caption{position:absolute;left:0;right:0;bottom:0;padding:30px 18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.78))}',
-    '.master-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:var(--pa-maroon);font-size:1.3rem;cursor:pointer;z-index:2}',
+    '.master-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:var(--pa-maroon);font-size:1.3rem;cursor:pointer;z-index:3}',
     '.master-carousel-btn.prev{left:10px}.master-carousel-btn.next{right:10px}',
     '.master-dots{display:flex;justify-content:center;gap:6px;margin:10px 0}.master-dot{width:9px;height:9px;border:0;border-radius:50%;background:#c7b99f}.master-dot.on{background:var(--pa-maroon)}',
     '.master-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px}',
@@ -53,7 +58,7 @@ function masterCss(){
     '.master-lightbox{margin:auto}',
     '.master-menu-photo{display:block;width:100%;padding:0;border:0;background:#ead8b7;cursor:pointer;min-height:190px;overflow:hidden;border-radius:12px 12px 0 0}.master-menu-photo img{display:block;width:100%;height:190px;object-fit:cover}.master-menu-card{cursor:pointer}.master-menu-card .menu-card-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}.master-menu-card h3{cursor:pointer}',
     '.master-lightbox .close-row{display:flex;justify-content:flex-end}.master-lightbox .close-row button{background:#fff;color:#222;border:0}',
-    '.master-optin{display:flex!important;gap:8px;align-items:flex-start;margin:10px 0;padding:10px;border:1px dashed #cfb98e;border-radius:10px;background:#fffaf0;font-size:.87rem}.master-optin input{width:auto!important;margin-top:4px}',
+    '.master-optin{display:flex!important;gap:8px;align-items:flex-start;margin:5px 0 9px;padding:3px 0;border:0;border-radius:0;background:transparent;font-size:.78rem;line-height:1.35;color:#53655b}.master-optin input{width:auto!important;flex:0 0 auto;margin:2px 0 0}',
     '.master-pos-preview{width:80mm!important;max-width:80mm!important}',
     '.master-admin-card{padding:16px;border:1px solid #e5dccb;border-radius:14px;background:#fff;margin-bottom:16px}',
     '#main .master-admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
@@ -146,23 +151,33 @@ async function addExchangeConverter(){
   const root=document.getElementById('exchange-converter');
   if(!root||root.dataset.bound)return;
   root.dataset.bound='1';
-  root.className='master-exchange';
-  root.innerHTML='<div class="wrap"><div class="t"><h2>KWD ↔ PHP Converter</h2><p>Visible on the main page for quick reference.</p></div><div class="exchange-card"><label>Kuwaiti Dinar (KWD)<input id="exchange-kwd" type="number" min="0" step="0.001" value="1"></label><label>Philippine Peso (PHP)<input id="exchange-php" type="number" min="0" step="0.01"></label><div><div class="exchange-rate" id="exchange-rate-line">Loading Al Mulla reference rate…</div><a class="exchange-link" id="exchange-source-link" href="https://www.almullaexchange.com/" target="_blank" rel="noopener">Open Al Mulla Exchange</a></div></div><p class="exchange-note" id="exchange-note">Reference only. Exchange-house rates can vary by channel and time.</p></div>';
-  const kwd=root.querySelector('#exchange-kwd'),php=root.querySelector('#exchange-php'),line=root.querySelector('#exchange-rate-line'),note=root.querySelector('#exchange-note'),link=root.querySelector('#exchange-source-link');
-  let rate=0;
+  root.hidden=true;
+  let widget=document.getElementById('exchange-rate-widget');
+  if(!widget){
+    widget=document.createElement('div');
+    widget.id='exchange-rate-widget';
+    widget.className='master-rate-widget';
+    widget.innerHTML='<button id="exchange-rate-button" class="master-rate-button" type="button" aria-label="View KWD to PHP exchange rate" aria-controls="exchange-rate-popover" aria-expanded="false"><span>KWD</span><span aria-hidden="true">↔ PHP</span></button><div id="exchange-rate-popover" class="master-rate-popover" role="status"><strong id="exchange-rate-value" class="master-rate-value">Loading rate…</strong><p id="exchange-rate-note" class="master-rate-note">Reference only; rates may vary.</p><a id="exchange-rate-source" class="master-rate-source" href="https://www.almullaexchange.com/" target="_blank" rel="noopener">Al Mulla Exchange</a></div>';
+    document.body.appendChild(widget);
+    const button=widget.querySelector('#exchange-rate-button');
+    const close=()=>{widget.classList.remove('open');button.setAttribute('aria-expanded','false')};
+    button.addEventListener('click',()=>{
+      const open=widget.classList.toggle('open');
+      button.setAttribute('aria-expanded',String(open));
+    });
+    document.addEventListener('pointerdown',event=>{if(!widget.contains(event.target))close()});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});
+  }
+  const line=widget.querySelector('#exchange-rate-value'),note=widget.querySelector('#exchange-rate-note'),link=widget.querySelector('#exchange-rate-source');
   try{
     const x=await api('/exchange-rate');
     if(!x.enabled||!(+x.rate>0))throw new Error('Unavailable');
-    rate=+x.rate;
-    line.textContent='1 KWD = '+rate.toFixed(2)+' PHP · '+escm(x.source||'Al Mulla Exchange reference');
+    line.textContent='1 KWD = '+(+x.rate).toFixed(2)+' PHP';
     if(x.source_url)link.href=x.source_url;
-    if(x.updated_at)note.textContent='Reference only · configured/updated '+new Date(x.updated_at).toLocaleString()+' · not for settlement.';
-    const recalcFromKwd=()=>{php.value=(Math.max(0,+kwd.value||0)*rate).toFixed(2)};
-    const recalcFromPhp=()=>{kwd.value=(Math.max(0,+php.value||0)/rate).toFixed(3)};
-    kwd.addEventListener('input',recalcFromKwd);php.addEventListener('input',recalcFromPhp);recalcFromKwd();
+    if(x.updated_at)note.textContent='Reference only · updated '+new Date(x.updated_at).toLocaleString();
   }catch{
-    line.textContent='Al Mulla reference rate unavailable';
-    note.textContent='Admin can enter the latest Al Mulla reference rate in Settings.';
+    line.textContent='Rate unavailable';
+    note.textContent='The reference rate is not available right now.';
   }
 }
 
@@ -351,8 +366,8 @@ function adminBoot(){
       ['Start',s=>'<input type="date" value="'+escm(s.start)+'" onchange="masterSaveSub('+s.id+',this.value,null,null)">'],
       ['Duration',s=>'<input type="number" min="1" max="366" value="'+(s.duration_days||26)+'" style="width:90px" onchange="masterSaveSub('+s.id+',null,+this.value,null)">'],
       ['End',s=>'<input type="date" value="'+escm(s.end)+'" onchange="masterSaveSub('+s.id+',null,null,this.value)">'],
-      ['WhatsApp',s=>'<label><input type="checkbox" style="width:auto" '+(s.whatsapp_opt_in?'checked':'')+' onchange="masterSaveSub('+s.id+',null,null,null,this.checked?1:0)"> Opt-in</label>'],
-      ['Price',s=>money(s.price)],['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—'],
+      ['WhatsApp updates',s=>'<label><input type="checkbox" aria-label="WhatsApp updates opt-in" style="width:auto" '+(s.whatsapp_opt_in?'checked':'')+' onchange="masterSaveSub('+s.id+',null,null,null,this.checked?1:0)"> Opted in</label>'],
+      ['Price',s=>money(s.price)],
       ['Status',s=>sel('subs',s.id,s.status,['Active','Paused','Completed','Cancelled'])]]);
   };
   window.masterSaveSub=async(id,start,duration,end,whatsapp)=>{
