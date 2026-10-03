@@ -1124,15 +1124,70 @@ async function processNewsletterQueue(){
 const newsletterIntervalMs=Math.max(5000,+(E.NEWSLETTER_INTERVAL_MS||5000));
 setInterval(processNewsletterQueue,newsletterIntervalMs).unref();
 setImmediate(processNewsletterQueue);
+const announcementDateTime=value=>{
+  const raw=String(value??'').trim();
+  if(!raw)return '';
+  const normalized=raw.replace('T',' ');
+  if(!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}(:\\d{2})?$/.test(normalized))throw new Error('Invalid announcement date/time');
+  const iso=normalized.replace(' ','T')+(normalized.length===16?':00':'');
+  const date=new Date(iso+'Z');
+  if(Number.isNaN(date.valueOf()))throw new Error('Invalid announcement date/time');
+  return date.toISOString().slice(0,19).replace('T',' ');
+};
+const announcementUrl=value=>{
+  const url=String(value??'').trim();
+  if(!url)return '';
+  if(/^\\/(?!\\/)/.test(url)||url.startsWith('#'))return url.slice(0,500);
+  try{
+    const parsed=new URL(url);
+    if(!['http:','https:'].includes(parsed.protocol))throw new Error();
+    return parsed.toString().slice(0,500);
+  }catch{throw new Error('CTA URL must be a valid http(s) URL or site path such as /#menu');}
+};
+const announcementPayload=(body,current={})=>{
+  const title=String(body.title??current.title??'').trim().slice(0,160);
+  const message=String(body.message??current.message??'').trim().slice(0,1000);
+  if(!title||!message)throw new Error('Announcement title and message are required');
+  const starts=body.starts_at!==undefined?announcementDateTime(body.starts_at):String(current.starts_at||'');
+  const ends=body.ends_at!==undefined?announcementDateTime(body.ends_at):String(current.ends_at||'');
+  if(starts&&ends&&starts>end)throw new Error('Announcement end must be after its start');
+  return {
+    title,message,
+    image:String(body.image??current.image??'').slice(0,500),
+    cta_label:String(body.cta_label??current.cta_label??'').trim().slice(0,80),
+    cta_url:announcementUrl(body.cta_url??current.cta_url??''),
+    priority:Math.trunc(+(body.priority??current.priority??0)||0),
+    starts_at:starts,ends_at:ends,
+    active:body.active===undefined?(Number(current.active??1)?1:0):(body.active?1:0)
+  };
+};
 app.get('/api/announcements',(q,r)=>{
-  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
+  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
 });
 app.get('/api/regional-dishes',(q,r)=>r.json(db.prepare("SELECT id,name,region,descr,price,img FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
-app.post('/api/admin/announcements',admin,w((q,r)=>{need(q.body,'title','message');const b=q.body;const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)').run(String(b.title).slice(0,160),String(b.message).slice(0,1000),String(b.image||''),String(b.cta_label||'').slice(0,80),String(b.cta_url||'').slice(0,500),Math.trunc(+b.priority||0),String(b.starts_at||'').replace('T',' '),String(b.ends_at||'').replace('T',' '),b.active===0?0:1).lastInsertRowid);r.json({ok:1,id});}));
-app.put('/api/admin/announcements/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','message','image','cta_label','cta_url','priority','starts_at','ends_at','active'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE announcements SET '+keys.map(k=>k+'=?').join(',')+',updated_at=CURRENT_TIMESTAMP WHERE id=?').run(...keys.map(k=>k==='priority'?Math.trunc(+q.body[k]||0):k==='starts_at'||k==='ends_at'?String(q.body[k]??'').replace('T',' '):String(q.body[k]??'').slice(0,k==='message'?1000:500)),q.params.id);r.json({ok:1});}));
-app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);if(row?.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});db.prepare('DELETE FROM announcements WHERE id=?').run(q.params.id);r.json({ok:1});}));
+app.post('/api/admin/announcements',admin,w((q,r)=>{
+  const b=announcementPayload(q.body);
+  const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)')
+    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active).lastInsertRowid);
+  r.json({ok:1,id});
+}));
+app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
+  const current=one('SELECT * FROM announcements WHERE id=?',q.params.id);
+  if(!current)throw new Error('Announcement not found');
+  const b=announcementPayload(q.body,current);
+  db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,q.params.id);
+  r.json({ok:1});
+}));
+app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
+  const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);
+  if(!row)throw new Error('Announcement not found');
+  if(row.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});
+  db.prepare('DELETE FROM announcements WHERE id=?').run(q.params.id);
+  r.json({ok:1});
+}));
 app.get('/api/admin/regional-dishes',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())));
 app.post('/api/admin/regional-dishes',admin,w((q,r)=>{need(q.body,'name','region');const id=Number(db.prepare('INSERT INTO regional_dishes(name,region,descr,price,img,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(String(q.body.name).slice(0,120),String(q.body.region).slice(0,120),String(q.body.descr||'').slice(0,600),Math.max(0,+q.body.price||0),String(q.body.img||''),q.body.active===0?0:1,Math.trunc(+q.body.sort_order||0)).lastInsertRowid);r.json({ok:1,id});}));
 app.put('/api/admin/regional-dishes/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['name','region','descr','price','img','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE regional_dishes SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='price'?Math.max(0,+q.body[k]||0):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
