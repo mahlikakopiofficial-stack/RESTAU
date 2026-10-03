@@ -756,7 +756,10 @@ app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
     for(const subscriber of subscribers)ins.run(campaignId,subscriber.email);
     return campaignId;
   });
-  r.json({ok:1,id:tx(),status:'Queued',total:subscribers.length});
+  const id=tx();
+  // Start the queue immediately so a broadcast does not wait for the next worker tick.
+  setImmediate(processNewsletterQueue);
+  r.json({ok:1,id,status:'Queued',total:subscribers.length});
 }));
 app.get('/api/admin/newsletter/campaigns',admin,w((q,r)=>{
   r.json(db.prepare('SELECT * FROM newsletter_campaigns ORDER BY id DESC LIMIT 20').all());
@@ -1118,7 +1121,9 @@ async function processNewsletterQueue(){
     }
   }finally{newsletterWorkerBusy=false;}
 }
-setInterval(processNewsletterQueue,Math.max(5000,+(E.NEWSLETTER_INTERVAL_MS||60000))).unref();
+const newsletterIntervalMs=Math.max(5000,+(E.NEWSLETTER_INTERVAL_MS||5000));
+setInterval(processNewsletterQueue,newsletterIntervalMs).unref();
+setImmediate(processNewsletterQueue);
 app.get('/api/announcements',(q,r)=>{
   r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
 });
