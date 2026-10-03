@@ -5,13 +5,34 @@ h1,h2,h3{font-family:Georgia,'Times New Roman',serif;line-height:1.2}
 img{max-width:100%}a{color:inherit}
 .wrap{max-width:1100px;margin:auto;padding:0 18px}
 .banig{height:10px;background:repeating-linear-gradient(90deg,var(--r) 0 20px,var(--y) 20px 40px,var(--b) 40px 60px)}
-nav{position:sticky;top:0;z-index:20;background:#fff;box-shadow:0 2px 10px #0001}
-nav .wrap{display:flex;align-items:center;gap:16px;min-height:60px}
-.logo{font:700 1.3rem Georgia,serif;color:var(--b);text-decoration:none}
-nav ul{display:flex;gap:16px;list-style:none;padding:0;margin:0 0 0 auto;align-items:center}
-nav ul a{text-decoration:none;font-weight:600;font-size:.95rem}nav ul a:hover{color:var(--r)}
-#burger{display:none;font-size:1.6rem;background:none;border:0;cursor:pointer}.home-nav-link{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border:1px solid #0002;border-radius:999px;text-decoration:none;font-size:.78rem;font-weight:700;color:var(--b);background:#fff}
-@media(max-width:1100px){#burger{display:inline-flex;align-items:center;justify-content:center;margin-left:0;width:42px;height:42px;border:1px solid #0002;border-radius:10px;color:var(--b);background:#fff}.home-nav-link{margin-left:auto;font-size:.75rem;padding:5px 8px}nav ul{display:none;position:absolute;top:60px;left:0;right:0;background:#fff;flex-direction:column;padding:14px;box-shadow:0 8px 12px #0002}nav ul.open{display:flex}}
+nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.96);box-shadow:0 3px 16px #0002;backdrop-filter:blur(12px)}
+nav .wrap{display:flex;align-items:center;gap:10px;min-height:68px}
+nav .logo{font:700 1.18rem Georgia,serif;color:var(--b);text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;flex:0 0 auto}
+nav ul{display:flex;gap:4px;list-style:none;padding:0;margin:0 0 0 auto;align-items:center}
+nav ul li{margin:0}
+nav ul a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:700;font-size:.86rem;line-height:1.1;padding:9px 10px;border-radius:10px;white-space:nowrap}
+nav ul a:hover,nav ul a:focus-visible{background:#f7eedf;color:var(--r)}
+nav ul .btn{white-space:nowrap}
+#burger{display:none;font-size:1.25rem;background:#fff;border:1px solid #0002;cursor:pointer;width:42px;height:42px;border-radius:11px;align-items:center;justify-content:center;color:var(--b);box-shadow:0 2px 8px #0001}
+.home-nav-link{display:none;align-items:center;justify-content:center;padding:8px 11px;border:1px solid #0002;border-radius:10px;text-decoration:none;font-size:.82rem;font-weight:800;color:var(--b);background:#fff;white-space:nowrap}
+@media(max-width:1180px){
+  nav .wrap{min-height:62px}
+  .home-nav-link{display:inline-flex;margin-left:auto}
+  #burger{display:inline-flex}
+  nav ul{display:none;position:absolute;top:62px;left:12px;right:12px;width:auto;max-height:calc(100vh - 76px);overflow:auto;background:rgba(255,255,255,.98);flex-direction:column;align-items:stretch;gap:4px;padding:10px;border:1px solid #e5dccb;border-radius:14px;box-shadow:0 14px 35px #0003}
+  nav ul.open{display:flex}
+  nav ul li,nav ul a,nav ul .btn{width:100%}
+  nav ul a,nav ul .btn{min-height:42px}
+  nav ul li .btn{text-align:center}
+}
+@media(min-width:1181px){.home-nav-link{display:none}}
+@media(max-width:600px){
+  nav .wrap{gap:7px}
+  nav .logo{font-size:1.02rem}
+  nav .logo .brand-mark{width:30px!important;height:30px!important;flex-basis:30px!important}
+  .home-nav-link{font-size:.8rem;padding:7px 10px}
+  #burger{width:40px;height:40px}
+}
 .btn{display:inline-block;background:var(--r);color:#fff;border:0;padding:10px 20px;border-radius:30px;font-weight:700;cursor:pointer;text-decoration:none;font-size:.95rem}
 .btn.b{background:var(--b)}.btn.o{background:none;border:2px solid var(--b);color:var(--b)}.btn.s{padding:6px 14px;font-size:.85rem}.btn.y{background:var(--y);color:var(--ink)}
 .text-button{display:block;margin-top:10px;padding:0;border:0;background:none;color:var(--b);text-decoration:underline;font:inherit;font-size:.9rem;cursor:pointer}
