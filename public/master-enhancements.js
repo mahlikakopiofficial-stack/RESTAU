@@ -52,6 +52,14 @@ function masterCss(){
     '.master-carousel-btn.prev{left:10px}.master-carousel-btn.next{right:10px}',
     '.master-dots{display:flex;justify-content:center;gap:6px;margin:10px 0}.master-dot{width:9px;height:9px;border:0;border-radius:50%;background:#c7b99f}.master-dot.on{background:var(--pa-maroon)}',
     '.master-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px}',
+    '.master-plan-card{height:100%;display:flex;flex-direction:column;overflow:hidden}',
+    '.master-plan-card .p{display:flex;flex:1;flex-direction:column}',
+    '.master-plan-image-public{display:block;width:100%;height:190px;object-fit:cover;background:var(--pa-sand)}',
+    '.master-plan-image-empty{display:grid;place-items:center;font-size:3rem}',
+    '.master-plan-includes{margin:8px 0 14px;padding-left:20px;line-height:1.5}',
+    '.master-plan-card .btn{margin-top:auto}',
+    '@media(min-width:900px){#plan-list{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}}',
+    '@media(max-width:899px){#plan-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}}',
     '.master-item-media{height:190px;width:100%;object-fit:cover;border-radius:12px 12px 0 0;background:var(--pa-sand)}',
     '.master-lightbox{width:min(900px,94vw);max-width:900px;border:0;border-radius:16px;padding:14px;background:#121716;color:#fff}.master-lightbox::backdrop{background:rgba(0,0,0,.72)}',
     '.master-lightbox img,.master-lightbox iframe{display:block;width:100%;max-height:72vh;min-height:280px;object-fit:contain;border:0;border-radius:10px;background:#0b0d0c}',
@@ -140,6 +148,22 @@ async function addPromos(){
   if(rows.length===1)content.style.animation='none';
 }
 
+async function refreshSubscriptionPlans(){
+  const section=document.querySelector('#plans')?.closest('section');
+  const list=document.getElementById('plan-list');
+  if(!section||!list)return;
+  try{
+    const cfg=await api('/config');
+    const rows=cfg.subscriptions_enabled?await api('/plans'):[];
+    list.innerHTML=rows.map(p=>'<article class="card master-plan-card">'+
+      (p.img?'<img class="master-plan-image-public" src="'+escm(p.img)+'" alt="'+escm(p.name)+'" loading="lazy">':'<div class="master-plan-image-public master-plan-image-empty" aria-hidden="true">🍽️</div>')+
+      '<div class="p"><h3>'+escm(p.name)+'</h3><p>'+escm(p.desc||'')+'</p>'+
+      '<p><b>'+escm(String(p.duration_days||26))+' days</b></p>'+
+      (Array.isArray(p.includes)&&p.includes.length?'<ul class="master-plan-includes">'+p.includes.map(x=>'<li>'+escm(x)+'</li>').join('')+'</ul>':'')+
+      '<p class="pr" style="font-size:1.4rem">'+money(p.price)+'</p><button class="btn" onclick="subOpen(\''+escm(p.id)+'\')">Subscribe</button></div></article>').join('');
+  }catch{list.innerHTML='';}
+  section.hidden=!rows.length;
+}
 async function addExchangeConverter(){
   const root=document.getElementById('exchange-converter');
   if(!root||root.dataset.bound)return;
@@ -270,7 +294,7 @@ function addTheme(){
 }
 
 function siteBoot(){
-  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();addExchangeConverter();addRegional();addHeritage();addGalleryCarousel();
+  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();refreshSubscriptionPlans();addExchangeConverter();addRegional();addHeritage();addGalleryCarousel();
   if(!window.__masterPromoRefresh){
     window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},5000);
     window.addEventListener('focus',addPromos);
@@ -399,13 +423,22 @@ function adminBoot(){
       toast('Subscription setting failed: '+error.message);
     }finally{checkbox.disabled=false}
   };
+  window.addAdminPlan=async function(e){
+    e.preventDefault();
+    const f=e.target,b=Object.fromEntries(new FormData(f));
+    b.active=f.elements.active.checked?1:0;
+    b.price=+b.price;b.duration_days=+b.duration_days;
+    try{await A('/plans','POST',b);f.reset();f.elements.duration_days.value=26;f.elements.active.checked=true;toast('Subscription plan added');go('Plans')}
+    catch(x){toast(x.message)}
+  };
   window.masterAddRegional=async form=>{try{await A('/regional-dishes','POST',Object.fromEntries(new FormData(form)));toast('Regional dish added');go('Regional Dishes')}catch(e){toast(e.message)}};
   window.masterAddHeritage=async form=>{try{await A('/heritage','POST',Object.fromEntries(new FormData(form)));toast('Heritage item added');go('Heritage')}catch(e){toast(e.message)}};
   window.masterDelete=async(path,label)=>{if(!confirm('Delete this '+label+' item?'))return;try{await A(path,'DELETE');toast('Deleted');go(cur)}catch(e){toast(e.message)}};
   const patchDrops=()=>{
     $$('.master-ann-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=announcement&id='+el.dataset.id)}});
     $$('.master-reg-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=regional&id='+el.dataset.id)}});
-    $$('.master-her-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=heritage&id='+el.dataset.id)}});
+    $('.master-her-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=heritage&id='+el.dataset.id)}}); 
+    $('.master-plan-image').forEach(el=>{if(!el.dataset.bound){el.dataset.bound='1';dz(el,'target=plan&id='+el.dataset.id)}});
   };
   const originalGo=window.go;
   if(originalGo&&!window.__masterGoWrapped){
