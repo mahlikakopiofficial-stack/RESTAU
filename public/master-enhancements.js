@@ -34,11 +34,6 @@ function masterCss(){
     '.master-promo img{width:34px;height:34px;object-fit:cover;border-radius:8px}',
     '.master-promo .promo-text{min-width:0}.master-promo strong{display:block}.master-promo span{font-size:.9rem;opacity:.92}',
     '.master-nav-tool{width:38px;height:38px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(123,45,38,.2);color:var(--pa-maroon);cursor:pointer}',
-    '.master-rate-widget{position:fixed;right:16px;bottom:82px;z-index:45}',
-    '.master-rate-button{display:grid;place-content:center;gap:1px;min-width:82px;height:48px;padding:4px 9px;border:1px solid rgba(123,45,38,.25);border-radius:24px;background:#fff;color:var(--pa-maroon);font:inherit;font-size:.72rem;font-weight:800;line-height:1;box-shadow:0 4px 14px #0003;cursor:pointer}',
-    '.master-rate-popover{position:absolute;right:0;bottom:calc(100% + 9px);width:min(236px,calc(100vw - 24px));padding:13px 14px;border:1px solid #dccfb9;border-radius:10px;background:#fff;color:var(--pa-deep);box-shadow:0 10px 28px #0003;opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .16s ease,transform .16s ease,visibility .16s;z-index:46}',
-    '.master-rate-widget:hover .master-rate-popover,.master-rate-widget:focus-within .master-rate-popover,.master-rate-widget.open .master-rate-popover{opacity:1;visibility:visible;transform:translateY(0)}',
-    '.master-rate-value{display:block;font-size:1rem;font-weight:800;color:var(--pa-maroon)}.master-rate-note{margin:5px 0;font-size:.76rem;line-height:1.4}.master-rate-source{font-size:.78rem;color:var(--pa-maroon)}',
     '.master-fly{position:relative}.master-tooltip{position:absolute;right:0;top:44px;background:#fff;color:var(--pa-deep);border:1px solid #dccfb9;border-radius:12px;padding:10px 12px;width:220px;box-shadow:0 10px 28px #0002;display:none;z-index:80;font-size:.82rem;text-align:left}.master-fly.open .master-tooltip{display:block}',
     '.master-section{padding:56px 0}.master-section.alt{background:#f7eedf}',
     '.master-section .t h2{color:var(--pa-maroon)}',
@@ -72,7 +67,6 @@ function masterCss(){
     '#main .master-admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
     '.master-status-ok{color:#1c6b41;font-weight:700}.master-status-off{color:#8a2b24;font-weight:700}',
     '@media (prefers-reduced-motion: reduce){.master-carousel-track{transition:none!important}}',
-    '@media(max-width:700px){.master-exchange .exchange-card{grid-template-columns:1fr}.master-exchange .btn{width:100%}}@media(max-width:600px){.master-slide img,.master-slide iframe{height:240px}.master-promo-inner{padding:0 12px}.master-tooltip{right:-40px}.master-section{padding:42px 0}.master-menu-photo img{height:170px}}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -280,7 +274,6 @@ function masterSettingsFields(base,s){
     '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
     '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
     '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
-    '<label>Fallback PHP rate per KWD (used only if the daily provider is unavailable)<input name="al_mulla_php_rate" type="number" step="0.001" min="0" value="'+escm(s.al_mulla_php_rate||'203.885')+'"></label>'+
     '<h3 style="margin-top:22px">Email notifications</h3><p id="masterEmailStatus">Checking Gmail delivery status…</p>'+
     '<p>Customer emails, admin order alerts, inquiry replies and newsletter broadcasts use Gmail OAuth credentials on the server.</p>'+
     '<h3 style="margin-top:22px">WhatsApp notifications</h3><p id="masterWaStatus">Checking provider status…</p>'+
