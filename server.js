@@ -136,7 +136,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT);CREATE T
 for(const c of['ALTER TABLE testimonials ADD COLUMN approved INTEGER DEFAULT 1',"ALTER TABLE inquiries ADD COLUMN status TEXT DEFAULT 'New'","ALTER TABLE plans ADD COLUMN includes TEXT DEFAULT '[]'","ALTER TABLE plans ADD COLUMN duration_days INTEGER DEFAULT 26","ALTER TABLE plans ADD COLUMN img TEXT DEFAULT ''"])try{db.exec(c)}catch(e){}
 if(!db.prepare('SELECT COUNT(*) n FROM plans').get().n)PLANS.forEach(p=>db.prepare('INSERT INTO plans(id,name,price,descr,active,includes) VALUES(?,?,?,?,1,?)').run(p.id,p.name,p.price,p.desc,JSON.stringify(p.id==='lunch26'?['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']:p.id==='dinner26'?['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']:['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery'])));
 const planInc=db.prepare("SELECT COUNT(*) n FROM plans WHERE includes IS NULL OR includes='' OR includes='[]'").get().n;if(planInc){db.prepare("UPDATE plans SET includes=? WHERE id='lunch26'").run(JSON.stringify(['One Filipino lunch each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='dinner26'").run(JSON.stringify(['One Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']));db.prepare("UPDATE plans SET includes=? WHERE id='both26'").run(JSON.stringify(['One Filipino lunch and one Filipino dinner each day for 26 days','Daily delivery to your registered address','Cash on delivery']))}
-const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',subscriptions_enabled:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',banner_position_x:'50',banner_position_y:'50',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',al_mulla_php_rate:'203.885',al_mulla_source_url:'https://www.almullaexchange.com/',exchange_rate_updated_at:'',exchange_rate_fetched_at:'',exchange_rate_source:'',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'1440',theme_style:'filipino-heritage'};
+const DEF={name:NAME,currency:CUR,fee:String(FEE),min_order:'0',accepting:'1',subscriptions_enabled:'1',payment_card:'0',phone:'',hours:'',map_url:'',hero_img:'',hero_title:'Mabuhay! Kain Tayo 🇵🇭',hero_text:'Home-style Filipino cooking made with love — from everyday meals to fiesta catering, delivered to your door with payment options at checkout.',banner_position_x:'50',banner_position_y:'50',menu_default_icon:'/icons/pinoyambula.svg',drink_default_icon:'/icons/pinoyambula.svg',receipt_logo_url:'/icons/pinoyambula.svg',receipt_no_refund:'No refund after order confirmation.',receipt_exchange_policy:'Exchange only for verified order issues reported promptly.',exchange_rate_enabled:'1',exchange_rate_refresh_minutes:'1440',theme_style:'filipino-heritage'};
 for(const k in DEF)db.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)').run(k,DEF[k]);
 db.prepare('UPDATE settings SET v=? WHERE k=? AND v=?').run(DEF.hero_text,'hero_text','Home-style Filipino cooking made with love — from everyday meals to fiesta catering. Delivered to your door, pay cash on delivery.');
 const S=()=>Object.fromEntries(db.prepare('SELECT k,v FROM settings').all().map(x=>[x.k,x.v]));
@@ -987,7 +987,7 @@ const SK=[
   'name','phone','hours','currency','fee','min_order','accepting','subscriptions_enabled',
   'hero_title','hero_text','logo_url','whatsapp','facebook','instagram',
   'location','map_url','approval_mode','payment_cod','payment_card',
-  'promo_enabled','promo_code','promo_type','promo_value','menu_default_icon','drink_default_icon','receipt_logo_url','receipt_no_refund','receipt_exchange_policy','exchange_rate_enabled','exchange_rate_refresh_minutes','kwd_php_rate','al_mulla_php_rate','al_mulla_source_url','exchange_rate_updated_at','exchange_rate_source','banner_position_x','banner_position_y','theme_style'
+  'promo_enabled','promo_code','promo_type','promo_value','menu_default_icon','drink_default_icon','receipt_logo_url','receipt_no_refund','receipt_exchange_policy','banner_position_x','banner_position_y','theme_style'
 ];
 app.get('/api/admin/settings',admin,(q,r)=>r.json(S()));
 app.put('/api/admin/settings',admin,w((q,r)=>{
@@ -1129,39 +1129,6 @@ app.get('/api/announcements',(q,r)=>{
 });
 app.get('/api/regional-dishes',(q,r)=>r.json(db.prepare("SELECT id,name,region,descr,price,img FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
-let exchangeCache={rate:null,updatedAt:0,source:'Unavailable',source_url:'https://open.er-api.com/',error:''};
-let exchangeRefreshPromise=null;
-let exchangeLastAttemptAt=0;
-async function getExchangeRate(){
-  const st=S(),savedRate=Number(st.kwd_php_rate||st.al_mulla_php_rate),savedAt=Date.parse(st.exchange_rate_updated_at||''),fetchedAt=Date.parse(st.exchange_rate_fetched_at||'');
-  if(savedRate>0&&fetchedAt&&Date.now()-fetchedAt<24*60*60*1000)
-    return {rate:savedRate,updatedAt:savedAt||fetchedAt,source:st.exchange_rate_source||'Open Exchange Rates daily reference',source_url:'https://open.er-api.com/',error:''};
-  if(exchangeRefreshPromise)return exchangeRefreshPromise;
-  if(exchangeLastAttemptAt&&Date.now()-exchangeLastAttemptAt<15*60*1000)return exchangeCache;
-  exchangeLastAttemptAt=Date.now();
-  exchangeRefreshPromise=(async()=>{
-   try{
-    const response=await fetch('https://open.er-api.com/v6/latest/KWD',{signal:AbortSignal.timeout(10000)});
-    if(!response.ok)throw new Error('Exchange-rate provider returned HTTP '+response.status);
-    const data=await response.json();
-    const rate=Number(data?.rates?.PHP);
-    if(data?.result!=='success'||!(rate>0))throw new Error('Exchange-rate provider returned an invalid KWD/PHP rate');
-    const updatedAt=Number(data.time_last_update_unix)>0?Number(data.time_last_update_unix)*1000:Date.now();
-    const source='Open Exchange Rates daily reference';
-    for(const [key,value] of [['kwd_php_rate',String(rate)],['exchange_rate_updated_at',new Date(updatedAt).toISOString()],['exchange_rate_fetched_at',new Date().toISOString()],['exchange_rate_source',source]])
-      db.prepare('INSERT OR REPLACE INTO settings(k,v) VALUES(?,?)').run(key,value);
-    exchangeCache={rate,updatedAt,source,source_url:'https://open.er-api.com/',error:''};
-  }catch(error){
-    const fallback=Number(S().kwd_php_rate||S().al_mulla_php_rate);
-    exchangeCache={rate:fallback>0?fallback:null,updatedAt:savedAt||Date.now(),source:fallback>0?'Saved daily reference (provider unavailable)':'Unavailable',source_url:'https://open.er-api.com/',error:String(error.message||error)};
-    console.error('EXCHANGE_RATE_REFRESH_FAILED',error.message||error);
-  }
-   return exchangeCache;
-  })();
-  try{return await exchangeRefreshPromise}
-  finally{exchangeRefreshPromise=null}
-}
-app.get('/api/exchange-rate',async(q,r)=>{const st=S();if(st.exchange_rate_enabled==='0')return r.json({enabled:false});const x=await getExchangeRate();r.json({enabled:true,rate:x.rate,updated_at:x.updatedAt?new Date(x.updatedAt).toISOString():null,source:x.source,source_url:x.source_url,error:x.error||undefined,reference:'1 KWD = PHP',reference_note:'Daily market reference; actual transfer rates may vary.'});});
 app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
 app.post('/api/admin/announcements',admin,w((q,r)=>{need(q.body,'title','message');const b=q.body;const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)').run(String(b.title).slice(0,160),String(b.message).slice(0,1000),String(b.image||''),String(b.cta_label||'').slice(0,80),String(b.cta_url||'').slice(0,500),Math.trunc(+b.priority||0),String(b.starts_at||'').replace('T',' '),String(b.ends_at||'').replace('T',' '),b.active===0?0:1).lastInsertRowid);r.json({ok:1,id});}));
 app.put('/api/admin/announcements/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','message','image','cta_label','cta_url','priority','starts_at','ends_at','active'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE announcements SET '+keys.map(k=>k+'=?').join(',')+',updated_at=CURRENT_TIMESTAMP WHERE id=?').run(...keys.map(k=>k==='priority'?Math.trunc(+q.body[k]||0):k==='starts_at'||k==='ends_at'?String(q.body[k]??'').replace('T',' '):String(q.body[k]??'').slice(0,k==='message'?1000:500)),q.params.id);r.json({ok:1});}));
