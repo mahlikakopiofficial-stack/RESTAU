@@ -1151,7 +1151,7 @@ const announcementPayload=(body,current={})=>{
   if(!title||!message)throw new Error('Announcement title and message are required');
   const starts=body.starts_at!==undefined?announcementDateTime(body.starts_at):String(current.starts_at||'');
   const ends=body.ends_at!==undefined?announcementDateTime(body.ends_at):String(current.ends_at||'');
-  if(starts&&ends&&starts>end)throw new Error('Announcement end must be after its start');
+  if(starts&&ends&&starts>ends)throw new Error('Announcement end must be after its start');
   return {
     title,message,
     image:String(body.image??current.image??'').slice(0,500),
