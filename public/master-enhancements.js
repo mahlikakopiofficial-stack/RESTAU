@@ -260,8 +260,61 @@ function addTheme(){
   document.documentElement.dataset.pinoyambulaTheme='heritage';
 }
 
+function setupPublicNavigation(){
+  const nav=document.querySelector('nav');
+  const burger=document.getElementById('burger');
+  const list=document.getElementById('nl');
+  if(!nav||!burger||!list)return;
+  if(window.__paNavReady)return;
+  window.__paNavReady=true;
+  window.togglePublicNav=function(button){
+    const open=!list.classList.contains('open');
+    list.classList.toggle('open',open);
+    burger.setAttribute('aria-expanded',String(open));
+    burger.setAttribute('aria-label',open?'Close navigation menu':'Open navigation menu');
+    burger.textContent=open?'✕':'☰';
+    if(open)list.focus?.();
+  };
+  list.setAttribute('aria-label','Main navigation');
+  list.addEventListener('click',event=>{
+    const link=event.target.closest('a');
+    if(!link)return;
+    list.classList.remove('open');
+    burger.setAttribute('aria-expanded','false');
+    burger.setAttribute('aria-label','Open navigation menu');
+    burger.textContent='☰';
+  });
+  document.addEventListener('click',event=>{
+    if(!list.classList.contains('open'))return;
+    if(nav.contains(event.target))return;
+    list.classList.remove('open');
+    burger.setAttribute('aria-expanded','false');
+    burger.setAttribute('aria-label','Open navigation menu');
+    burger.textContent='☰';
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&list.classList.contains('open')){
+      list.classList.remove('open');
+      burger.setAttribute('aria-expanded','false');
+      burger.setAttribute('aria-label','Open navigation menu');
+      burger.textContent='☰';
+      burger.focus();
+    }
+  });
+  const sync=()=>{
+    if(window.innerWidth>1180){
+      list.classList.remove('open');
+      burger.setAttribute('aria-expanded','false');
+      burger.setAttribute('aria-label','Open navigation menu');
+      burger.textContent='☰';
+    }
+  };
+  window.addEventListener('resize',sync,{passive:true});
+  sync();
+}
+
 function siteBoot(){
-  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();refreshSubscriptionPlans();addRegional();addHeritage();addGalleryCarousel();
+  masterCss();setupPublicNavigation();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();refreshSubscriptionPlans();addRegional();addHeritage();addGalleryCarousel();
   if(!window.__masterPromoRefresh){
     window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},5000);
     window.addEventListener('focus',addPromos);
