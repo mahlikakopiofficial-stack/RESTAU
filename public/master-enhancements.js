@@ -164,40 +164,6 @@ async function refreshSubscriptionPlans(){
   }catch{list.innerHTML='';}
   section.hidden=!rows.length;
 }
-async function addExchangeConverter(){
-  const root=document.getElementById('exchange-converter');
-  if(!root||root.dataset.bound)return;
-  root.dataset.bound='1';
-  root.hidden=true;
-  let widget=document.getElementById('exchange-rate-widget');
-  if(!widget){
-    widget=document.createElement('div');
-    widget.id='exchange-rate-widget';
-    widget.className='master-rate-widget';
-    widget.innerHTML='<button id="exchange-rate-button" class="master-rate-button" type="button" aria-label="View KWD to PHP exchange rate" aria-controls="exchange-rate-popover" aria-expanded="false"><span>KWD</span><span aria-hidden="true">↔ PHP</span></button><div id="exchange-rate-popover" class="master-rate-popover" role="status"><strong id="exchange-rate-value" class="master-rate-value">Loading rate…</strong><p id="exchange-rate-note" class="master-rate-note">Automatically refreshed daily; reference only.</p><a id="exchange-rate-source" class="master-rate-source" href="https://open.er-api.com/" target="_blank" rel="noopener">Daily exchange-rate source</a></div>';
-    document.body.appendChild(widget);
-    const button=widget.querySelector('#exchange-rate-button');
-    const close=()=>{widget.classList.remove('open');button.setAttribute('aria-expanded','false')};
-    button.addEventListener('click',()=>{
-      const open=widget.classList.toggle('open');
-      button.setAttribute('aria-expanded',String(open));
-    });
-    document.addEventListener('pointerdown',event=>{if(!widget.contains(event.target))close()});
-    document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});
-  }
-  const line=widget.querySelector('#exchange-rate-value'),note=widget.querySelector('#exchange-rate-note'),link=widget.querySelector('#exchange-rate-source');
-  try{
-    const x=await api('/exchange-rate');
-    if(!x.enabled||!(+x.rate>0))throw new Error('Unavailable');
-    line.textContent='1 KWD = '+(+x.rate).toFixed(2)+' PHP';
-    if(x.source_url)link.href=x.source_url;
-    link.textContent=x.source||'Daily exchange-rate source';
-    if(x.updated_at)note.textContent=(x.error?'Saved reference rate · provider refresh failed · ':'Updated daily · ')+new Date(x.updated_at).toLocaleString()+' · actual transfer rates may vary.';
-  }catch{
-    line.textContent='Rate unavailable';
-    note.textContent='The reference rate is not available right now.';
-  }
-}
 
 async function addRegional(){
   if(document.getElementById('regional-favorites'))return;
@@ -294,7 +260,7 @@ function addTheme(){
 }
 
 function siteBoot(){
-  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();refreshSubscriptionPlans();addExchangeConverter();addRegional();addHeritage();addGalleryCarousel();
+  masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();refreshSubscriptionPlans();addRegional();addHeritage();addGalleryCarousel();
   if(!window.__masterPromoRefresh){
     window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},5000);
     window.addEventListener('focus',addPromos);
@@ -314,9 +280,6 @@ function masterSettingsFields(base,s){
     '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
     '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
     '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
-    '<h3 style="margin-top:22px">Automatic daily exchange rate · KWD → PHP</h3>'+
-    '<label><input type="checkbox" name="exchange_rate_enabled" value="1" style="width:auto" '+(s.exchange_rate_enabled!=='0'?'checked':'')+'> Show reference rate</label>'+
-    '<p>The KWD/PHP reference is refreshed automatically once per day. Current source: '+escm(s.exchange_rate_source||'waiting for first automatic refresh')+(s.exchange_rate_updated_at?' · updated '+escm(s.exchange_rate_updated_at):'')+'.</p>'+
     '<label>Fallback PHP rate per KWD (used only if the daily provider is unavailable)<input name="al_mulla_php_rate" type="number" step="0.001" min="0" value="'+escm(s.al_mulla_php_rate||'203.885')+'"></label>'+
     '<h3 style="margin-top:22px">Email notifications</h3><p id="masterEmailStatus">Checking Gmail delivery status…</p>'+
     '<p>Customer emails, admin order alerts, inquiry replies and newsletter broadcasts use Gmail OAuth credentials on the server.</p>'+
@@ -355,10 +318,10 @@ function adminBoot(){
   const baseSettings=R.Settings;
   R['Announcements']=async function(){
     const rows=await A('/announcements');
-    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="url"></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+
-      const annField=(x,key,tag='input',extra='')=>'<'+tag+' '+extra+' value="'+escm(x[key]||'')+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{'+key+':this.value}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'+(tag==='textarea'?escm(x[key]||'')+'</textarea>':'');
-      const annDate=v=>{const s=String(v||'').replace(' ','T');return s.length>=16?s.slice(0,16):s};
-      tbl(rows,[['Priority',x=>'<input type="number" value="'+(Number(x.priority)||0)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{priority:+this.value||0}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'],['Title',x=>annField(x,'title')],['Message',x=>'<textarea rows="2" maxlength="1000" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{message:this.value}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'+escm(x.message||'')+'</textarea>'],['Active',x=>'<input type="checkbox" aria-label="Active announcement" style="width:auto" '+(x.active?'checked':'')+' onchange="masterSetAnnouncementActive('+x.id+',this)">'],['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],['CTA label',x=>annField(x,'cta_label')],['CTA URL',x=>'<input type="url" value="'+escm(x.cta_url||'')+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{cta_url:this.value}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'],['Start',x=>'<input type="datetime-local" value="'+annDate(x.starts_at)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{starts_at:this.value}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'],['End',x=>'<input type="datetime-local" value="'+annDate(x.ends_at)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{ends_at:this.value}).then(()=>toast(&#39;Saved&#39;)).catch(error=>toast(error.message))">'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']);
+    const annField=(x,key,tag='input')=>'<'+tag+' value="'+escm(x[key]||'')+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{'+key+':this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'+(tag==='textarea'?escm(x[key]||'')+'</textarea>':'');
+    const annDate=v=>{const s=String(v||'').replace(' ','T');return s.length>=16?s.slice(0,16):s};
+    const table=tbl(rows,[['Priority',x=>'<input type="number" value="'+(Number(x.priority)||0)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{priority:+this.value||0}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['Title',x=>annField(x,'title')],['Message',x=>'<textarea rows="2" maxlength="1000" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{message:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'+escm(x.message||'')+'</textarea>'],['Active',x=>'<input type="checkbox" aria-label="Active announcement" style="width:auto" '+(x.active?'checked':'')+' onchange="masterSetAnnouncementActive('+x.id+',this)">'],['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],['CTA label',x=>annField(x,'cta_label')],['CTA URL',x=>'<input type="url" value="'+escm(x.cta_url||'')+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{cta_url:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['Start',x=>'<input type="datetime-local" value="'+annDate(x.starts_at)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{starts_at:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['End',x=>'<input type="datetime-local" value="'+annDate(x.ends_at)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{ends_at:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']);
+    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="url"></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+table;
   };
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
