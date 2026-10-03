@@ -71,7 +71,7 @@ const ensureColumn=(table,column,definition)=>{
   ['plans','img',"TEXT DEFAULT ''"],
   ['inquiries','customer_id','INTEGER'],
   ['inquiries','order_id','INTEGER'],
-  ['announcements','updated_at',"TEXT DEFAULT CURRENT_TIMESTAMP"]
+  ['announcements','updated_at','TEXT']
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
