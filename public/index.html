@@ -45,6 +45,7 @@
           <li><a href="#menu">Menu</a></li>
           <li><a href="#plans">Subscription Plan</a></li>
           <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#heritage-section">Heritage</a></li>
           <li><a href="#reviews">Reviews</a></li>
           <li><a href="#contact">Contact</a></li>
           <li><a href="account.html">Account</a></li>
@@ -105,6 +106,11 @@
             ><div class="e">🧋</div>
             <h3>Drinks</h3>
             <p>Sago't gulaman, buko, halo-halo</p></a
+          >
+          <a class="card" href="#menu" onclick="setCat('Sweets')"
+            ><div class="e">🍮</div>
+            <h3>Sweets</h3>
+            <p>Filipino desserts and merienda favorites</p></a
           >
           <a class="card" href="#menu" onclick="setCat('Catering')"
             ><div class="e">🍽️</div>
@@ -322,7 +328,7 @@
         cat = "Regular",
         FEE = 0,
         config = {};
-      const CATS = ["Regular", "Budget", "Drinks", "Catering", "Other Asian"];
+      const CATS = ["Regular", "Budget", "Drinks", "Sweets", "Catering", "Other Asian"];
       const itemPrice = (i) =>
         i.discount_price > 0 && i.discount_price < i.price
           ? i.discount_price
@@ -662,8 +668,10 @@
           const h = $("#home");
           h.style.backgroundImage = `linear-gradient(135deg,#0038a8cc,#ce1126bb),url('${c.hero_img}')`;
           h.style.backgroundSize = "cover";
-          h.style.backgroundPosition = "center";
+          h.style.backgroundPosition = `${Number(c.banner_position_x ?? 50)}% ${Number(c.banner_position_y ?? 50)}%`;
         }
+        $("#plans").hidden = !c.subscriptions_enabled;
+        document.querySelectorAll('nav a[href="#plans"]').forEach(a => a.closest("li").hidden = !c.subscriptions_enabled);
         $("#closed").hidden = c.accepting;
 
         $("#ft").innerHTML =

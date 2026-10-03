@@ -51,7 +51,7 @@
           "Plans",
           "Settings",
         ],
-        CATS = ["Regular", "Budget", "Drinks", "Catering", "Other Asian"];
+        CATS = ["Regular", "Budget", "Drinks", "Sweets", "Catering", "Other Asian"];
       let cur = "Overview";
       async function lg(e) {
         e.preventDefault();
@@ -230,22 +230,9 @@
             L = f == "All" ? o : o.filter((x) => x.status == f);
           window._ol = o;
           window._max = Math.max(0, ...o.map((x) => x.id));
-          A_after = () => {
-            clearInterval(window._poll);
-            window._poll = setInterval(async () => {
-              if (cur != "Orders") return clearInterval(window._poll);
-              try {
-                const n = await A("/list/orders");
-                if (Math.max(0, ...n.map((x) => x.id)) > window._max) {
-                  beep();
-                  toast("🔔 New order!");
-                  go("Orders");
-                }
-              } catch (e) {}
-            }, 30000);
-          };
+          A_after = () => clearInterval(window._poll);
           return (
-            `<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>Checks for new orders every 30s</small></p>` +
+            `<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>New orders and customer messages alert while the admin portal is open.</small></p>` +
             tbl(L, [
               ["#", (r) => r.id],
               ["Date", (r) => esc(r.created)],
@@ -295,7 +282,7 @@
               dz(el, "target=item&id=" + el.dataset.id),
             );
           };
-          return `<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmit="ai(event)"><b>Add dish</b><div class="f2"><input name="name" placeholder="Name" required><input name="price" type="number" step="0.001" placeholder="Price" required><select name="cat">${["Regular", "Budget", "Drinks", "Catering", "Other Asian"].map((c) => `<option>${c}</option>`).join("")}</select><input name="region" placeholder="Country (Filipino / Japan / Korea…)"><input name="emoji" placeholder="Legacy icon (not used as default)"><input name="descr" placeholder="Description"><textarea name="ingredients" rows="2" placeholder="Full ingredients, comma-separated"></textarea></div><button class="btn s">Add</button></form>
+          return `<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmit="ai(event)"><b>Add dish</b><div class="f2"><input name="name" placeholder="Name" required><input name="price" type="number" step="0.001" placeholder="Price" required><select name="cat">${["Regular", "Budget", "Drinks", "Sweets", "Catering", "Other Asian"].map((c) => `<option>${c}</option>`).join("")}</select><input name="region" placeholder="Country (Filipino / Japan / Korea…)"><input name="emoji" placeholder="Legacy icon (not used as default)"><input name="descr" placeholder="Description"><textarea name="ingredients" rows="2" placeholder="Full ingredients, comma-separated"></textarea></div><button class="btn s">Add</button></form>
 <p style="margin-bottom:10px">Manage each dish photo with its image controls.</p><div class="grid">${it
             .map(
               (
@@ -724,7 +711,7 @@ ${f("hero_title", "Homepage headline")}
         const fd = new FormData(e.target);
         const b = Object.fromEntries(fd);
 
-        ["payment_cod", "payment_card", "promo_enabled"].forEach((k) => {
+        ["payment_cod", "payment_card", "promo_enabled", "subscriptions_enabled", "exchange_rate_enabled"].forEach((k) => {
           b[k] = fd.has(k) ? "1" : "0";
         });
 

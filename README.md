@@ -46,6 +46,10 @@ Important production values include:
 
 The database-backed restaurant name is also managed from **Admin → Settings** after the first initialization.
 
+Email notifications use the Gmail API with OAuth, not SMTP or a Gmail app password. Configure `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_OAUTH_STATE`, then visit `/api/gmail/oauth/start` once and authorize the account. The callback stores `GMAIL_REFRESH_TOKEN` in the server `.env`; set `GMAIL_ADMIN_NOTIFY_TO` to the address that should receive order and inquiry alerts (it defaults to `GMAIL_USER`). Admin → Settings shows whether required email credentials are present.
+
+WhatsApp registration and order notifications require a customer opt-in. Configure `WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_ACCESS_TOKEN`. Free-form WhatsApp messages are limited to the active customer-service window; for notifications outside that window, also set `WHATSAPP_TEMPLATE_NAME` and `WHATSAPP_TEMPLATE_LANGUAGE` to an approved WhatsApp Business template with one BODY text variable. Provider credentials and templates must be provisioned in Meta and cannot be created by this app.
+
 ## Update after GitHub changes
 Recommended production synchronization:
 

@@ -150,7 +150,7 @@ async function addExchangeConverter(){
     widget=document.createElement('div');
     widget.id='exchange-rate-widget';
     widget.className='master-rate-widget';
-    widget.innerHTML='<button id="exchange-rate-button" class="master-rate-button" type="button" aria-label="View KWD to PHP exchange rate" aria-controls="exchange-rate-popover" aria-expanded="false"><span>KWD</span><span aria-hidden="true">↔ PHP</span></button><div id="exchange-rate-popover" class="master-rate-popover" role="status"><strong id="exchange-rate-value" class="master-rate-value">Loading rate…</strong><p id="exchange-rate-note" class="master-rate-note">Reference only; rates may vary.</p><a id="exchange-rate-source" class="master-rate-source" href="https://www.almullaexchange.com/" target="_blank" rel="noopener">Al Mulla Exchange</a></div>';
+    widget.innerHTML='<button id="exchange-rate-button" class="master-rate-button" type="button" aria-label="View KWD to PHP exchange rate" aria-controls="exchange-rate-popover" aria-expanded="false"><span>KWD</span><span aria-hidden="true">↔ PHP</span></button><div id="exchange-rate-popover" class="master-rate-popover" role="status"><strong id="exchange-rate-value" class="master-rate-value">Loading rate…</strong><p id="exchange-rate-note" class="master-rate-note">Automatically refreshed daily; reference only.</p><a id="exchange-rate-source" class="master-rate-source" href="https://open.er-api.com/" target="_blank" rel="noopener">Daily exchange-rate source</a></div>';
     document.body.appendChild(widget);
     const button=widget.querySelector('#exchange-rate-button');
     const close=()=>{widget.classList.remove('open');button.setAttribute('aria-expanded','false')};
@@ -167,7 +167,8 @@ async function addExchangeConverter(){
     if(!x.enabled||!(+x.rate>0))throw new Error('Unavailable');
     line.textContent='1 KWD = '+(+x.rate).toFixed(2)+' PHP';
     if(x.source_url)link.href=x.source_url;
-    if(x.updated_at)note.textContent='Reference only · updated '+new Date(x.updated_at).toLocaleString();
+    link.textContent=x.source||'Daily exchange-rate source';
+    if(x.updated_at)note.textContent=(x.error?'Saved reference rate · provider refresh failed · ':'Updated daily · ')+new Date(x.updated_at).toLocaleString()+' · actual transfer rates may vary.';
   }catch{
     line.textContent='Rate unavailable';
     note.textContent='The reference rate is not available right now.';
@@ -280,15 +281,21 @@ function masterSettingsFields(base,s){
   const extra='<h3 style="margin-top:22px">Customer experience</h3>'+
     '<label>Menu default image URL<input name="menu_default_icon" value="'+escm(s.menu_default_icon||'/icons/pinoyambula.svg')+'"></label>'+
     '<label>Drinks default image URL<input name="drink_default_icon" value="'+escm(s.drink_default_icon||'/icons/pinoyambula.svg')+'"></label>'+
+    '<h3 style="margin-top:22px">Homepage banner adjustment</h3>'+
+    '<label>Horizontal image position<input name="banner_position_x" type="range" min="0" max="100" value="'+escm(s.banner_position_x||50)+'" oninput="document.getElementById(\'banner-pos-x\').value=this.value+\'%\';document.getElementById(\'hdz\').style.backgroundPosition=this.value+\'% \'+document.querySelector(\'[name=banner_position_y]\').value+\'%\'"><output id="banner-pos-x">'+escm(s.banner_position_x||50)+'%</output></label>'+
+    '<label>Vertical image position<input name="banner_position_y" type="range" min="0" max="100" value="'+escm(s.banner_position_y||50)+'" oninput="document.getElementById(\'banner-pos-y\').value=this.value+\'%\';document.getElementById(\'hdz\').style.backgroundPosition=document.querySelector(\'[name=banner_position_x]\').value+\'% \'+this.value+\'%\'"><output id="banner-pos-y">'+escm(s.banner_position_y||50)+'%</output></label>'+
+    '<h3 style="margin-top:22px">Subscription service</h3>'+
+    '<label><input type="checkbox" name="subscriptions_enabled" value="1" style="width:auto" '+(s.subscriptions_enabled!=='0'?'checked':'')+'> Enable subscriptions on the customer website</label>'+
     '<h3 style="margin-top:22px">POS customer receipt</h3>'+
     '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
     '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
     '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
-    '<h3 style="margin-top:22px">Al Mulla Exchange · KWD → PHP</h3>'+
+    '<h3 style="margin-top:22px">Automatic daily exchange rate · KWD → PHP</h3>'+
     '<label><input type="checkbox" name="exchange_rate_enabled" value="1" style="width:auto" '+(s.exchange_rate_enabled!=='0'?'checked':'')+'> Show reference rate</label>'+
-    '<label>Refresh interval (minutes)<input name="exchange_rate_refresh_minutes" type="number" min="5" max="1440" value="'+escm(s.exchange_rate_refresh_minutes||60)+'"></label>'+
-    '<label>Al Mulla PHP reference rate (1 KWD)<input name="al_mulla_php_rate" type="number" step="0.001" min="0" value="'+escm(s.al_mulla_php_rate||'203.885')+'"></label>'+
-    '<label>Al Mulla source URL<input name="al_mulla_source_url" value="'+escm(s.al_mulla_source_url||'https://www.almullaexchange.com/')+'"></label>'+
+    '<p>The KWD/PHP reference is refreshed automatically once per day. Current source: '+escm(s.exchange_rate_source||'waiting for first automatic refresh')+(s.exchange_rate_updated_at?' · updated '+escm(s.exchange_rate_updated_at):'')+'.</p>'+
+    '<label>Fallback PHP rate per KWD (used only if the daily provider is unavailable)<input name="al_mulla_php_rate" type="number" step="0.001" min="0" value="'+escm(s.al_mulla_php_rate||'203.885')+'"></label>'+
+    '<h3 style="margin-top:22px">Email notifications</h3><p id="masterEmailStatus">Checking Gmail delivery status…</p>'+
+    '<p>Customer emails, admin order alerts, inquiry replies and newsletter broadcasts use Gmail OAuth credentials on the server.</p>'+
     '<h3 style="margin-top:22px">WhatsApp notifications</h3><p id="masterWaStatus">Checking provider status…</p>'+
     '<h3 style="margin-top:22px">Theme</h3>'+
     '<select name="theme_style"><option value="filipino-heritage" '+(s.theme_style!=='plain'?'selected':'')+'>Filipino heritage</option><option value="plain" '+(s.theme_style==='plain'?'selected':'')+'>Classic</option></select>';
@@ -298,6 +305,29 @@ function masterSettingsFields(base,s){
 
 function adminBoot(){
   if(typeof R==='undefined'||typeof A==='undefined')return;
+  let notificationCursor=null,notificationBusy=false;
+  const pollAdminNotifications=async()=>{
+    if(notificationBusy||!localStorage.getItem('at'))return;
+    notificationBusy=true;
+    try{
+      const path=notificationCursor
+        ?'/notifications?orders='+notificationCursor.orders+'&inquiries='+notificationCursor.inquiries+'&messages='+notificationCursor.messages
+        :'/notifications';
+      const data=await A(path);
+      if(notificationCursor&&data.events.length){
+        const orders=data.events.filter(event=>event.type==='order').length;
+        const inquiries=data.events.filter(event=>event.type==='inquiry'||event.type==='message').length;
+        if(orders){if(typeof beep==='function')beep();toast('🔔 '+orders+' new order'+(orders===1?'':'s')+' received.');}
+        if(inquiries)toast('New customer inquiry or chat message received.');
+      }
+      notificationCursor={orders:data.orders,inquiries:data.inquiries,messages:data.messages};
+    }catch(error){console.error('ADMIN_NOTIFICATION_POLL_FAILED',error.message)}
+    finally{notificationBusy=false}
+  };
+  if(!window.__adminNotificationPoll){
+    window.__adminNotificationPoll=setInterval(pollAdminNotifications,12000);
+    pollAdminNotifications();
+  }
   const baseSettings=R.Settings;
   R['Announcements']=async function(){
     const rows=await A('/announcements');
@@ -317,13 +347,16 @@ function adminBoot(){
   R.Settings=async function(){
     const base=await baseSettings();
     const s=await A('/settings');
-    const wa=await A('/whatsapp/status').catch(()=>({configured:false}));
+    const status=await A('/notification-status').catch(()=>({emailConfigured:false,adminEmailConfigured:false,whatsapp:{configured:false}}));
+    const wa=status.whatsapp;
     const out=masterSettingsFields(base,s);
     const hook=A_after;
     A_after=()=>{
       if(hook)hook();
       const el=document.getElementById('masterWaStatus');
-      if(el)el.innerHTML=wa.configured?'<span class="master-status-ok">WhatsApp provider configured</span>':'<span class="master-status-off">WhatsApp provider not configured — website continues to work without WhatsApp.</span>';
+      if(el)el.innerHTML=wa.configured?'<span class="master-status-ok">WhatsApp provider configured'+(wa.templateConfigured?' with approved template '+escm(wa.templateName):'')+'</span>'+(wa.templateConfigured?'':'<p>For registration and order messages outside the 24-hour customer-service window, configure an approved WhatsApp template in the server environment.</p>'):'<span class="master-status-off">WhatsApp provider not configured — set the access token and phone-number ID on the server.</span>';
+      const email=document.getElementById('masterEmailStatus');
+      if(email)email.innerHTML=status.emailConfigured&&status.adminEmailConfigured?'<span class="master-status-ok">Gmail OAuth is configured for customer and admin email.</span>':'<span class="master-status-off">Email notifications are not fully configured. Set GMAIL_USER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN and GMAIL_ADMIN_NOTIFY_TO (or GMAIL_USER).</span>';
     };
     return out;
   };
@@ -340,6 +373,17 @@ function adminBoot(){
     }catch(error){
       checkbox.checked=!checkbox.checked;
       toast('Announcement update failed: '+error.message);
+    }finally{checkbox.disabled=false}
+  };
+  window.masterSetSubscriptionsEnabled=async checkbox=>{
+    const enabled=checkbox.checked;
+    checkbox.disabled=true;
+    try{
+      await A('/settings','PUT',{subscriptions_enabled:enabled?1:0});
+      toast(enabled?'Subscription service enabled':'Subscription service disabled');
+    }catch(error){
+      checkbox.checked=!enabled;
+      toast('Subscription setting failed: '+error.message);
     }finally{checkbox.disabled=false}
   };
   window.masterAddRegional=async form=>{try{await A('/regional-dishes','POST',Object.fromEntries(new FormData(form)));toast('Regional dish added');go('Regional Dishes')}catch(e){toast(e.message)}};

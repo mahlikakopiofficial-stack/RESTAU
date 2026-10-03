@@ -15,10 +15,15 @@ const gmail=read('lib/gmail.js');
 const notifications=read('lib/notifications.js');
 const app=read('public/app.js');
 const master=read('public/master-enhancements.js');
+const enhancements=read('public/enhancements.js');
+const whatsapp=read('lib/whatsapp.js');
+const envExample=read('.env.example');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
-for(const f of ['server.js','lib/gmail.js','lib/notifications.js','public/app.js','public/final-fixes.js','public/master-enhancements.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/sw.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
 t('admin inline script syntax',()=>{const scripts=[...admin.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`admin-inline-${index+1}.js`}))});
+t('account inline script syntax',()=>{const scripts=[...account.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`account-inline-${index+1}.js`}))});
+t('customer site inline script syntax',()=>{const scripts=[...index.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`index-inline-${index+1}.js`}))});
 t('orders + production gate',()=>{assert(server.includes("app.post('/api/order'"));assert(server.includes("E.ENABLE_CHECK==='0'"));assert(server.includes("st.accepting!=='1'"))});
 t('secure auth/reset',()=>{assert(server.includes('password_reset_tokens'));assert(server.includes('auth_version'));assert(server.includes("app.post('/api/password-reset'"));assert(server.includes("app.post('/api/password-reset/confirm'"));assert(server.includes('sendPasswordResetEmail'));assert(gmail.includes('gmail.send'));assert(!gmail.includes('smtp.gmail.com'))});
 t('admin portal isolation',()=>{assert(server.includes('configuredAdminHost'));assert(server.includes("host==='admin.localhost"));assert(fixes.includes('admin.html'));assert(index.includes('Admin'))});
@@ -41,7 +46,9 @@ t('announcement active toggle and refresh',()=>{assert(master.includes('masterSe
 t('subscription schedule and WhatsApp consent are admin-managed',()=>{const startField=index.match(/<input\b[^>]*\bname="start"[^>]*>/s);assert(startField&&!/type="date"/.test(startField[0]));assert(!index.includes('id="sub-end"'));assert(!master.includes('Send subscription updates on WhatsApp'));assert(!master.includes('setInterval(addCartOptIn,1200)'));assert(master.includes('Customer consent recorded'));assert(master.includes('masterSaveSub'))});
 t('enhanced customer UX v2',()=>{
   assert(server.includes('al_mulla_php_rate'));
-  assert(server.includes('Al Mulla Exchange reference'));
+  assert(server.includes('https://open.er-api.com/v6/latest/KWD'));
+  assert(server.includes('Open Exchange Rates daily reference'));
+  assert(server.includes('exchange_rate_fetched_at'));
   assert(server.includes('duration_days'));
   assert(server.includes('moreRegional'));
   assert(index.includes('id="exchange-converter"'));
@@ -58,13 +65,52 @@ t('enhanced customer UX v2',()=>{
   assert(master.includes('WhatsApp updates'));
   assert(!master.includes("['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—']"));
   assert(master.includes('nav ul li>a,nav ul li>button'));
-  assert(master.includes('Al Mulla PHP reference rate'));
+  assert(master.includes('Automatic daily exchange rate'));
   assert(master.includes('Admin can adjust start date, duration, or the final end date'));
   assert(master.includes('preview-ingredients')||master.includes('Ingredients'));
   assert(master.includes('pa-marquee'));
   assert(server.includes("['items','ingredients'"));
   assert(server.includes("/api/admin/report-range"));
   assert(server.includes("whatsapp_opt_in"));
+});
+t('sweets and heritage navigation',()=>{
+  assert(server.includes("INSERT INTO items(cat,region,name,descr,price,emoji) SELECT 'Sweets'"));
+  for(const name of ['Leche Flan','Ube Halaya','Turon','Bibingka'])assert(server.includes(name));
+  assert(index.includes('"Sweets"'));
+  assert(admin.includes('"Sweets"'));
+  assert(index.includes('href="#heritage-section">Heritage</a>'));
+});
+t('banner controls and subscription service gate',()=>{
+  assert(server.includes("banner_position_x:'50'"));
+  assert(server.includes("banner_position_y:'50'"));
+  assert(server.includes('Banner position must be between 0 and 100'));
+  assert(index.includes('c.banner_position_x'));
+  assert(index.includes('c.banner_position_y'));
+  assert(master.includes('Horizontal image position'));
+  assert(master.includes('Vertical image position'));
+  assert(server.includes("if(S().subscriptions_enabled==='0')return r.json([])"));
+  assert(server.includes("if(S().subscriptions_enabled==='0')throw new Error('Subscription service is currently unavailable.')"));
+  assert(enhancements.includes('masterSetSubscriptionsEnabled'));
+  assert(enhancements.includes('Enable subscription service on the customer website'));
+});
+t('WhatsApp registration and admin notifications',()=>{
+  assert(account.includes('name="whatsapp_opt_in"'));
+  assert(server.includes("'customer:'+id+':registered'"));
+  assert(server.includes("SELECT whatsapp_opt_in FROM customers WHERE id=?"));
+  assert(whatsapp.includes('WHATSAPP_TEMPLATE_NAME'));
+  assert(server.includes("app.get('/api/admin/notifications'"));
+  assert(master.includes('setInterval(pollAdminNotifications,12000)'));
+  assert(server.includes("app.post('/api/admin/inquiries/:id/messages'"));
+  assert(enhancements.includes('sendInquiryReply'));
+});
+t('newsletter campaign admin UI and Gmail OAuth setup',()=>{
+  assert(enhancements.includes('sendNewsletterCampaign(event)'));
+  assert(server.includes("app.post('/api/admin/newsletter/send'"));
+  assert(server.includes('processNewsletterQueue'));
+  assert(envExample.includes('GMAIL_CLIENT_ID'));
+  assert(envExample.includes('GMAIL_REFRESH_TOKEN'));
+  assert(!envExample.includes('GMAIL_APP_PASSWORD'));
+  assert(server.includes("app.get('/api/admin/notification-status'"));
 });
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
 if(tests.length){console.error('\nTEST RESULT: FAIL');process.exit(1)}else console.log('\nTEST RESULT: PASS');
