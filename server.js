@@ -178,8 +178,7 @@ const moreRegional=[
 ];
 const mr=db.prepare('INSERT INTO regional_dishes(name,region,descr,price,sort_order) VALUES(?,?,?,?,?)');
 moreRegional.forEach((x,i)=>{if(!db.prepare('SELECT 1 FROM regional_dishes WHERE name=?').get(x[0]))mr.run(x[0],x[1],x[2],x[3],20+i);});
-{
-  const sampleGallery=[
+const sampleGallery=[
   ['Baybayin script — public-domain reference','https://commons.wikimedia.org/wiki/Special:Redirect/file/Baybayin_script_tagalog_wi.svg'],
   ['Bahay Kubo — Tboli nipa hut','https://commons.wikimedia.org/wiki/Special:Redirect/file/Bahay_kubo.jpg'],
   ['Filipino weaving culture','https://commons.wikimedia.org/wiki/Special:Redirect/file/Weaving_Culture_in_the_Philippines.jpg'],
