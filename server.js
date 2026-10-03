@@ -208,9 +208,14 @@ for(const [title,caption,media_type,img,media_url] of sampleHeritage){
     db.prepare('INSERT INTO heritage(title,caption,media_type,img,media_url,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(title,caption,media_type,img,media_url,1,99);
 }
 const notificationOnce=async(eventKey,recipient,text)=>{
-  if(!eventKey||!recipient||!whatsappConfigured())return {skipped:true};
-  const inserted=db.prepare("INSERT OR IGNORE INTO notification_log(channel,event_key,recipient,status) VALUES('whatsapp',?,?,?)").run(eventKey,recipient,'Pending');
-  if(!inserted.changes)return {duplicate:true};
+  if(!eventKey||!recipient||!whatsappConfigured())return {skipped:true,reason:'WhatsApp provider is not configured'};
+  const existing=one("SELECT status FROM notification_log WHERE event_key=?",eventKey);
+  if(existing&&['Sent','Pending'].includes(existing.status))return {duplicate:true,status:existing.status};
+  if(existing){
+    db.prepare("UPDATE notification_log SET recipient=?,status='Pending',error='' WHERE event_key=?").run(recipient,eventKey);
+  }else{
+    db.prepare("INSERT INTO notification_log(channel,event_key,recipient,status) VALUES('whatsapp',?,?,?)").run('whatsapp',eventKey,recipient,'Pending');
+  }
   try{
     const result=await sendWhatsAppText(recipient,text);
     if(result.sent)db.prepare("UPDATE notification_log SET status='Sent',sent_at=CURRENT_TIMESTAMP,error='' WHERE event_key=?").run(eventKey);
