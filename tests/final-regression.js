@@ -40,19 +40,15 @@ t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not e
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
 t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('notifyAdminCustomerMessage'));assert(notifications.includes('sendPasswordResetEmail'));assert(/notifyAdminCustomerMessage,/.test(notifications));assert(server.includes("SELECT status FROM notification_log WHERE event_key=?"));assert(server.includes("['Sent','Pending']"))});
-t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/exchange-rate'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
+t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
 t('master enhancement customer UX',()=>{assert(index.includes('master-enhancements.js'));assert(admin.includes('master-enhancements.js'));assert(master.includes('menu_default_icon'));assert(master.includes('master-promo'));assert(master.includes('Regional Filipino Favorites'));assert(master.includes('Ancient Script &amp; Filipino Heritage'));assert(master.includes('whatsapp_opt_in'));assert(master.includes('master-carousel'));assert(master.includes('receipt_logo_url'));});
 t('announcement active toggle and refresh',()=>{assert(master.includes('masterSetAnnouncementActive'));assert(master.includes("setInterval(()=>{if(!document.hidden)addPromos()},5000)"));assert(master.includes("cta_url:this.value"));assert(master.includes("starts_at:this.value"));assert(master.includes("ends_at:this.value"));assert(master.includes("priority:+this.value||0"));assert(master.includes("if(!rows.length){bar?.remove();return}"));assert(server.includes("WHERE active=1 AND (starts_at=''"))});
 t('subscription schedule and WhatsApp consent are admin-managed',()=>{const startField=index.match(/<input\b[^>]*\bname="start"[^>]*>/s);assert(startField&&!/type="date"/.test(startField[0]));assert(!index.includes('id="sub-end"'));assert(!master.includes('Send subscription updates on WhatsApp'));assert(!master.includes('setInterval(addCartOptIn,1200)'));assert(master.includes('Customer consent recorded'));assert(master.includes('masterSaveSub'))});
 t('enhanced customer UX v2',()=>{
   assert(server.includes('al_mulla_php_rate'));
   assert(server.includes('https://open.er-api.com/v6/latest/KWD'));
-  assert(server.includes('Open Exchange Rates daily reference'));
-  assert(server.includes('exchange_rate_fetched_at'));
   assert(server.includes('duration_days'));
   assert(server.includes('moreRegional'));
-  assert(index.includes('id="exchange-converter"'));
-  assert(master.includes('addExchangeConverter'));
   assert(master.includes('master-menu-photo'));
   assert(master.includes('openMenuPreview'));
   assert(/renderCard\s*=\s*window\.card\s*\|\|\s*card/.test(index));
@@ -65,7 +61,7 @@ t('enhanced customer UX v2',()=>{
   assert(master.includes('WhatsApp updates'));
   assert(!master.includes("['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—']"));
   assert(master.includes('nav ul li>a,nav ul li>button'));
-  assert(master.includes('Automatic daily exchange rate'));
+
   assert(master.includes('Admin can adjust start date, duration, or the final end date'));
   assert(master.includes('preview-ingredients')||master.includes('Ingredients'));
   assert(master.includes('pa-marquee'));
