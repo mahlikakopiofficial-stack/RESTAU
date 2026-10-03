@@ -66,6 +66,13 @@ function masterCss(){
     '.master-admin-card{padding:16px;border:1px solid #e5dccb;border-radius:14px;background:#fff;margin-bottom:16px}',
     '#main .master-admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
     '.master-status-ok{color:#1c6b41;font-weight:700}.master-status-off{color:#8a2b24;font-weight:700}',
+    '.announcement-manager{display:flex;flex-direction:column;gap:10px}',
+    '.announcement-manager h3{margin:0}',
+    '.announcement-manager-head{display:flex;align-items:center;justify-content:space-between;gap:12px}',
+    '.announcement-manager-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+    '.announcement-manager-list{display:grid;gap:16px}',
+    '.announcement-image-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+    '.announcement-image-wrap img{width:180px;height:100px;object-fit:cover;border-radius:10px;border:1px solid #ddd8cc}',
     '@media (prefers-reduced-motion: reduce){.master-carousel-track{transition:none!important}}',
   ].join('');
   document.head.appendChild(style);
@@ -330,35 +337,110 @@ function adminBoot(){
     const pad=n=>String(n).padStart(2,'0');
     return date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'T'+pad(date.getHours())+':'+pad(date.getMinutes());
   };
-  const announcementSave=async(id,field,value)=>{
-    const body={};
-    body[field]=field==='priority'?Math.trunc(+value||0):field==='starts_at'||field==='ends_at'?announcementToApiDateTime(value):value;
+  const announcementInputEsc=value=>escm(value||'');
+  window.saveAnnouncement=async function(id,form){
+    const data=Object.fromEntries(new FormData(form));
+    data.active=form.elements.active?.checked?1:0;
+    data.priority=Math.trunc(+data.priority||0);
     try{
-      await A('/announcements/'+id,'PUT',body);
+      data.starts_at=announcementToApiDateTime(data.starts_at);
+      data.ends_at=announcementToApiDateTime(data.ends_at);
+      await A('/announcements/'+id,'PUT',data);
       toast('Announcement saved');
       go('Announcements');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement update failed: '+error.message)}
+    }catch(error){toast('Announcement save failed: '+error.message)}
+  };
+  window.createAnnouncement=async function(form){
+    const data=Object.fromEntries(new FormData(form));
+    data.active=form.elements.active?.checked?1:0;
+    data.priority=Math.trunc(+data.priority||0);
+    try{
+      data.starts_at=announcementToApiDateTime(data.starts_at);
+      data.ends_at=announcementToApiDateTime(data.ends_at);
+      await A('/announcements','POST',data);
+      toast('Announcement created');
+      form.reset();
+      form.elements.priority.value=0;
+      form.elements.active.checked=true;
+      go('Announcements');
+      localStorage.setItem('pa-announcement-refresh',String(Date.now()));
+    }catch(error){toast('Announcement create failed: '+error.message)}
+  };
+  window.toggleAnnouncement=async function(id,active){
+    try{
+      await A('/announcements/'+id,'PUT',{active:active?1:0});
+      toast(active?'Announcement activated':'Announcement deactivated');
+      go('Announcements');
+      localStorage.setItem('pa-announcement-refresh',String(Date.now()));
+    }catch(error){toast('Announcement status failed: '+error.message)}
+  };
+  window.deleteAnnouncement=async function(id){
+    if(!confirm('Delete this announcement permanently?'))return;
+    try{
+      await A('/announcements/'+id,'DELETE');
+      toast('Announcement deleted');
+      go('Announcements');
+      localStorage.setItem('pa-announcement-refresh',String(Date.now()));
+    }catch(error){toast('Announcement delete failed: '+error.message)}
+  };
+  window.addAnnouncementImage=async function(id){
+    const input=document.createElement('input');
+    input.type='file'; input.accept='image/jpeg,image/png,image/webp,image/gif';
+    input.onchange=async()=>{
+      if(!input.files[0])return;
+      try{
+        const fd=new FormData(); fd.append('file',input.files[0]);
+        await A('/upload?target=announcement&id='+encodeURIComponent(id),'POST',fd);
+        toast('Announcement image saved');
+        go('Announcements');
+      }catch(error){toast('Announcement image failed: '+error.message)}
+    };
+    input.click();
+  };
+  window.removeAnnouncementImage=async function(id){
+    try{
+      await A('/image','DELETE',{target:'announcement',id});
+      toast('Announcement image removed');
+      go('Announcements');
+    }catch(error){toast('Announcement image removal failed: '+error.message)}
   };
   R['Announcements']=async function(){
     const rows=await A('/announcements');
-    const annField=(x,key,tag='input')=>{
-      const attrs=tag==='textarea'?'rows="2" maxlength="1000"':'';
-      return '<'+tag+' '+attrs+' '+(tag==='input'?'value="'+escm(x[key]||'')+'"':'')+' onchange="announcementSave('+x.id+',\''+key+'\',this.value)">'+(tag==='textarea'?escm(x[key]||'')+'</textarea>':'');
-    };
-    const table=tbl(rows,[
-      ['Priority',x=>'<input type="number" value="'+(Number(x.priority)||0)+'" onchange="announcementSave('+x.id+',\'priority\',this.value)">'],
-      ['Title',x=>annField(x,'title')],
-      ['Message',x=>'<textarea rows="2" maxlength="1000" onchange="announcementSave('+x.id+',\'message\',this.value)">'+escm(x.message||'')+'</textarea>'],
-      ['Active',x=>'<input type="checkbox" aria-label="Active announcement" style="width:auto" '+(x.active?'checked':'')+' onchange="masterSetAnnouncementActive('+x.id+',this)">'],
-      ['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],
-      ['CTA label',x=>annField(x,'cta_label')],
-      ['CTA URL',x=>'<input type="text" value="'+escm(x.cta_url||'')+'" placeholder="/#menu or https://..." onchange="announcementSave('+x.id+',\'cta_url\',this.value)">'],
-      ['Start',x=>'<input type="datetime-local" value="'+announcementFromApiDateTime(x.starts_at)+'" onchange="announcementSave('+x.id+',\'starts_at\',this.value)">'],
-      ['End',x=>'<input type="datetime-local" value="'+announcementFromApiDateTime(x.ends_at)+'" onchange="announcementSave('+x.id+',\'ends_at\',this.value)">'],
-      ['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']
-    ]);
-    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><p class="small">Set optional start/end times in your browser local time. Leave them blank for an announcement that runs immediately.</p><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="text" placeholder="/#menu or https://..."></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+table;
+    const createForm='<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();createAnnouncement(this)">'+
+      '<h3>Create announcement</h3>'+
+      '<p class="small">Create one announcement, then manage it from its own card. Save changes only when you press Save.</p>'+
+      '<div class="master-admin-grid">'+
+      '<label>Title<input name="title" required maxlength="160" placeholder="Announcement title"></label>'+
+      '<label>Priority<input name="priority" type="number" step="1" value="0"></label>'+
+      '<label>Start<input name="starts_at" type="datetime-local"></label>'+
+      '<label>End<input name="ends_at" type="datetime-local"></label></div>'+
+      '<label>Message<textarea name="message" rows="4" required maxlength="1000" placeholder="Announcement message"></textarea></label>'+
+      '<div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80" placeholder="Order now"></label>'+
+      '<label>CTA URL<input name="cta_url" maxlength="500" placeholder="/#menu or https://..."></label></div>'+
+      '<label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label>'+
+      '<button class="btn" type="submit">Create announcement</button></form>';
+    const cards=rows.map(a=>{
+      const image=a.image?'<div class="announcement-image-wrap"><img src="'+announcementInputEsc(a.image)+'" alt="Announcement image"><button class="btn s o" type="button" onclick="removeAnnouncementImage('+a.id+')">Remove image</button></div>':'<button class="btn s o" type="button" onclick="addAnnouncementImage('+a.id+')">Add image</button>';
+      return '<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();saveAnnouncement('+a.id+',this)">'+
+        '<div class="announcement-manager-head"><h3>Announcement #'+a.id+'</h3><span class="'+(a.active?'master-status-ok':'master-status-off')+'">'+(a.active?'ACTIVE':'INACTIVE')+'</span></div>'+
+        '<div class="master-admin-grid">'+
+        '<label>Title<input name="title" required maxlength="160" value="'+announcementInputEsc(a.title)+'"></label>'+
+        '<label>Priority<input name="priority" type="number" step="1" value="'+(Number(a.priority)||0)+'"></label>'+
+        '<label>Start<input name="starts_at" type="datetime-local" value="'+announcementFromApiDateTime(a.starts_at)+'"></label>'+
+        '<label>End<input name="ends_at" type="datetime-local" value="'+announcementFromApiDateTime(a.ends_at)+'"></label></div>'+
+        '<label>Message<textarea name="message" rows="4" required maxlength="1000">'+announcementInputEsc(a.message)+'</textarea></label>'+
+        '<div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80" value="'+announcementInputEsc(a.cta_label)+'"></label>'+
+        '<label>CTA URL<input name="cta_url" maxlength="500" value="'+announcementInputEsc(a.cta_url)+'"></label></div>'+
+        '<label><input type="checkbox" name="active" value="1" '+(a.active?'checked':'')+' style="width:auto"> Active</label>'+
+        '<div class="announcement-manager-actions">'+
+        '<button class="btn" type="submit">Save changes</button>'+
+        '<button class="btn s o" type="button" onclick="toggleAnnouncement('+a.id+','+(a.active?0:1)+')">'+(a.active?'Deactivate':'Activate')+'</button>'+
+        image+
+        '<button class="btn s o" type="button" onclick="deleteAnnouncement('+a.id+')">Delete</button>'+
+        '</div></form>';
+    }).join('');
+    return createForm+'<h3>Saved announcements</h3><div class="announcement-manager-list">'+(cards||'<p class="small">No announcements yet.</p>')+'</div>';
   };
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
