@@ -31,14 +31,9 @@
     </div>
     <nav>
       <div class="wrap">
-        <a class="logo" href="#home">🌼 PinoyAmbula</a
-        ><button
-          id="burger"
-          onclick="$('#nl').classList.toggle('open')"
-          aria-label="Menu"
-        >
-          ☰
-        </button>
+        <a class="logo" href="#home">🌼 PinoyAmbula</a>
+        <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
+        <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
         <ul id="nl" onclick="this.classList.remove('open')">
           <li><a href="#services">Services</a></li>
           <li><a href="#menu">Menu</a></li>
