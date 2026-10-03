@@ -45,8 +45,10 @@ t('master enhancement customer UX',()=>{assert(index.includes('master-enhancemen
 t('announcement active toggle and refresh',()=>{assert(master.includes('masterSetAnnouncementActive'));assert(master.includes("setInterval(()=>{if(!document.hidden)addPromos()},5000)"));assert(master.includes("cta_url:this.value"));assert(master.includes("starts_at:this.value"));assert(master.includes("ends_at:this.value"));assert(master.includes("priority:+this.value||0"));assert(master.includes("if(!rows.length){bar?.remove();return}"));assert(server.includes("WHERE active=1 AND (starts_at=''"))});
 t('subscription schedule and WhatsApp consent are admin-managed',()=>{const startField=index.match(/<input\b[^>]*\bname="start"[^>]*>/s);assert(startField&&!/type="date"/.test(startField[0]));assert(!index.includes('id="sub-end"'));assert(!master.includes('Send subscription updates on WhatsApp'));assert(!master.includes('setInterval(addCartOptIn,1200)'));assert(master.includes('Customer consent recorded'));assert(master.includes('masterSaveSub'))});
 t('enhanced customer UX v2',()=>{
-  assert(server.includes('al_mulla_php_rate'));
-  assert(server.includes('https://open.er-api.com/v6/latest/KWD'));
+  assert(!server.includes('al_mulla_php_rate'));
+  assert(!server.includes('https://open.er-api.com/v6/latest/KWD'));
+  assert(!master.includes('master-rate-widget'));
+  assert(!master.includes('Fallback PHP rate per KWD'));
   assert(server.includes('duration_days'));
   assert(server.includes('moreRegional'));
   assert(master.includes('master-menu-photo'));
