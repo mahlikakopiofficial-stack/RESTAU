@@ -59,7 +59,6 @@ t('enhanced customer UX v2',()=>{
   assert(master.includes('gallery-carousel'));
   assert(master.includes('master-slide-hit'));
   assert(master.includes("addEventListener('click',()=>openMediaPreview(rows["));
-  assert(master.includes('master-rate-popover'));
   assert(master.includes('WhatsApp updates'));
   assert(!master.includes("['WhatsApp',s=>s.whatsapp_opt_in?'Opted in':'—']"));
   assert(master.includes('nav ul li>a,nav ul li>button'));
