@@ -272,7 +272,7 @@ function addTheme(){
 function siteBoot(){
   masterCss();addTheme();cartOutside();addCartOptIn();patchMenu();addPromos();addExchangeConverter();addRegional();addHeritage();addGalleryCarousel();
   if(!window.__masterPromoRefresh){
-    window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},30000);
+    window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},5000);
     window.addEventListener('focus',addPromos);
   }
 }
@@ -361,8 +361,16 @@ function adminBoot(){
     return out;
   };
   window.masterAddAnnouncement=async form=>{
-    const d=Object.fromEntries(new FormData(form));d.active=form.elements.active.checked?1:0;d.starts_at=String(d.starts_at||'').replace('T',' ');d.ends_at=String(d.ends_at||'').replace('T',' ');
-    try{await A('/announcements','POST',d);toast('Announcement added');go('Announcements')}catch(e){toast(e.message)}
+    const d=Object.fromEntries(new FormData(form));
+    d.active=form.elements.active.checked?1:0;
+    d.starts_at=String(d.starts_at||'').replace('T',' ');
+    d.ends_at=String(d.ends_at||'').replace('T',' ');
+    try{
+      await A('/announcements','POST',d);
+      toast('Announcement added');
+      go('Announcements');
+      if(typeof addPromos==='function')addPromos();
+    }catch(e){toast(e.message)}
   };
   window.masterSetAnnouncementActive=async(id,checkbox)=>{
     const active=checkbox.checked?1:0;
@@ -370,6 +378,11 @@ function adminBoot(){
     try{
       await A('/announcements/'+id,'PUT',{active});
       toast(active?'Announcement activated':'Announcement paused');
+      // Reload the admin table so the saved state is immediately visible.
+      go('Announcements');
+      // Also refresh the customer-facing announcement wheel immediately when this
+      // admin page is opened on the same origin.
+      if(typeof addPromos==='function')addPromos();
     }catch(error){
       checkbox.checked=!checkbox.checked;
       toast('Announcement update failed: '+error.message);
