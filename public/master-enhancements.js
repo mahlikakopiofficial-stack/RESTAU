@@ -259,6 +259,12 @@ function siteBoot(){
     window.__masterPromoRefresh=setInterval(()=>{if(!document.hidden)addPromos()},5000);
     window.addEventListener('focus',addPromos);
   }
+  if(!window.__masterAnnouncementStorage){
+    window.__masterAnnouncementStorage=true;
+    window.addEventListener('storage',event=>{
+      if(event.key==='pa-announcement-refresh')addPromos();
+    });
+  }
 }
 
 function masterSettingsFields(base,s){
@@ -309,12 +315,50 @@ function adminBoot(){
     pollAdminNotifications();
   }
   const baseSettings=R.Settings;
+  const announcementToApiDateTime=value=>{
+    const raw=String(value||'').trim();
+    if(!raw)return '';
+    const date=new Date(raw);
+    if(Number.isNaN(date.valueOf()))throw new Error('Invalid announcement date/time');
+    return date.toISOString().slice(0,19).replace('T',' ');
+  };
+  const announcementFromApiDateTime=value=>{
+    const raw=String(value||'').trim();
+    if(!raw)return '';
+    const date=new Date(raw.replace(' ','T')+'Z');
+    if(Number.isNaN(date.valueOf()))return '';
+    const pad=n=>String(n).padStart(2,'0');
+    return date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'T'+pad(date.getHours())+':'+pad(date.getMinutes());
+  };
+  const announcementSave=async(id,field,value)=>{
+    const body={};
+    body[field]=field==='priority'?Math.trunc(+value||0):field==='starts_at'||field==='ends_at'?announcementToApiDateTime(value):value;
+    try{
+      await A('/announcements/'+id,'PUT',body);
+      toast('Announcement saved');
+      go('Announcements');
+      localStorage.setItem('pa-announcement-refresh',String(Date.now()));
+    }catch(error){toast('Announcement update failed: '+error.message)}
+  };
   R['Announcements']=async function(){
     const rows=await A('/announcements');
-    const annField=(x,key,tag='input')=>'<'+tag+' value="'+escm(x[key]||'')+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{'+key+':this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'+(tag==='textarea'?escm(x[key]||'')+'</textarea>':'');
-    const annDate=v=>{const s=String(v||'').replace(' ','T');return s.length>=16?s.slice(0,16):s};
-    const table=tbl(rows,[['Priority',x=>'<input type="number" value="'+(Number(x.priority)||0)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{priority:+this.value||0}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['Title',x=>annField(x,'title')],['Message',x=>'<textarea rows="2" maxlength="1000" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{message:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'+escm(x.message||'')+'</textarea>'],['Active',x=>'<input type="checkbox" aria-label="Active announcement" style="width:auto" '+(x.active?'checked':'')+' onchange="masterSetAnnouncementActive('+x.id+',this)">'],['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],['CTA label',x=>annField(x,'cta_label')],['CTA URL',x=>'<input type="url" value="'+escm(x.cta_url||'')+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{cta_url:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['Start',x=>'<input type="datetime-local" value="'+annDate(x.starts_at)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{starts_at:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['End',x=>'<input type="datetime-local" value="'+annDate(x.ends_at)+'" onchange="A(&#39;/announcements/'+x.id+'&#39;,&#39;PUT&#39;,{ends_at:this.value}).then(()=>{toast(&#39;Saved&#39;);go(&#39;Announcements&#39;)}).catch(error=>toast(error.message))">'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']]);
-    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="url"></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+table;
+    const annField=(x,key,tag='input')=>{
+      const attrs=tag==='textarea'?'rows="2" maxlength="1000"':'';
+      return '<'+tag+' '+attrs+' '+(tag==='input'?'value="'+escm(x[key]||'')+'"':'')+' onchange="announcementSave('+x.id+',\''+key+'\',this.value)">'+(tag==='textarea'?escm(x[key]||'')+'</textarea>':'');
+    };
+    const table=tbl(rows,[
+      ['Priority',x=>'<input type="number" value="'+(Number(x.priority)||0)+'" onchange="announcementSave('+x.id+',\'priority\',this.value)">'],
+      ['Title',x=>annField(x,'title')],
+      ['Message',x=>'<textarea rows="2" maxlength="1000" onchange="announcementSave('+x.id+',\'message\',this.value)">'+escm(x.message||'')+'</textarea>'],
+      ['Active',x=>'<input type="checkbox" aria-label="Active announcement" style="width:auto" '+(x.active?'checked':'')+' onchange="masterSetAnnouncementActive('+x.id+',this)">'],
+      ['Image',x=>'<div class="drop master-ann-image" data-id="'+x.id+'" style="height:90px;'+(x.image?'background:url(&#39;'+escm(x.image)+'&#39;) center/cover;color:#fff':'')+'">'+(x.image?'Replace image':'⬆ Add image')+'</div>'],
+      ['CTA label',x=>annField(x,'cta_label')],
+      ['CTA URL',x=>'<input type="text" value="'+escm(x.cta_url||'')+'" placeholder="/#menu or https://..." onchange="announcementSave('+x.id+',\'cta_url\',this.value)">'],
+      ['Start',x=>'<input type="datetime-local" value="'+announcementFromApiDateTime(x.starts_at)+'" onchange="announcementSave('+x.id+',\'starts_at\',this.value)">'],
+      ['End',x=>'<input type="datetime-local" value="'+announcementFromApiDateTime(x.ends_at)+'" onchange="announcementSave('+x.id+',\'ends_at\',this.value)">'],
+      ['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/announcements/'+x.id+'&#39;,&#39;Announcements&#39;)">Delete</button>']
+    ]);
+    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddAnnouncement(this)"><h3>Header promotions / announcements</h3><p class="small">Set optional start/end times in your browser local time. Leave them blank for an announcement that runs immediately.</p><div class="master-admin-grid"><label>Title<input name="title" required maxlength="160"></label><label>Priority<input name="priority" type="number" value="0"></label><label>Start<input name="starts_at" type="datetime-local"></label><label>End<input name="ends_at" type="datetime-local"></label></div><label>Message<textarea name="message" rows="3" required maxlength="1000"></textarea></label><div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80"></label><label>CTA URL<input name="cta_url" type="text" placeholder="/#menu or https://..."></label></div><label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label><button class="btn">Add announcement</button></form>'+table;
   };
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
@@ -345,14 +389,18 @@ function adminBoot(){
   window.masterAddAnnouncement=async form=>{
     const d=Object.fromEntries(new FormData(form));
     d.active=form.elements.active.checked?1:0;
-    d.starts_at=String(d.starts_at||'').replace('T',' ');
-    d.ends_at=String(d.ends_at||'').replace('T',' ');
     try{
+      d.starts_at=announcementToApiDateTime(d.starts_at);
+      d.ends_at=announcementToApiDateTime(d.ends_at);
       await A('/announcements','POST',d);
       toast('Announcement added');
+      form.reset();
+      form.elements.priority.value=0;
+      form.elements.active.checked=true;
       go('Announcements');
+      localStorage.setItem('pa-announcement-refresh',String(Date.now()));
       if(typeof addPromos==='function')addPromos();
-    }catch(e){toast(e.message)}
+    }catch(e){toast('Announcement could not be saved: '+e.message)}
   };
   window.masterSetAnnouncementActive=async(id,checkbox)=>{
     const active=checkbox.checked?1:0;
@@ -360,10 +408,8 @@ function adminBoot(){
     try{
       await A('/announcements/'+id,'PUT',{active});
       toast(active?'Announcement activated':'Announcement paused');
-      // Reload the admin table so the saved state is immediately visible.
       go('Announcements');
-      // Also refresh the customer-facing announcement wheel immediately when this
-      // admin page is opened on the same origin.
+      localStorage.setItem('pa-announcement-refresh',String(Date.now()));
       if(typeof addPromos==='function')addPromos();
     }catch(error){
       checkbox.checked=!checkbox.checked;
