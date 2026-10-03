@@ -45,6 +45,7 @@ const ensureColumn=(table,column,definition)=>{
   ['orders','email',"TEXT DEFAULT ''"],
   ['orders','promo_code',"TEXT DEFAULT ''"],
   ['orders','payment_status',"TEXT DEFAULT 'Pending'"],
+  ['orders','cod_cash_collected','INTEGER DEFAULT 0'],
   ['orders','confirmed_at','TEXT'],
   ['orders','delivered_at','TEXT'],
   ['orders','cancelled_at','TEXT'],
@@ -838,11 +839,11 @@ app.put('/api/admin/payment/:id',admin,w((q,r)=>{
   r.json({ok:1,status});
 }));
 app.put('/api/admin/orders/:id',admin,w((q,r)=>{
-  const allowed=['driver_name','driver_phone'];
+  const allowed=['driver_name','driver_phone','cod_cash_collected'];
   const keys=Object.keys(q.body).filter(key=>allowed.includes(key));
   if(!keys.length)throw new Error('Only driver name and driver phone can be updated');
   const result=db.prepare(`UPDATE orders SET ${keys.map(key=>key+'=?').join(',')} WHERE id=?`)
-    .run(...keys.map(key=>String(q.body[key]||'').slice(0,120)),q.params.id);
+    .run(...keys.map(key=>key==='cod_cash_collected'?(Number(q.body[key])?1:0):String(q.body[key]||'').slice(0,120)),q.params.id);
   if(!result.changes)throw new Error('Order not found');
   r.json({ok:1});
 }));
