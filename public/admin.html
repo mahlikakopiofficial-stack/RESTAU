@@ -423,28 +423,16 @@
         async Plans() {
           const p = await A("/list/plans");
           return (
-            `<p style="margin-bottom:10px">Names and prices update on the website immediately.</p>` +
+            `<div class="card" style="padding:16px;margin-bottom:18px"><h3>Add subscription plan</h3><form onsubmit="addAdminPlan(event)"><div class="f2"><div><label>Plan name *</label><input name="name" required maxlength="100" placeholder="26-Day Lunch Plan"></div><div><label>Price (KWD) *</label><input name="price" type="number" min="0" step="0.001" required></div><div><label>Duration (days) *</label><input name="duration_days" type="number" min="1" max="366" value="26" required></div><div><label>Plan ID (optional)</label><input name="id" maxlength="80" placeholder="lunch-26"></div></div><label>Description</label><textarea name="descr" rows="3" maxlength="500" placeholder="What the customer receives"></textarea><label>Included benefits (one per line)</label><textarea name="includes" rows="4" maxlength="2000" placeholder="Daily Filipino lunch\nDelivery to registered address\nCash on delivery"></textarea><label><input name="active" type="checkbox" value="1" checked style="width:auto"> Active — show on customer website</label><button class="btn">Add plan</button></form></div>`+
+            `<p style="margin-bottom:10px">All plans are displayed in the same card layout on the customer website. Deactivating a plan removes it from the customer offer and its Subscribe button.</p>` +
             tbl(p, [
-              [
-                "Plan",
-                (r) =>
-                  `<input value="${esc(r.name)}" onchange="up2('plans','${r.id}','name',this.value)">`,
-              ],
-              [
-                "Description",
-                (r) =>
-                  `<input value="${esc(r.descr)}" onchange="up2('plans','${r.id}','descr',this.value)">`,
-              ],
-              [
-                "Price (26 days)",
-                (r) =>
-                  `<input type="number" step="any" value="${r.price}" style="width:110px" onchange="up2('plans','${r.id}','price',+this.value)">`,
-              ],
-              [
-                "Active",
-                (r) =>
-                  `<input type="checkbox" style="width:auto" ${r.active ? "checked" : ""} onchange="up2('plans','${r.id}','active',this.checked?1:0)">`,
-              ],
+              ["Image", (r) => `<div class="drop master-plan-image" data-id="${esc(r.id)}" style="width:150px;height:100px;border-radius:10px;background-size:cover;background-position:center;display:grid;place-items:center;${r.img ? "background-image:url('"+esc(r.img)+"');color:#fff" : ""}">${r.img ? "Replace image" : "⬆ Add image"}</div>`],
+              ["Plan", (r) => `<input value="${esc(r.name)}" onchange="up2('plans','${r.id}','name',this.value)">`],
+              ["Description", (r) => `<textarea rows="3" onchange="up2('plans','${r.id}','descr',this.value)">${esc(r.descr||"")}</textarea>`],
+              ["Price", (r) => `<input type="number" min="0" step="0.001" value="${r.price}" style="width:110px" onchange="up2('plans','${r.id}','price',+this.value)">`],
+              ["Duration", (r) => `<input type="number" min="1" max="366" value="${r.duration_days||26}" style="width:90px" onchange="up2('plans','${r.id}','duration_days',+this.value)">`],
+              ["Includes", (r) => `<textarea rows="3" onchange="up2('plans','${r.id}','includes',this.value)">${esc(Array.isArray(r.includes)?r.includes.join("\\n"):r.includes||"")}</textarea>`],
+              ["Active", (r) => `<input type="checkbox" style="width:auto" ${r.active ? "checked" : ""} onchange="up2('plans','${r.id}','active',this.checked?1:0).then(()=>toast(this.checked?'Plan activated — offer restored':'Plan deactivated — Subscribe button removed from customer offer')).catch(e=>toast(e.message))">`],
             ])
           );
         },
