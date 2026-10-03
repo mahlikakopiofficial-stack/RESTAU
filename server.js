@@ -4,7 +4,7 @@ const express=require('express'),Database=require('better-sqlite3'),multer=requi
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
 const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
-const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
+const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula',BUSINESS_UTC_OFFSET_HOURS=Number.isFinite(+E.BUSINESS_UTC_OFFSET_HOURS)?Math.max(-12,Math.min(14,+E.BUSINESS_UTC_OFFSET_HOURS)):3,WHATSAPP_ADMIN_RECIPIENT=String(E.WHATSAPP_ADMIN_RECIPIENT||'').trim();
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
 const DATA=path.join(__dirname,'data'),UP=path.join(__dirname,'uploads');[DATA,UP].forEach(d=>fs.mkdirSync(d,{recursive:true}));
 const db=new Database(path.join(DATA,'resto.db'));
@@ -220,6 +220,7 @@ const notificationOnce=async(eventKey,recipient,text)=>{
 };
 const restaurantName=()=>String(S().name||NAME).trim();
 const orderWhatsAppText=(order,event)=>restaurantName()+': Order #'+order.id+' for '+String(order.name||'Customer')+' is now '+(event==='received'?'received':String(event).toLowerCase())+'. Total: '+Number(order.total||0).toFixed(3)+' '+String(S().currency||CUR)+'.';
+const adminOrderWhatsAppText=(order)=>restaurantName()+': New order #'+order.id+' from '+String(order.name||'Customer')+'. Total: '+Number(order.total||0).toFixed(3)+' '+String(S().currency||CUR)+'. Status: '+String(order.status||'New')+'.';
 const subscriptionWhatsAppText=(sub,event)=>restaurantName()+': Your '+String(sub.plan||'subscription')+' is '+String(event)+'. Schedule: '+sub.start+' to '+sub.end+'.';
 const sweep=()=>db.prepare("UPDATE subs SET status='Completed' WHERE status='Active' AND \"end\"<date('now')").run();sweep();setInterval(sweep,36e5).unref();
 const sig=p=>crypto.createHmac('sha256',SECRET).update(p).digest('base64url');
@@ -632,6 +633,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   notifyOrderReceived(savedOrder);
   if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
   notifyAdminOrder(savedOrder);
+  if(WHATSAPP_ADMIN_RECIPIENT)Promise.resolve(notificationOnce('admin:order:'+id+':received',WHATSAPP_ADMIN_RECIPIENT,adminOrderWhatsAppText(savedOrder))).catch(()=>{});
 
   r.json({
     id:Number(id),
@@ -772,7 +774,7 @@ app.get('/api/admin/notifications',admin,w((q,r)=>{
   r.json({...cursors,events});
 }));
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
-app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:new Date().toISOString().slice(0,10),orders=db.prepare("SELECT * FROM orders WHERE date(created)=? ORDER BY id").all(date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(created)=?",date).n,inquiries:one('SELECT COUNT(*) n FROM inquiries WHERE date(created)=?',date).n,newsletter:one('SELECT COUNT(*) n FROM newsletter WHERE date(created)=?',date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
+app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:businessToday(),orders=db.prepare("SELECT * FROM orders WHERE date(created,?)=? ORDER BY id").all(businessDateModifier,date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(created)=?",date).n,inquiries:one('SELECT COUNT(*) n FROM inquiries WHERE date(created)=?',date).n,newsletter:one('SELECT COUNT(*) n FROM newsletter WHERE date(created)=?',date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
 const T=['orders','customers','subs','inquiries','newsletter','testimonials','gallery','items','plans'],DEL=['items','gallery','testimonials','inquiries','newsletter','customers','plans'];
 app.get('/api/admin/list/:t',admin,w((q,r)=>{const t=q.params.t;if(!T.includes(t))throw new Error('bad table');r.json(t==='customers'?db.prepare('SELECT id,name,phone,email,created,(SELECT COUNT(*) FROM orders o WHERE o.customer_id=customers.id) orders,(SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.customer_id=customers.id) spent FROM customers ORDER BY id DESC').all():db.prepare(`SELECT * FROM ${t} ORDER BY id DESC`).all())}));
 app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
@@ -883,12 +885,22 @@ const validDate=value=>{
   const date=new Date(value+'T00:00:00Z');
   return Number.isNaN(date.valueOf())||date.toISOString().slice(0,10)!==value?null:value;
 };
+const businessToday=()=>new Date(Date.now()+BUSINESS_UTC_OFFSET_HOURS*3600000).toISOString().slice(0,10);
+const businessDateModifier=(BUSINESS_UTC_OFFSET_HOURS>=0?'+':'')+BUSINESS_UTC_OFFSET_HOURS+' hours';
+app.get('/api/admin/orders-range',admin,w((q,r)=>{
+  const today=businessToday();
+  const from=validDate(q.query.from)||today;
+  const to=validDate(q.query.to)||from;
+  if(from>to)throw new Error('Start date must be on or before end date');
+  const orders=db.prepare("SELECT * FROM orders WHERE date(created,?) BETWEEN ? AND ? ORDER BY id DESC").all(businessDateModifier,from,to);
+  r.json({from,to,orders});
+}));
 app.get('/api/admin/report-range',admin,w((q,r)=>{
-  const today=new Date().toISOString().slice(0,10);
+  const today=businessToday();
   const from=validDate(q.query.from)||validDate(q.query.date)||today;
   const to=validDate(q.query.to)||validDate(q.query.date)||from;
   if(from>to)throw new Error('Start date must be on or before end date');
-  const orders=db.prepare('SELECT * FROM orders WHERE date(created) BETWEEN ? AND ? ORDER BY id DESC').all(from,to);
+  const orders=db.prepare('SELECT * FROM orders WHERE date(created,?) BETWEEN ? AND ? ORDER BY id DESC').all(businessDateModifier,from,to);
   const active=orders.filter(order=>order.status!=='Cancelled');
   const summary={
     from,to,orders:orders.length,
@@ -1191,7 +1203,7 @@ app.get('/api/admin/whatsapp/status',admin,(q,r)=>r.json(whatsappStatus()));
 app.get('/api/admin/notification-status',admin,(q,r)=>r.json({
   emailConfigured:Boolean(E.GMAIL_USER&&E.GMAIL_CLIENT_ID&&E.GMAIL_CLIENT_SECRET&&E.GMAIL_REFRESH_TOKEN),
   adminEmailConfigured:Boolean(E.GMAIL_ADMIN_NOTIFY_TO||E.GMAIL_USER),
-  whatsapp:whatsappStatus()
+  whatsapp:{...whatsappStatus(),adminRecipientConfigured:Boolean(WHATSAPP_ADMIN_RECIPIENT)}
 }));
 app.get('/check.html',(q,r,n)=>E.ENABLE_CHECK==='0'?r.status(404).send('Not found'):n());
 app.use((q,r,n)=>{
