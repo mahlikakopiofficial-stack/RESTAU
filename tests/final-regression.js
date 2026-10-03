@@ -15,6 +15,7 @@ const gmail=read('lib/gmail.js');
 const notifications=read('lib/notifications.js');
 const app=read('public/app.js');
 const master=read('public/master-enhancements.js');
+const style=read('public/style.css');
 const enhancements=read('public/enhancements.js');
 const whatsapp=read('lib/whatsapp.js');
 const envExample=read('.env.example');
@@ -35,7 +36,7 @@ t('loyalty repeats by 10-order cycle',()=>{assert(server.includes("Math.floor((d
 t('promos + payments',()=>{assert(server.includes('promo_code'));assert(server.includes('promo_type'));assert(server.includes('payment_card'));assert(index.includes('name="promo_code"'));assert(admin.includes('promo_value'))});
 t('subscription nickname/autofill',()=>{assert(server.includes("'subs','nickname'"));assert(fixes.includes('Nickname (optional)'));assert(fixes.includes('auto-fill from logged-in customer profile'))});
 t('admin customer email composer',()=>{assert(server.includes("app.post('/api/admin/email-customer'"));assert(fixes.includes('Customer Email'));assert(fixes.includes('/api/admin/email-customer'))});
-t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(master.includes('max-width:1180px'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(fixes.includes('Auto-hide the public/admin navigation'));assert(fixes.includes('Keep every admin navigation control visually consistent'))});
+t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(style.includes('@media(max-width:1180px)'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(fixes.includes('Auto-hide the public/admin navigation'));assert(fixes.includes('Keep every admin navigation control visually consistent'))});
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
