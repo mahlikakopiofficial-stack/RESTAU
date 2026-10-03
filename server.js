@@ -1128,7 +1128,7 @@ const announcementDateTime=value=>{
   const raw=String(value??'').trim();
   if(!raw)return '';
   const normalized=raw.replace('T',' ');
-  if(!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}(:\\d{2})?$/.test(normalized))throw new Error('Invalid announcement date/time');
+  if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(normalized))throw new Error('Invalid announcement date/time');
   const iso=normalized.replace(' ','T')+(normalized.length===16?':00':'');
   const date=new Date(iso+'Z');
   if(Number.isNaN(date.valueOf()))throw new Error('Invalid announcement date/time');
@@ -1137,7 +1137,7 @@ const announcementDateTime=value=>{
 const announcementUrl=value=>{
   const url=String(value??'').trim();
   if(!url)return '';
-  if(/^\\/(?!\\/)/.test(url)||url.startsWith('#'))return url.slice(0,500);
+  if(/^\/(?!\/)/.test(url)||url.startsWith('#'))return url.slice(0,500);
   try{
     const parsed=new URL(url);
     if(!['http:','https:'].includes(parsed.protocol))throw new Error();
