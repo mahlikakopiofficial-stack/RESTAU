@@ -114,6 +114,8 @@
       }
       const sel = (t, id, v, o) =>
         `<select onchange="A('/status/${t}/${id}','PUT',{status:this.value}).then(()=>toast('Updated'))">${o.map((x) => `<option${x == v ? " selected" : ""}>${x}</option>`).join("")}</select>`;
+      function applyOrderRange() { const from=document.getElementById("orderFrom")?.value||"", to=document.getElementById("orderTo")?.value||""; if(!from||!to||from>to)return toast("Invalid order date range"); window._orderFrom=from; window._orderTo=to; go("Orders"); }
+      function resetOrderRange() { window._orderFrom=""; window._orderTo=""; go("Orders"); }
       async function upl(f, qs) {
         if (!f) return;
         const fd = new FormData();
@@ -225,14 +227,17 @@
             .join("")}</div>`;
         },
         async Orders() {
-          const o = await A("/list/orders"),
+          const today = new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Kuwait",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()),
+            from = window._orderFrom || today,
+            to = window._orderTo || today,
+            o = (await A("/orders-range?from="+encodeURIComponent(from)+"&to="+encodeURIComponent(to))).orders || [],
             f = window._of || "All",
             L = f == "All" ? o : o.filter((x) => x.status == f);
           window._ol = o;
           window._max = Math.max(0, ...o.map((x) => x.id));
           A_after = () => clearInterval(window._poll);
           return (
-            `<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>New orders and customer messages alert while the admin portal is open.</small></p>` +
+            `<div class="report-actions"><label>From <input id="orderFrom" type="date" value="${from}"></label><label>To <input id="orderTo" type="date" value="${to}"></label><button class="btn s" onclick="applyOrderRange()">Refresh</button><button class="btn s o" onclick="resetOrderRange()">Today</button><small>Older orders remain stored securely on the VPS.</small></div><p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>New orders and customer messages alert while the admin portal is open.</small></p>` +
             tbl(L, [
               ["#", (r) => r.id],
               ["Date", (r) => esc(r.created)],
