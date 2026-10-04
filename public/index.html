@@ -30,9 +30,11 @@
     <nav>
       <div class="wrap">
         <a class="logo" href="#home" aria-label="PinoyAmbula home"><img class="brand-mark" src="/icons/pinoyambula.svg" alt=""><span>PinoyAmbula</span></a>
-        <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
-        <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
-        <button id="nav-cart" class="nav-cart" type="button" onclick="cartT()" aria-label="Open shopping cart">🛒 <span id="nav-cart-count">0</span></button>
+        <div class="nav-actions" aria-label="Quick navigation">
+          <a class="home-nav-link" href="#home" aria-label="Home"><span aria-hidden="true">⌂</span><span class="home-nav-label">Home</span></a>
+          <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
+          <button id="nav-cart" class="nav-cart" type="button" onclick="cartT()" aria-label="Open shopping cart">🛒 <span id="nav-cart-count">0</span></button>
+        </div>
         <ul id="nl" onclick="this.classList.remove('open')">
           <li><a href="#services">Services</a></li>
           <li><a href="#menu">Menu</a></li>
@@ -215,7 +217,10 @@
           <span class="footer-brand"><img class="footer-brand-mark" src="/icons/pinoyambula.svg" alt=""><strong>PinoyAmbula</strong></span>
           <span class="footer-thanks">Maraming Salamat po!</span>
         </div>
-        <div id="contact-links" class="footer-links"></div>
+        <div class="footer-contact-block">
+          <div id="contact-links" class="footer-links"></div>
+          <div id="ft" class="footer-details"></div>
+        </div>
         <div id="social-links" class="footer-links"></div>
         <nav class="footer-nav" aria-label="Footer navigation">
           <a href="#home">Back to top</a>
@@ -644,15 +649,8 @@
         config = c;
         const logo = $(".logo");
 
-        if (c.logo_url) {
-          logo.innerHTML =
-            '<img src="' +
-            esc(c.logo_url) +
-            '" alt="" style="height:38px;width:auto;vertical-align:middle"> ' +
-            esc(c.name);
-        } else {
-          logo.innerHTML = '<img class="brand-mark" src="/icons/pinoyambula.svg" alt=""> <span>' + esc(c.name) + "</span>";
-        }
+        const brandLogo = c.brand_logo_url || c.logo_url || "/icons/pinoyambula.svg";
+        logo.innerHTML = '<img class="brand-mark" data-brand-logo src="' + esc(brandLogo) + '" alt=""> <span>' + esc(c.name) + "</span>";
 
         document.title = c.name + " — Filipino Kitchen";
         $("#hh").textContent = c.hero_title;
@@ -667,35 +665,26 @@
         document.querySelectorAll('nav a[href="#plans"]').forEach(a => a.closest("li").hidden = !c.subscriptions_enabled);
         $("#closed").hidden = c.accepting;
 
-        $("#ft").innerHTML =
-          '<span class="footer-brand"><img class="footer-brand-mark" src="/icons/pinoyambula.svg" alt=""><strong>' + esc(c.name) + '</strong> — Maraming Salamat po!</span>' +
-          (c.phone
-            ? '<br>📞 <a href="tel:' +
-              esc(c.phone) +
-              '">' +
-              esc(c.phone) +
-              "</a>"
-            : "") +
-          (c.hours ? "<br>🕒 " + esc(c.hours).replace(/\n/g, "<br>") : "");
+        const footerDetails = $("#ft");
+        if (footerDetails) {
+          footerDetails.innerHTML = c.hours
+            ? "🕒 " + esc(c.hours).replace(/\n/g, "<br>")
+            : "";
+        }
 
         const maps =
           c.map_url ||
           "https://www.google.com/maps/search/?api=1&query=" +
             encodeURIComponent(c.location || c.name || "PinoyAmbula");
-        $("#contact-links").innerHTML =
-          (c.location
-            ? '<span>📍 <a target="_blank" rel="noopener" href="' +
-              esc(maps) +
-              '">' +
-              esc(c.location) +
-              "</a></span>"
-            : "") +
-          (c.phone ? ' · <a href="tel:' + esc(c.phone) + '">Call</a>' : "") +
-          (c.whatsapp
-            ? ' · <a target="_blank" rel="noopener" href="https://wa.me/' +
-              String(c.whatsapp).replace(/[^0-9]/g, "") +
-              '">WhatsApp</a>'
-            : "");
+        $("#contact-links").innerHTML = [
+          c.location
+            ? '<a class="footer-contact-link" target="_blank" rel="noopener" href="' + esc(maps) + '">📍 ' + esc(c.location) + "</a>"
+            : "",
+          c.phone ? '<a class="footer-contact-link" href="tel:' + esc(c.phone) + '">📞 Call</a>' : "",
+          c.whatsapp
+            ? '<a class="footer-contact-link" target="_blank" rel="noopener" href="https://wa.me/' + String(c.whatsapp).replace(/[^0-9]/g, "") + '">WhatsApp</a>'
+            : "",
+        ].filter(Boolean).join("");
 
         $("#social-links").innerHTML =
           (c.facebook

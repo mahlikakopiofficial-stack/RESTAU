@@ -40,7 +40,9 @@ function masterCss(){
     '.master-carousel{position:relative;overflow:hidden;border-radius:18px;background:#2b302f}',
     '.master-carousel-track{display:flex;transition:transform .45s ease;will-change:transform}',
     '.master-slide{flex:0 0 100%;position:relative;min-height:260px;background:#1f2423;color:#fff}',
-    '.master-slide img,.master-slide iframe{display:block;width:100%;height:320px;object-fit:cover;border:0;pointer-events:none}',
+    '.master-slide img,.master-slide iframe{display:block;width:100%;height:clamp(220px,48vw,440px);object-fit:cover;border:0;pointer-events:none}',
+    '.master-gallery-root{display:block!important;width:100%}.master-gallery-root .master-carousel{width:100%;max-width:100%}.master-gallery-root .master-slide{min-height:clamp(220px,48vw,440px)}.master-gallery-root .master-dots{max-width:100%;flex-wrap:wrap;padding:0 8px}',
+    '.master-gallery-placeholder{display:flex;min-height:clamp(220px,48vw,440px);flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;background:radial-gradient(circle at 50% 35%,rgba(242,201,76,.42),transparent 40%),linear-gradient(135deg,#31594c,#7b2d26);color:#fff}.master-gallery-placeholder span{font-size:clamp(3rem,10vw,6rem);line-height:1}.master-gallery-placeholder strong{font:700 clamp(1.1rem,3vw,1.7rem) Georgia,serif}',
     '.master-slide-hit{position:absolute;inset:0;background:transparent;border:0;cursor:pointer;z-index:1}',
     '.master-slide .caption{position:absolute;left:0;right:0;bottom:0;padding:30px 18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.78))}',
     '.master-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:var(--pa-maroon);font-size:1.3rem;cursor:pointer;z-index:3}',
@@ -153,9 +155,10 @@ async function refreshSubscriptionPlans(){
   const section=document.querySelector('#plans')?.closest('section');
   const list=document.getElementById('plan-list');
   if(!section||!list)return;
+  let rows=[];
   try{
     const cfg=await api('/config');
-    const rows=cfg.subscriptions_enabled?await api('/plans'):[];
+    rows=cfg.subscriptions_enabled?await api('/plans'):[];
     list.innerHTML=rows.map(p=>'<article class="card master-plan-card">'+
       (p.img?'<img class="master-plan-image-public" src="'+escm(p.img)+'" alt="'+escm(p.name)+'" loading="lazy">':'<div class="master-plan-image-public master-plan-image-empty" aria-hidden="true">🍽️</div>')+
       '<div class="p"><h3>'+escm(p.name)+'</h3><p>'+escm(p.desc||'')+'</p>'+
@@ -194,6 +197,8 @@ async function addGalleryCarousel(){
   const root=document.getElementById('gal'),section=document.getElementById('gallery');
   if(!root||!section||root.dataset.carouselBound)return;
   root.dataset.carouselBound='1';
+  root.classList.remove('grid');
+  root.classList.add('master-gallery-root');
   let rows=[];try{rows=await api('/gallery')}catch{return}
   if(!rows.length){root.innerHTML='<p>No gallery items yet.</p>';return}
   const wrap=root.parentElement;
@@ -205,8 +210,10 @@ function buildCarousel(carousel,dots,rows){
   const track=carousel.querySelector('.master-carousel-track');
   const slides=[rows[rows.length-1]].concat(rows,rows[0]);
   track.innerHTML=slides.map((x,i)=>{
-    const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':'<img src="'+escm(x.img||((typeof config!=='undefined'&&(config.brand_logo_url||config.logo_url))||'/icons/pinoyambula.svg'))+'" alt="'+escm(x.title||x.caption||'Gallery image')+'" loading="lazy">';
-    return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<button class="master-slide-hit" type="button" aria-label="Preview '+escm(x.title||x.caption||'gallery item')+'"></button><div class="caption"><strong>'+escm(x.title||x.caption||'PinoyAmbula')+'</strong><span> · Tap to preview</span></div></article>';
+    const title=String(x.title||x.caption||'PinoyAmbula').split('|')[0].trim();
+    const icon=String(x.caption||'').split('|')[1]?.trim()||'🍽️';
+    const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':x.img?'<img src="'+escm(x.img)+'" alt="'+escm(title||'Gallery image')+'" loading="lazy">':'<div class="master-gallery-placeholder" role="img" aria-label="'+escm(title||'PinoyAmbula gallery')+'"><span aria-hidden="true">'+escm(icon)+'</span><strong>'+escm(title||'PinoyAmbula')+'</strong></div>';
+    return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<button class="master-slide-hit" type="button" aria-label="Preview '+escm(title||'gallery item')+'"></button><div class="caption"><strong>'+escm(title||'PinoyAmbula')+'</strong><span> · Tap to preview</span></div></article>';
   }).join('');
   dots.innerHTML='';
   let index=1;

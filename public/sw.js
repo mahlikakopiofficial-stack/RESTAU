@@ -1,4 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v9';
+const CACHE_NAME='pinoyambula-shell-v10';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -6,6 +6,7 @@ const SHELL=[
   '/reset-password.html',
   '/style.css',
   '/app.js',
+  '/brand-ux.js?v=20261004-2',
   '/enhancements.js',
   '/final-fixes.js',
   '/master-enhancements.js',

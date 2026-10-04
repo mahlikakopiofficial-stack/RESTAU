@@ -17,6 +17,7 @@ const notifications=read('lib/notifications.js');
 const app=read('public/app.js');
 const master=read('public/master-enhancements.js');
 const style=read('public/style.css');
+const brandUx=read('public/brand-ux.js');
 const enhancements=read('public/enhancements.js');
 const whatsapp=read('lib/whatsapp.js');
 const envExample=read('.env.example');
@@ -24,7 +25,7 @@ const runtime=read('public/runtime-config.js');
 const pwa=read('public/pwa.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
-for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/sw.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/brand-ux.js','public/final-fixes.js','public/master-enhancements.js','public/sw.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
 t('admin inline script syntax',()=>{const scripts=[...admin.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`admin-inline-${index+1}.js`}))});
 t('account inline script syntax',()=>{const scripts=[...account.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`account-inline-${index+1}.js`}))});
 t('customer site inline script syntax',()=>{const scripts=[...index.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`index-inline-${index+1}.js`}))});
@@ -40,6 +41,8 @@ t('promos + payments',()=>{assert(server.includes('promo_code'));assert(server.i
 t('subscription nickname/autofill',()=>{assert(server.includes("'subs','nickname'"));assert(fixes.includes('Nickname (optional)'));assert(fixes.includes('auto-fill from logged-in customer profile'))});
 t('admin customer email composer',()=>{assert(server.includes("app.post('/api/admin/email-customer'"));assert(fixes.includes('Customer Email'));assert(fixes.includes("api('/admin/email-customer'"))});
 t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(style.includes('@media(max-width:1180px)'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(fixes.includes('Auto-hide the public/admin navigation'));assert(adminFixCss.includes('.adm #side button{'));assert(adminFixCss.includes('.adm #side button.on{'))});
+t('public storefront layout and startup',()=>{assert(index.includes('class="nav-actions"'));assert(index.includes('id="ft"'));assert(index.includes('if (footerDetails)'));assert(index.indexOf('applyCfg(c);')<index.indexOf('items = await api("/menu")'));assert(!brandUx.includes('pa-chat-fab'));assert(!brandUx.includes('nav #burger{display:inline-flex!important'));assert(master.includes("root.classList.remove('grid')"));assert(master.includes('master-gallery-placeholder'));assert(master.includes('let rows=[];'));assert(app.includes('brand-ux.js?v=20261004-2'));assert(read('public/sw.js').includes("CACHE_NAME='pinoyambula-shell-v10'"))});
+t('customer login endpoints',()=>{assert(account.includes('api(reg ? "/register" : "/login", "POST", data)'));assert(account.includes('api("/me")'));assert(server.includes("app.post('/api/register'"));assert(server.includes("app.post('/api/login'"));assert(server.includes("app.get('/api/me'"))});
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("https://pinoyambulakw.duckdns.org"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});

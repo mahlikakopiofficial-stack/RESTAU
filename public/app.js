@@ -9,7 +9,7 @@ function toast(t){const e=document.createElement('div');e.className='toast';e.te
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
 /* Universal PinoyAmbula brand/UX layer. */
-(()=>{const s=document.createElement('script');s.id='pa-brand-ux-script';s.src='/brand-ux.js?v=20261004-1';document.head.appendChild(s);})();
+(()=>{const s=document.createElement('script');s.id='pa-brand-ux-script';s.src='/brand-ux.js?v=20261004-2';document.head.appendChild(s);})();
 
 if(document.title.includes('Admin')){
   window.addEventListener('load',()=>{
