@@ -22,6 +22,17 @@
     }
   };
   applyBrandMark();
+  const applyUniversalBrand=async()=>{
+    try{
+      const cfg=await api('/config');
+      const src=String(cfg.brand_logo_url||cfg.logo_url||'/icons/pinoyambula.svg').trim()||'/icons/pinoyambula.svg';
+      window.PINOY_BRAND_LOGO_URL=src;
+      document.querySelectorAll('img.brand-mark,img.footer-brand-mark').forEach(img=>{img.src=src});
+      document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(link=>link.href=src);
+      document.querySelectorAll('[data-brand-logo]').forEach(el=>{el.src=src});
+    }catch(_){}
+  };
+  applyUniversalBrand();
 
   // Mobile pull-to-refresh: only when the page is already at the top.
   let startY=0, pulling=false;
@@ -123,41 +134,7 @@
     }
   }
 
-  // Admin-only customer email composer. It uses the existing Gmail OAuth sender.
-  if(location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'){
-    const addEmailButton=()=>{
-      const side=document.getElementById('side');
-      if(!side||side.querySelector('[data-customer-email]'))return;
-      const b=document.createElement('button');
-      b.dataset.customerEmail='1';b.textContent='Customer Email';b.onclick=()=>{
-        let d=document.getElementById('customerEmailDialog');
-        if(!d){
-          d=document.createElement('dialog');d.id='customerEmailDialog';
-          d.innerHTML='<h2>Send customer email</h2><form><label>Customer email<input name="to" type="email" required></label><label>Subject<input name="subject" maxlength="160" required></label><label>Message<textarea name="text" rows="8" maxlength="5000" required></textarea></label><button class="btn">Send email</button> <button type="button" class="btn o">Close</button></form>';
-          document.body.appendChild(d);
-          d.querySelector('.o').onclick=()=>d.close();
-          d.querySelector('form').onsubmit=async e=>{
-            e.preventDefault();
-            const data=Object.fromEntries(new FormData(e.target));
-            try{
-              const res=await fetch('/api/admin/email-customer',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('at')},body:JSON.stringify(data)});
-              const j=await res.json();if(!res.ok)throw new Error(j.error||'Email failed');
-              e.target.reset();d.close();toast(j.message||'Email sent');
-            }catch(err){toast(err.message)}
-          };
-        }
-        d.showModal();
-      };
-      side.appendChild(b);
-    };
-    const obs=new MutationObserver(addEmailButton);obs.observe(document.body,{childList:true,subtree:true});setTimeout(addEmailButton,500);
-
-    // Keep every admin navigation control visually consistent on desktop and mobile.
-    const style=document.createElement('style');
-    style.textContent='#side{display:flex;flex-wrap:wrap;gap:8px;align-items:center}#side button,#side a{box-sizing:border-box;min-height:40px;padding:9px 12px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}#side .btn{font-size:.9rem}';
-    document.head.appendChild(style);
-  }
-
+  // Customer communication is handled inside the Admin > Customers chatbox.
   // Customer delivery/driver state: show a clear pending state until a driver is assigned.
   if(location.pathname.endsWith('/account.html')||location.pathname==='/account.html'){
     const pendingDriver=()=>{
