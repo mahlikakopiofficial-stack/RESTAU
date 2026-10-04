@@ -110,3 +110,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:600px){section{padding:42px 0}.wrap{padding-left:14px;padding-right:14px}.hero{padding:58px 0;text-align:center}.hero p{margin:14px auto 24px}.hero:after{inset:0 0 0 35%}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}#inquiryConversation{padding:16px}.report-actions{display:grid;grid-template-columns:1fr 1fr}.report-actions button{width:100%}footer a{display:inline-block;margin:5px}}
 @media(max-width:600px){.tw table,.tw tbody{display:block;width:100%}.tw tr:first-child{display:none}.tw tr:not(:first-child){display:block;margin:0 0 12px;overflow:hidden;border:1px solid #e5dfd4;border-radius:8px;background:#fff}.tw td{display:grid;grid-template-columns:minmax(6rem,32%) minmax(0,1fr);gap:8px;padding:9px 10px;overflow-wrap:anywhere}.tw td::before{content:attr(data-label);font-weight:700;color:#555}.tw td[data-label=""]::before,.tw td:only-child::before{content:none}}
 @media(max-width:600px){#cart-fab{right:12px;bottom:12px}.order-tools{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.order-tools label:first-child{grid-column:1/-1}.order-tools button{width:100%}}
+
+.customer-chat-dialog{width:min(760px,96vw);max-height:90vh;padding:20px;border:0;border-radius:16px;background:#fff}
+.customer-chat-dialog::backdrop{background:#0008}
+.customer-chat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.customer-chat-list{min-height:180px;max-height:52vh}
+.customer-chat-actions{display:flex;gap:10px;flex-wrap:wrap}
+.customer-chat-actions .btn{flex:0 0 auto}
+.admin-brand{display:flex;align-items:center;gap:9px;padding:8px 10px 12px;color:#fff;font-weight:800}
+.admin-brand .brand-mark{width:34px;height:34px;flex:0 0 34px;object-fit:contain}
+.utility-brand{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:14px}
+.utility-brand .brand-mark{width:40px;height:40px;object-fit:contain}
