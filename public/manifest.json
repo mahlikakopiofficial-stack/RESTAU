@@ -11,10 +11,16 @@
   "prefer_related_applications": false,
   "icons": [
     {
+      "src": "/icons/pinoyambula-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icons/pinoyambula.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
