@@ -71,6 +71,61 @@
     document.querySelectorAll('a[href="admin.html"],a[href="/admin.html"]').forEach(a=>a.remove());
   }
 
+  // Admin Customers can send a real email from the same chatbox.
+  if((location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html')&&
+     typeof window.openCustomerChat==='function'&&!window.__customerEmailComposerReady){
+    window.__customerEmailComposerReady=true;
+    const openCustomerChat=window.openCustomerChat;
+    window.openCustomerChat=async function(id,name,email){
+      const result=await openCustomerChat.apply(this,arguments);
+      const dialog=document.getElementById('customerChatDialog');
+      if(!dialog)return result;
+      let panel=dialog.querySelector('#customer-email-composer');
+      if(!panel){
+        panel=document.createElement('section');
+        panel.id='customer-email-composer';
+        panel.className='customer-email-composer';
+        panel.hidden=true;
+        panel.innerHTML='<h3>Customer Email</h3><form id="customerEmailForm"><label>To<input name="to" type="email" autocomplete="email" maxlength="254" required></label><label>Subject<input name="subject" maxlength="160" required></label><label>Message<textarea name="text" rows="4" maxlength="5000" required></textarea></label><button class="btn" type="submit">Send email</button> <span role="status" aria-live="polite"></span></form>';
+        const chatForm=dialog.querySelector('#customerChatForm');
+        if(chatForm)chatForm.after(panel);else dialog.appendChild(panel);
+        panel.querySelector('form').addEventListener('submit',async event=>{
+          event.preventDefault();
+          const form=event.currentTarget,send=form.querySelector('button[type="submit"]'),status=form.querySelector('[role="status"]');
+          const payload={to:form.elements.to.value.trim(),subject:form.elements.subject.value.trim(),text:form.elements.text.value.trim()};
+          if(!payload.to||!payload.subject||!payload.text)return;
+          send.disabled=true;status.textContent='Sending…';
+          try{
+            await window.api('/admin/email-customer','POST',payload,'at');
+            status.textContent='Email sent.';
+            form.elements.text.value='';
+            window.toast?.('Customer email sent');
+          }catch(error){
+            status.textContent=error.message||'Email could not be sent.';
+            window.toast?.(status.textContent);
+          }finally{send.disabled=false}
+        });
+      }
+      const form=panel.querySelector('form');
+      form.elements.to.value=String(email||dialog.dataset.customerEmail||'');
+      form.elements.subject.value='PinoyAmbula customer support';
+      form.elements.text.value='';
+      form.querySelector('[role="status"]').textContent='';
+      panel.hidden=true;
+      const button=dialog.querySelector('#customerChatEmail');
+      if(button){
+        button.textContent='Customer Email';
+        button.setAttribute('aria-expanded','false');
+        button.onclick=()=>{
+          panel.hidden=!panel.hidden;
+          button.setAttribute('aria-expanded',String(!panel.hidden));
+          if(!panel.hidden)form.elements.to.focus();
+        };
+      }
+      return result;
+    };
+  }
+
   // Customer nationality: searchable native select.
   const nat=document.querySelector('#auth input[name="nationality"]');
   if(nat && nat.parentNode){
@@ -180,3 +235,4 @@
     }
   }
 })();
+
