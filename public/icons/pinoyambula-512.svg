@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PinoyAmbula">
-  <rect width="512" height="512" rx="92" fill="#fffaf0"/>
-  <circle cx="256" cy="230.4" r="143.36" fill="#f2c94c"/>
-  <text x="50%" y="76%" text-anchor="middle" font-family="Arial,sans-serif" font-size="92" font-weight="700" fill="#7b2d26">PA</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">PinoyAmbula</title>
+  <desc id="desc">PinoyAmbula plate and PA brand mark</desc>
+  <rect width="512" height="512" rx="96" fill="#fffaf0"/>
+  <circle cx="256" cy="256" r="178" fill="#f2c94c"/>
+  <circle cx="256" cy="256" r="154" fill="#fffaf0"/>
+  <path d="M163 321c25-38 56-57 93-57s68 19 93 57" fill="none" stroke="#173f35" stroke-width="18" stroke-linecap="round"/>
+  <path d="M184 190c18-18 37-27 57-27 16 0 30 4 44 12-10 24-28 42-52 51-18 7-35 6-49-3z" fill="#173f35"/>
+  <text x="256" y="296" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="118" font-weight="800" letter-spacing="-10" fill="#b63a2b">PA</text>
+  <path d="M193 349h126" stroke="#b63a2b" stroke-width="10" stroke-linecap="round"/>
 </svg>
