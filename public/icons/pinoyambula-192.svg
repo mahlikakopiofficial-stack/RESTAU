@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="PinoyAmbula">
-  <rect width="192" height="192" rx="35" fill="#fffaf0"/>
-  <circle cx="96" cy="86.4" r="53.760000000000005" fill="#f2c94c"/>
-  <text x="50%" y="76%" text-anchor="middle" font-family="Arial,sans-serif" font-size="35" font-weight="700" fill="#7b2d26">PA</text>
+  <rect width="192" height="192" rx="36" fill="#fffaf0"/>
+  <circle cx="96" cy="96" r="67" fill="#f2c94c"/>
+  <circle cx="96" cy="96" r="58" fill="#fffaf0"/>
+  <path d="M61 120c9-14 21-21 35-21s26 7 35 21" fill="none" stroke="#173f35" stroke-width="7" stroke-linecap="round"/>
+  <path d="M69 67c7-7 14-10 21-10 6 0 11 1 16 4-4 9-9 15-18 19-7 3-13 2-19-1z" fill="#173f35"/>
+  <text x="96" y="111" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="44" font-weight="800" letter-spacing="-4" fill="#b63a2b">PA</text>
+  <path d="M74 133h44" stroke="#b63a2b" stroke-width="4" stroke-linecap="round"/>
 </svg>
