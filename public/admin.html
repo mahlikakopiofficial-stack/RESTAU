@@ -308,7 +308,7 @@
         },
         async Customers() {
           return (
-            `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Use the secure password-reset email when a customer needs account access.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>` +
+            `<p>Customers sign in with their registered phone and password. Use Chat to open the customer conversation and reply from one place. Replies are also sent through the existing customer notification email flow.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>` +
             tbl(await A("/list/customers"), [
               ["#", (r) => r.id],
               ["Name", (r) => esc(r.name)],
@@ -317,6 +317,7 @@
               ["Orders", (r) => r.orders],
               ["Spent", (r) => money(r.spent)],
               ["Joined", (r) => esc(r.created)],
+              ["Chat", (r) => `<button class="btn s" type="button" onclick="openCustomerChat(${r.id},${JSON.stringify(r.name)},${JSON.stringify(r.email||"")})">💬 Chat</button>`],
               [
                 "Account access",
                 (r) =>
@@ -756,6 +757,57 @@ ${f("hero_title", "Homepage headline")}
           toast(error.message);
         }
       }
+      window.openCustomerChat = async function(id,name,email){
+        let d=document.getElementById("customerChatDialog");
+        if(!d){
+          d=document.createElement("dialog");
+          d.id="customerChatDialog";
+          d.className="customer-chat-dialog";
+          d.innerHTML='<div class="customer-chat-head"><div><h2 id="customerChatTitle">Customer chat</h2><p id="customerChatMeta" class="small"></p></div><button type="button" class="btn s o" id="customerChatClose">✕</button></div><div id="customerChatList" class="conversation customer-chat-list"></div><form id="customerChatForm"><label>Message<textarea name="message" rows="4" maxlength="4000" required placeholder="Write a reply to the customer..."></textarea></label><div class="customer-chat-actions"><button class="btn" type="submit">Send message</button><button type="button" class="btn o" id="customerChatEmail">Email customer</button></div></form>';
+          document.body.appendChild(d);
+          d.querySelector("#customerChatClose").onclick=()=>d.close();
+          d.addEventListener("click",e=>{if(e.target===d)d.close()});
+        }
+        d.dataset.customerId=String(id);
+        d.dataset.customerEmail=email||"";
+        d.dataset.inquiryId="";
+        d.querySelector("#customerChatTitle").textContent="Chat with "+name;
+        d.querySelector("#customerChatMeta").textContent=(email||"No email on file")+" · Customer #"+id;
+        const list=d.querySelector("#customerChatList");
+        const render=messages=>{
+          list.innerHTML=messages.length?messages.map(m=>'<div class="message '+(m.author==='admin'?'staff':'')+'"><time>'+esc(m.created||'')+'</time><b>'+(m.author==='admin'?'Staff':'Customer')+'</b><p>'+esc(m.message)+'</p></div>').join(""):'<p class="small">No messages yet. Start the conversation below.</p>';
+          list.scrollTop=list.scrollHeight;
+        };
+        try{
+          const data=await A("/customers/"+id+"/inquiries");
+          const inquiries=data.inquiries||[];
+          if(inquiries.length){
+            d.dataset.inquiryId=String(inquiries[0].id);
+            render(await A("/inquiries/"+inquiries[0].id+"/messages"));
+          }else render([]);
+          d.querySelector("#customerChatEmail").onclick=()=>{if(email)location.href="mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent("PinoyAmbula customer support")};
+          d.querySelector("#customerChatForm").onsubmit=async e=>{
+            e.preventDefault();
+            const field=e.target.elements.message, message=field.value.trim();
+            if(!message)return;
+            try{
+              let inquiryId=Number(d.dataset.inquiryId||0);
+              if(!inquiryId){
+                const created=await A("/customers/"+id+"/inquiries","POST",{message,type:"Support"});
+                inquiryId=Number(created.id);
+                d.dataset.inquiryId=String(inquiryId);
+              }else{
+                await A("/inquiries/"+inquiryId+"/messages","POST",{message});
+              }
+              field.value="";
+              render(await A("/inquiries/"+inquiryId+"/messages"));
+              toast("Message sent to customer");
+            }catch(error){toast(error.message)}
+          };
+          d.showModal();
+        }catch(error){toast(error.message)}
+      };
+
       async function ui(id, k, v) {
         try {
           await A("/items/" + id, "PUT", { [k]: v });
