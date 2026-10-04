@@ -175,7 +175,7 @@ async function addRegional(){
   const s=document.createElement('section');s.id='regional-favorites';s.className='master-section alt';
   s.innerHTML='<div class="wrap"><div class="t"><h2>Regional Filipino Favorites</h2><p>Famous dishes from different regions of the Philippines.</p></div><div class="master-grid" id="regional-grid"></div></div>';
   plans.insertAdjacentElement('beforebegin',s);
-  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'</div></article>').join('');
+  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||((typeof config!=='undefined'&&(config.brand_logo_url||config.logo_url))||'/icons/pinoyambula.svg'))+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'</div></article>').join('');
 }
 
 async function addHeritage(){
@@ -205,7 +205,7 @@ function buildCarousel(carousel,dots,rows){
   const track=carousel.querySelector('.master-carousel-track');
   const slides=[rows[rows.length-1]].concat(rows,rows[0]);
   track.innerHTML=slides.map((x,i)=>{
-    const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':'<img src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.title||x.caption||'Gallery image')+'" loading="lazy">';
+    const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':'<img src="'+escm(x.img||((typeof config!=='undefined'&&(config.brand_logo_url||config.logo_url))||'/icons/pinoyambula.svg'))+'" alt="'+escm(x.title||x.caption||'Gallery image')+'" loading="lazy">';
     return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<button class="master-slide-hit" type="button" aria-label="Preview '+escm(x.title||x.caption||'gallery item')+'"></button><div class="caption"><strong>'+escm(x.title||x.caption||'PinoyAmbula')+'</strong><span> · Tap to preview</span></div></article>';
   }).join('');
   dots.innerHTML='';
@@ -234,8 +234,9 @@ function buildCarousel(carousel,dots,rows){
 }
 function patchMenu(){
   if(typeof items==='undefined'||typeof itemPrice!=='function')return;
-  const menuFallback=()=>((typeof config!=='undefined'&&config.menu_default_icon)||'/icons/pinoyambula.svg');
-  const drinkFallback=()=>((typeof config!=='undefined'&&config.drink_default_icon)||'/icons/pinoyambula.svg');
+  const brandFallback=()=>((typeof config!=='undefined'&&(config.brand_logo_url||config.logo_url))||'/icons/pinoyambula.svg');
+  const menuFallback=brandFallback;
+  const drinkFallback=brandFallback;
   window.openMenuPreview=function(id){
     const i=items.find(x=>x.id==id);if(!i)return;
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
@@ -328,16 +329,17 @@ function siteBoot(){
 }
 
 function masterSettingsFields(base,s){
-  const extra='<h3 style="margin-top:22px">Customer experience</h3>'+
-    '<label>Menu default image URL<input name="menu_default_icon" value="'+escm(s.menu_default_icon||'/icons/pinoyambula.svg')+'"></label>'+
-    '<label>Drinks default image URL<input name="drink_default_icon" value="'+escm(s.drink_default_icon||'/icons/pinoyambula.svg')+'"></label>'+
+  const extra='<h3 style="margin-top:22px">Branding</h3>'+
+    '<label><strong>Universal brand logo URL</strong><input name="brand_logo_url" value="'+escm(s.brand_logo_url||s.logo_url||'/icons/pinoyambula.svg')+'" placeholder="/icons/pinoyambula.svg"></label>'+
+    '<p class="small">One logo source for header, footer, admin, receipts, default menu/regional images, favicon and brand surfaces. Change it here only.</p>'+
+    '<h3 style="margin-top:22px">Customer experience</h3>'+
     '<h3 style="margin-top:22px">Homepage banner adjustment</h3>'+
     '<label>Horizontal image position<input name="banner_position_x" type="range" min="0" max="100" value="'+escm(s.banner_position_x||50)+'" oninput="document.getElementById(\'banner-pos-x\').value=this.value+\'%\';document.getElementById(\'hdz\').style.backgroundPosition=this.value+\'% \'+document.querySelector(\'[name=banner_position_y]\').value+\'%\'"><output id="banner-pos-x">'+escm(s.banner_position_x||50)+'%</output></label>'+
     '<label>Vertical image position<input name="banner_position_y" type="range" min="0" max="100" value="'+escm(s.banner_position_y||50)+'" oninput="document.getElementById(\'banner-pos-y\').value=this.value+\'%\';document.getElementById(\'hdz\').style.backgroundPosition=document.querySelector(\'[name=banner_position_x]\').value+\'% \'+this.value+\'%\'"><output id="banner-pos-y">'+escm(s.banner_position_y||50)+'%</output></label>'+
     '<h3 style="margin-top:22px">Subscription service</h3>'+
     '<label><input type="checkbox" name="subscriptions_enabled" value="1" style="width:auto" '+(s.subscriptions_enabled!=='0'?'checked':'')+'> Enable subscriptions on the customer website</label>'+
     '<h3 style="margin-top:22px">POS customer receipt</h3>'+
-    '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
+    '<label>Receipt logo uses the universal brand logo.</label>'+
     '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
     '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
     '<h3 style="margin-top:22px">Email notifications</h3><p id="masterEmailStatus">Checking Gmail delivery status…</p>'+
