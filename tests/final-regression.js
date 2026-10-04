@@ -10,6 +10,7 @@ const index=read('public/index.html');
 const account=read('public/account.html');
 const admin=read('public/admin.html');
 const fixes=read('public/final-fixes.js');
+const adminFixCss=read('public/admin-fixes.css');
 const deploy=read('deploy.sh');
 const gmail=read('lib/gmail.js');
 const notifications=read('lib/notifications.js');
@@ -29,7 +30,7 @@ t('account inline script syntax',()=>{const scripts=[...account.matchAll(/<scrip
 t('customer site inline script syntax',()=>{const scripts=[...index.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`index-inline-${index+1}.js`}))});
 t('orders + production gate',()=>{assert(server.includes("app.post('/api/order'"));assert(server.includes("E.ENABLE_CHECK==='0'"));assert(server.includes("st.accepting!=='1'"))});
 t('secure auth/reset',()=>{assert(server.includes('password_reset_tokens'));assert(server.includes('auth_version'));assert(server.includes("app.post('/api/password-reset'"));assert(server.includes("app.post('/api/password-reset/confirm'"));assert(server.includes('sendPasswordResetEmail'));assert(gmail.includes('gmail.send'));assert(!gmail.includes('smtp.gmail.com'))});
-t('admin portal isolation',()=>{assert(server.includes('configuredAdminHost'));assert(server.includes("host==='admin.localhost"));assert(fixes.includes('admin.html'));assert(index.includes('Admin'))});
+t('admin portal isolation',()=>{assert(server.includes('configuredAdminHost'));assert(server.includes("host==='admin.localhost"));assert(fixes.includes('admin.html'));assert(!/<a\b[^>]*\bhref=["']\/?admin\.html/i.test(index))});
 t('admin website navigation',()=>{assert(server.includes("q.path==='/website'"));assert(server.includes('PUBLIC_BASE_URL'));assert(/location\.href=.*website/.test(admin))});
 t('customer profile + nationality',()=>{assert(server.includes("'customers','nationality'"));assert(account.includes('name="nationality"'));assert(fixes.includes('Select nationality'))});
 t('delivery map pin',()=>{assert(server.includes("'orders','lat'"));assert(server.includes("'orders','lng'"));assert(server.includes("'orders','map_url'"));assert(fixes.includes('Use my current map location'));assert(fixes.includes('well-known nearby building'))});
@@ -37,8 +38,8 @@ t('driver + order chat',()=>{assert(server.includes("'orders','driver_name'"));a
 t('loyalty repeats by 10-order cycle',()=>{assert(server.includes("Math.floor((delivered-1)/10)*10"));assert(server.includes('rewardThreshold%10||10'));assert(server.includes('cycleBase+10'));assert(server.includes('loyalty_redemptions'));assert(index.includes('id="loyalty_reward"'));assert(fixes.includes('Current loyalty cycle'));assert(fixes.includes('A new reward cycle starts after every 10 completed orders.'))});
 t('promos + payments',()=>{assert(server.includes('promo_code'));assert(server.includes('promo_type'));assert(server.includes('payment_card'));assert(index.includes('name="promo_code"'));assert(admin.includes('promo_value'))});
 t('subscription nickname/autofill',()=>{assert(server.includes("'subs','nickname'"));assert(fixes.includes('Nickname (optional)'));assert(fixes.includes('auto-fill from logged-in customer profile'))});
-t('admin customer email composer',()=>{assert(server.includes("app.post('/api/admin/email-customer'"));assert(fixes.includes('Customer Email'));assert(fixes.includes('/api/admin/email-customer'))});
-t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(style.includes('@media(max-width:1180px)'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(fixes.includes('Auto-hide the public/admin navigation'));assert(fixes.includes('Keep every admin navigation control visually consistent'))});
+t('admin customer email composer',()=>{assert(server.includes("app.post('/api/admin/email-customer'"));assert(fixes.includes('Customer Email'));assert(fixes.includes("api('/admin/email-customer'"))});
+t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(style.includes('@media(max-width:1180px)'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(fixes.includes('Auto-hide the public/admin navigation'));assert(adminFixCss.includes('.adm #side button{'));assert(adminFixCss.includes('.adm #side button.on{'))});
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("https://pinoyambulakw.duckdns.org"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
@@ -116,3 +117,4 @@ t('newsletter campaign admin UI and Gmail OAuth setup',()=>{
 });
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
 if(tests.length){console.error('\nTEST RESULT: FAIL');process.exit(1)}else console.log('\nTEST RESULT: PASS');
+
