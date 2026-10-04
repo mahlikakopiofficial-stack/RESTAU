@@ -446,6 +446,8 @@
         const count = ids.reduce((s, id) => s + cart[id], 0);
         $("#cc").textContent = count;
         $("#cart-count-fab").textContent = count;
+        const navCartCount=$("#nav-cart-count");
+        if(navCartCount)navCartCount.textContent=count;
         $("#lines").innerHTML = ids.length
           ? ids
               .map((id) => {
