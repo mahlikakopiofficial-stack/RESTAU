@@ -2,11 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"
-    />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="/icons/pinoyambula.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/pinoyambula-192.png" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PinoyAmbula — Filipino Kitchen</title>
     <meta
       name="description"
@@ -31,7 +29,7 @@
     </div>
     <nav>
       <div class="wrap">
-        <a class="logo" href="#home">🌼 PinoyAmbula</a>
+        <a class="logo" href="#home" aria-label="PinoyAmbula home"><img class="brand-mark" src="/icons/pinoyambula.svg" alt=""><span>PinoyAmbula</span></a>
         <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
         <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
         <ul id="nl" onclick="this.classList.remove('open')">
@@ -216,7 +214,7 @@
       </div>
     </section>
     <footer>
-      <p id="ft">🌼 PinoyAmbula — Maraming Salamat po!</p>
+      <p id="ft"><span class="footer-brand"><img class="footer-brand-mark" src="/icons/pinoyambula.svg" alt=""><strong>PinoyAmbula</strong> — Maraming Salamat po!</span></p>
       <p id="contact-links" style="margin-top: 8px; font-size: 0.9rem"></p>
       <p id="social-links" style="margin-top: 8px; font-size: 0.9rem"></p>
       <p style="margin-top: 8px; font-size: 0.85rem">
@@ -651,7 +649,7 @@
             '" alt="" style="height:38px;width:auto;vertical-align:middle"> ' +
             esc(c.name);
         } else {
-          logo.textContent = "🌼 " + c.name;
+          logo.innerHTML = '<img class="brand-mark" src="/icons/pinoyambula.svg" alt=""> <span>' + esc(c.name) + "</span>";
         }
 
         document.title = c.name + " — Filipino Kitchen";
@@ -668,7 +666,7 @@
         $("#closed").hidden = c.accepting;
 
         $("#ft").innerHTML =
-          esc("🌼 " + c.name + " — Maraming Salamat po!") +
+          '<span class="footer-brand"><img class="footer-brand-mark" src="/icons/pinoyambula.svg" alt=""><strong>' + esc(c.name) + '</strong> — Maraming Salamat po!</span>' +
           (c.phone
             ? '<br>📞 <a href="tel:' +
               esc(c.phone) +
