@@ -32,6 +32,7 @@
         <a class="logo" href="#home" aria-label="PinoyAmbula home"><img class="brand-mark" src="/icons/pinoyambula.svg" alt=""><span>PinoyAmbula</span></a>
         <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
         <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
+        <button id="nav-cart" class="nav-cart" type="button" onclick="cartT()" aria-label="Open shopping cart">🛒 <span id="nav-cart-count">0</span></button>
         <ul id="nl" onclick="this.classList.remove('open')">
           <li><a href="#services">Services</a></li>
           <li><a href="#menu">Menu</a></li>
@@ -41,11 +42,6 @@
           <li><a href="#reviews">Reviews</a></li>
           <li><a href="#contact">Contact</a></li>
           <li><a href="account.html">Customer Account</a></li>
-          <li>
-            <button class="btn s" onclick="cartT()">
-              🛒 Cart (<span id="cc">0</span>)
-            </button>
-          </li>
         </ul>
       </div>
     </nav>
@@ -214,14 +210,18 @@
       </div>
     </section>
     <footer>
-      <p id="ft"><span class="footer-brand"><img class="footer-brand-mark" src="/icons/pinoyambula.svg" alt=""><strong>PinoyAmbula</strong> — Maraming Salamat po!</span></p>
-      <p id="contact-links" style="margin-top: 8px; font-size: 0.9rem"></p>
-      <p id="social-links" style="margin-top: 8px; font-size: 0.9rem"></p>
-      <p style="margin-top: 8px; font-size: 0.85rem">
-        <a href="#home">Back to top</a>
-        <a href="account.html">Customer Account</a>
-        <a href="admin.html">Admin</a>
-      </p>
+      <div class="footer-inner">
+        <div class="footer-brand-block">
+          <span class="footer-brand"><img class="footer-brand-mark" src="/icons/pinoyambula.svg" alt=""><strong>PinoyAmbula</strong></span>
+          <span class="footer-thanks">Maraming Salamat po!</span>
+        </div>
+        <div id="contact-links" class="footer-links"></div>
+        <div id="social-links" class="footer-links"></div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="#home">Back to top</a>
+          <a href="account.html">Customer Account</a>
+        </nav>
+      </div>
     </footer>
     <aside id="cart">
       <div
