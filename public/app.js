@@ -8,6 +8,9 @@ const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2800)}
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
+/* Universal PinoyAmbula brand/UX layer. */
+(()=>{const s=document.createElement('script');s.id='pa-brand-ux-script';s.src='/brand-ux.js?v=20261004-1';document.head.appendChild(s);})();
+
 if(document.title.includes('Admin')){
   window.addEventListener('load',()=>{
     if(document.getElementById('admin-fixes-script'))return;
