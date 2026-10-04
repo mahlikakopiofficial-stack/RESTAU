@@ -234,7 +234,7 @@ function buildCarousel(carousel,dots,rows){
 }
 function patchMenu(){
   if(typeof items==='undefined'||typeof itemPrice!=='function')return;
-  const brandFallback=()=>((typeof config!=='undefined'&&(config.brand_logo_url||config.logo_url))||'/icons/pinoyambula.svg');
+  const brandFallback=()=>((typeof config!=='undefined'&&(config.brand_logo_url||config.logo_url||config.menu_default_icon))||'/icons/pinoyambula.svg');
   const menuFallback=brandFallback;
   const drinkFallback=brandFallback;
   window.openMenuPreview=function(id){
@@ -627,3 +627,4 @@ function boot(){
 
 boot();
 })();
+
