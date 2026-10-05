@@ -77,3 +77,12 @@ nav #nl.open li,nav #nl.open a,nav #nl.open .btn{width:100%}nav #nl.open a,nav #
 .footer-brand{display:flex;align-items:center;gap:14px;min-width:0}.footer-brand .footer-logo{flex:0 0 auto}.footer-brand .footer-thanks{margin:0!important;white-space:nowrap}.footer-links,.footer-nav{display:flex;align-items:center;justify-content:flex-start;gap:8px 16px;flex-wrap:wrap;min-width:0}.footer-nav{justify-content:flex-end}.site-footer a{color:#fff;text-decoration:none;opacity:.94}.site-footer a:hover,.site-footer a:focus-visible{color:var(--y);opacity:1}.footer-links span{display:inline-flex;align-items:center;min-height:34px}.site-footer .brand-logo span{font-weight:800}
 @media(max-width:980px){.site-footer-inner{grid-template-columns:1fr 1fr;gap:18px}.footer-brand{grid-column:1/-1}.footer-nav{justify-content:flex-start}}
 @media(max-width:600px){.site-footer{padding:28px 0 22px}.site-footer-inner{display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:18px}.footer-brand{align-items:center;justify-content:center;flex-direction:column;gap:7px}.footer-brand .footer-thanks{white-space:normal}.footer-links,.footer-nav{justify-content:center;width:100%;text-align:center}.footer-links a,.footer-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:8px 10px}.footer-logo img.brand-mark{width:46px;height:46px}}
+
+/* Filipino cultural theme and compact floating controls */
+:root{--b:#174a3a;--r:#b8322a;--y:#f4c542;--cr:#fbf7ed}
+#cart-fab{z-index:120}
+#cart-fab:hover{transform:translateY(-2px)}
+#cart{z-index:130}
+nav #nl.open{left:auto;right:18px;width:min(245px,calc(100vw - 36px));max-height:70vh;z-index:110}
+@media(max-width:600px){nav #nl.open{right:8px;left:auto;width:min(220px,calc(100vw - 16px));max-height:65vh}nav #burger{width:36px;height:36px;font-size:1rem}}
+.site-footer{border-top:3px solid var(--y);background:linear-gradient(135deg,#123b30,#174a3a 60%,#205b48)}
