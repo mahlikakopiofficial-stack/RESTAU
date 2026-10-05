@@ -2,10 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"
-    />
+    <link rel="icon" href="/icons/pinoyambula.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PinoyAmbula — Filipino Kitchen</title>
     <meta
@@ -31,7 +28,7 @@
     </div>
     <nav>
       <div class="wrap">
-        <a class="logo" href="#home">🌼 PinoyAmbula</a>
+        <a class="logo brand-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home"><img src="/icons/pinoyambula.svg" alt="" width="40" height="40"><span>PinoyAmbula</span></a>
         <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
         <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
         <ul id="nl" onclick="this.classList.remove('open')">
@@ -215,15 +212,23 @@
         </form>
       </div>
     </section>
-    <footer>
-      <p id="ft">🌼 PinoyAmbula — Maraming Salamat po!</p>
-      <p id="contact-links" style="margin-top: 8px; font-size: 0.9rem"></p>
-      <p id="social-links" style="margin-top: 8px; font-size: 0.9rem"></p>
-      <p style="margin-top: 8px; font-size: 0.85rem">
-        <a href="#home">Back to top</a>
-        <a href="account.html">Customer Account</a>
-        <a href="admin.html">Admin</a>
-      </p>
+    <footer class="site-footer">
+      <div class="wrap site-footer-inner">
+        <div class="footer-brand">
+          <a class="brand-logo footer-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home">
+            <img src="/icons/pinoyambula.svg" alt="" width="48" height="48">
+            <span id="ft">PinoyAmbula</span>
+          </a>
+          <p class="footer-thanks">Maraming Salamat po!</p>
+        </div>
+        <div id="contact-links" class="footer-links"></div>
+        <div id="social-links" class="footer-links"></div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="#home">Back to top</a>
+          <a href="account.html">Customer Account</a>
+          <a href="admin.html">Admin</a>
+        </nav>
+      </div>
     </footer>
     <aside id="cart">
       <div
@@ -642,17 +647,17 @@
       }
       function applyCfg(c) {
         config = c;
-        const logo = $(".logo");
-
-        if (c.logo_url) {
-          logo.innerHTML =
-            '<img src="' +
-            esc(c.logo_url) +
-            '" alt="" style="height:38px;width:auto;vertical-align:middle"> ' +
-            esc(c.name);
-        } else {
-          logo.textContent = "🌼 " + c.name;
-        }
+        document.querySelectorAll("[data-brand-logo]").forEach((logo) => {
+          const img = logo.querySelector("img");
+          const text = logo.querySelector("span");
+          const src = c.logo_url || "/icons/pinoyambula.svg";
+          if (img) {
+            img.src = src;
+            img.alt = c.name || "PinoyAmbula";
+          }
+          if (text) text.textContent = c.name || "PinoyAmbula";
+          logo.setAttribute("aria-label", (c.name || "PinoyAmbula") + " home");
+        });
 
         document.title = c.name + " — Filipino Kitchen";
         $("#hh").textContent = c.hero_title;
@@ -667,16 +672,7 @@
         document.querySelectorAll('nav a[href="#plans"]').forEach(a => a.closest("li").hidden = !c.subscriptions_enabled);
         $("#closed").hidden = c.accepting;
 
-        $("#ft").innerHTML =
-          esc("🌼 " + c.name + " — Maraming Salamat po!") +
-          (c.phone
-            ? '<br>📞 <a href="tel:' +
-              esc(c.phone) +
-              '">' +
-              esc(c.phone) +
-              "</a>"
-            : "") +
-          (c.hours ? "<br>🕒 " + esc(c.hours).replace(/\n/g, "<br>") : "");
+        $("#ft").textContent = c.name || "PinoyAmbula";
 
         const maps =
           c.map_url ||
