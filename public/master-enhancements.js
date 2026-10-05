@@ -263,7 +263,7 @@ function addTheme(){
 }
 
 function setupPublicNavigation(){
-  const nav=document.querySelector('nav');
+  const nav=document.querySelector('.site-nav');
   const burger=document.getElementById('burger');
   const list=document.getElementById('nl');
   if(!nav||!burger||!list)return;
