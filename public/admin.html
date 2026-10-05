@@ -768,6 +768,60 @@ ${f("hero_title", "Homepage headline")}
           toast(x.message);
         }
       }
+      let activeCustomerChatId = null;
+      let activeCustomerInquiryId = null;
+      let activeCustomerChatTimer = null;
+      function customerInquiriesFor(id){
+        return (window._customerChatData?.inquiries||[]).filter(x=>x.customer_id==id).sort((a,b)=>b.id-a.id);
+      }
+      async function selectCustomerChat(customerId){
+        activeCustomerChatId=Number(customerId);
+        $("#admin-chat-customers button").forEach(b=>b.classList.toggle("on",Number(b.dataset.customerChat)===activeCustomerChatId));
+        const customer=(window._customerChatData?.customers||[]).find(x=>x.id==activeCustomerChatId);
+        const list=customerInquiriesFor(activeCustomerChatId);
+        activeCustomerInquiryId=list[0]?.id||null;
+        $("#admin-chat-title").textContent=customer?customer.name+" · "+customer.phone:"Customer";
+        const form=$("#admin-chat-form"), input=form?.elements.message, send=form?.querySelector("button");
+        if(input)input.disabled=false;
+        if(send)send.disabled=false;
+        await refreshCustomerChat();
+        if(activeCustomerChatTimer)clearInterval(activeCustomerChatTimer);
+        activeCustomerChatTimer=setInterval(refreshCustomerChat,5000);
+      }
+      async function refreshCustomerChat(){
+        if(!activeCustomerChatId)return;
+        try{
+          if(!activeCustomerInquiryId){
+            $("#admin-chat-messages").innerHTML='<p>No conversation yet. Send a message below to start one.</p>';
+            return;
+          }
+          const rows=await A("/inquiries/"+activeCustomerInquiryId+"/messages");
+          $("#admin-chat-messages").innerHTML=rows.map(m=>'<div class="admin-chat-bubble '+(m.author==="admin"?"admin":"customer")+'"><b>'+(m.author==="admin"?"You":"Customer")+'</b><div style="font-size:.72rem;opacity:.6">'+esc(m.created)+'</div>'+esc(m.message)+'</div>').join("");
+          $("#admin-chat-messages").scrollTop=$("#admin-chat-messages").scrollHeight;
+        }catch(e){toast("Chat could not load: "+e.message)}
+      }
+      async function sendCustomerChat(e){
+        e.preventDefault();
+        if(!activeCustomerChatId)return;
+        const message=String(new FormData(e.target).get("message")||"").trim();
+        if(!message)return;
+        try{
+          if(activeCustomerInquiryId){
+            await A("/inquiries/"+activeCustomerInquiryId+"/messages","POST",{message});
+          }else{
+            const result=await A("/customers/"+activeCustomerChatId+"/messages","POST",{message});
+            activeCustomerInquiryId=result.inquiryId;
+          }
+          e.target.reset();
+          const data=window._customerChatData;
+          if(data) data.inquiries=await A("/list/inquiries");
+          await refreshCustomerChat();
+        }catch(error){toast(error.message)}
+      }
+      function initCustomerChat(){
+        const first=window._customerChatData?.customers?.[0]?.id;
+        if(first)selectCustomerChat(first);
+      }
       async function issueReset(id) {
         if (
           !confirm(
