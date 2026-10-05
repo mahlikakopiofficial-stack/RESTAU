@@ -2,10 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌼%3C/text%3E%3C/svg%3E"
-    />
+    <link rel="icon" href="/icons/pinoyambula.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Admin — PinoyAmbula</title>
     <meta name="robots" content="noindex" />
@@ -85,6 +82,7 @@
       async function go(t) {
         cur = t;
         $("#side").innerHTML =
+          '<div class="admin-brand" data-brand-logo><img src="/icons/pinoyambula.svg" alt="" width="42" height="42"><span>PinoyAmbula</span></div>' +
           TABS.map(
             (x) =>
               `<button class="${x == t ? "on" : ""}" onclick="go('${x}')">${x}</button>`,
@@ -486,7 +484,15 @@ ${f("promo_code", "Promo code")}
 ${f("promo_value", "Promo value", "number")}
 
 <h3 style="margin-top:20px">Branding</h3>
+<div class="brand-setting-card">
+  <div class="brand-setting-preview"><img id="logo-preview" src="${esc(s.logo_url || "/icons/pinoyambula.svg")}" alt="Current logo"></div>
+  <div class="brand-setting-copy"><b>Universal logo</b><span>One logo for the customer website, customer account, admin, PWA and future app surfaces.</span></div>
+</div>
 ${f("logo_url", "Logo URL")}
+<label>Upload universal logo</label>
+<input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+<button type="button" class="btn s o" onclick="saveUniversalLogo()">Upload &amp; apply logo</button>
+<p class="small">Changing this setting updates every supported logo automatically. Leave the URL empty to use the built-in PinoyAmbula logo.</p>
 ${f("hero_title", "Homepage headline")}
 <label>Homepage text</label>
 <textarea name="hero_text" rows="3">${esc(s.hero_text)}</textarea>
@@ -692,6 +698,19 @@ ${f("hero_title", "Homepage headline")}
         } catch (x) {
           toast(x.message);
         }
+      }
+      async function saveUniversalLogo() {
+        const input = document.getElementById("logo-file");
+        if (!input?.files?.[0]) { toast("Choose a logo file first"); return; }
+        try {
+          const fd = new FormData();
+          fd.append("file", input.files[0]);
+          const result = await A("/upload?target=logo", "POST", fd);
+          const url = result.url || "/icons/pinoyambula.svg";
+          await A("/settings", "PUT", { logo_url: url });
+          toast("Universal logo updated");
+          go("Settings");
+        } catch (e) { toast(e.message); }
       }
       async function ss(e) {
         e.preventDefault();
