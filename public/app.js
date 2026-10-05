@@ -7,7 +7,8 @@ const money=n=>Number(n).toFixed(3)+' '+CUR;
 const kuwaitDateTime=value=>{
   const raw=String(value??'').trim();
   if(!raw)return '';
-  const iso=/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(raw)?raw.replace(' ','T')+'Z':raw;
+  const isSqlDateTime=raw.length===19&&raw[4]==='-'&&raw[7]==='-'&&raw[10]===' '&&raw[13]===':'&&raw[16]===':';
+  const iso=isSqlDateTime?raw.replace(' ','T')+'Z':raw;
   const d=new Date(iso);
   if(Number.isNaN(d.valueOf()))return raw;
   return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
