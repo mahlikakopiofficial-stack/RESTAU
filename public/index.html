@@ -331,6 +331,24 @@
         i.discount_price > 0 && i.discount_price < i.price
           ? i.discount_price
           : i.price;
+      const regionalKey = (id) => "r:" + String(id);
+      const cartItem = (id) => {
+        const key=String(id);
+        if(key.startsWith("r:")){
+          const r=window.__regionalCartItems?.[Number(key.slice(2))];
+          return r ? {id:key,name:r.name,cat:"Regional",price:+r.price||0,regular_price:+r.price||0,qty:cart[key]} : null;
+        }
+        const i=items.find(x=>x.id==id);
+        return i ? {...i,qty:cart[key]} : null;
+      };
+      window.__regionalCartItems=window.__regionalCartItems||{};
+      window.addRegionalToCart=function(id,name,price){
+        const key=regionalKey(id);
+        window.__regionalCartItems[id]={id,name,price};
+        cart[key]=(cart[key]||0)+1;
+        sv();
+        toast("Added to cart");
+      };
       const card = (
         i,
       ) => `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
@@ -454,9 +472,7 @@
       window.addEventListener("focus", fillCustomerDetails);
       fillCustomerDetails();
       function renderCart() {
-        const ids = Object.keys(cart).filter((id) =>
-          items.find((i) => i.id == id),
-        );
+        const ids = Object.keys(cart).filter((id) => cartItem(id));
         let sub = 0;
         const count = ids.reduce((s, id) => s + cart[id], 0);
         $("#cc").textContent = count;
@@ -464,7 +480,7 @@
         $("#lines").innerHTML = ids.length
           ? ids
               .map((id) => {
-                const i = items.find((x) => x.id == id),
+                const i = cartItem(id),
                   price = itemPrice(i);
                 sub += price * cart[id];
                 return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${id},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${id},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
@@ -496,7 +512,7 @@
         if (reward === 5) rewardDiscount = sub * 0.2;
         if (reward === 10) {
           const meal = ids
-            .map((id) => items.find((item) => item.id == id))
+            .map((id) => cartItem(id))
             .filter((item) => item && ["Regular", "Budget"].includes(item.cat))
             .sort((a, b) => itemPrice(a) - itemPrice(b))[0];
           if (meal) rewardDiscount = itemPrice(meal);
@@ -530,7 +546,7 @@
       async function place(e) {
         e.preventDefault();
         const f = Object.fromEntries(new FormData(e.target));
-        f.items = Object.entries(cart).map(([id, qty]) => ({ id: +id, qty }));
+        f.items = Object.entries(cart).map(([id, qty]) => ({ id, qty }));
         if (config.accepting === false) {
           toast("The restaurant is closed and cannot accept orders right now.");
           return;
