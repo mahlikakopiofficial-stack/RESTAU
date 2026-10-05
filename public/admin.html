@@ -80,15 +80,23 @@
         $("#app").hidden = !ok;
         if (ok) go(cur);
       }
+      function renderAdminNav(t) {
+        const side = $("#side");
+        if (!side) return;
+        side.innerHTML =
+          '<div class="admin-brand" data-brand-logo><img src="/icons/pinoyambula.svg" alt="PinoyAmbula" width="42" height="42"><span>PinoyAmbula</span></div>' +
+          '<button class="admin-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false" onclick="toggleAdminNav(this)">☰</button>' +
+          '<nav class="admin-nav-menu" id="adminNavMenu" aria-label="Admin navigation">' +
+          TABS.map((x) => '<button type="button" class="' + (x == t ? "on" : "") + '" onclick="go(\\'' + x + '\\')">' + x + '</button>').join("") +
+          '<span class="admin-nav-separator" aria-hidden="true"></span>' +
+          '<button type="button" onclick="location.href=\\'/website\\'">← Website</button>' +
+          '<button type="button" onclick="out()">Logout</button>' +
+          '</nav>';
+        if(typeof applyUniversalBranding==="function")applyUniversalBranding();
+      }
       async function go(t) {
         cur = t;
-        $("#side").innerHTML =
-          '<div class="admin-brand" data-brand-logo><img src="/icons/pinoyambula.svg" alt="" width="42" height="42"><span>PinoyAmbula</span></div>' +
-          TABS.map(
-            (x) =>
-              `<button class="${x == t ? "on" : ""}" onclick="go('${x}')">${x}</button>`,
-          ).join("") +
-          '<button onclick="location.href=\'/website\'">← Website</button><button onclick="out()">Logout</button>';
+        renderAdminNav(t);
         if(typeof applyUniversalBranding==="function")applyUniversalBranding();
         try {
           CUR = (await api("/config")).currency;
@@ -101,7 +109,6 @@
           } else toast(x.message);
         }
       }
-      window.toggleAdminNav=function(btn){const menu=document.getElementById("adminNavMenu");if(!menu)return;const open=menu.classList.toggle("open");btn.setAttribute("aria-expanded",open?"true":"false");};
       let A_after = null;
       const tbl = (rows, cols) =>
         `<div class="tw"><table><tr>${cols.map((c) => `<th>${c[0]}</th>`).join("")}</tr>${rows.map((r) => `<tr>${cols.map((c) => `<td data-label="${c[0]}">${c[1](r)}</td>`).join("")}</tr>`).join("") || "<tr><td>No records yet</td></tr>"}</table></div>`;
