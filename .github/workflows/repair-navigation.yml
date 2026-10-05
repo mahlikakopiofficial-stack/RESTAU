@@ -17,7 +17,7 @@ jobs:
           node --check public/pwa.js
           node --check tests/final-regression.js
           git diff --check
-          grep -q 'admin-nav.css?v=20261006-9' public/admin.html
+          grep -q 'admin-nav.css?v=20261006-10' public/admin.html
           grep -q 'toggleAdminNav' public/admin.html
           grep -q 'toggle?.contains(e.target)' public/admin.html
           grep -q '@media(max-width:1180px)' public/admin-nav.css
