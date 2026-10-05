@@ -117,7 +117,7 @@ function cartOutside(){
     if(!cart||!cart.classList.contains('open'))return;
     if(cart.contains(e.target))return;
     if(e.target.closest && e.target.closest('#cart-fab,[onclick*="cartT"]'))return;
-    cart.classList.remove('open');
+    cart.classList.remove('open');document.documentElement.classList.remove('cart-open');document.body.classList.remove('cart-open');
   });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){
