@@ -37,25 +37,7 @@
     pulling=false;
   },{passive:true});
 
-  // Auto-hide the public/admin navigation while scrolling down.
-  const nav=document.querySelector('nav');
-  if(nav){
-    let last=window.scrollY, timer;
-    nav.style.transition='transform .22s ease';
-    window.addEventListener('scroll',()=>{
-      const y=window.scrollY;
-      if(y>last+8&&y>70)nav.style.transform='translateY(-110%)';
-      else if(y<last-8)nav.style.transform='translateY(0)';
-      last=y;
-      clearTimeout(timer);
-      timer=setTimeout(()=>nav.style.transform='translateY(0)',1200);
-    },{passive:true});
-    document.addEventListener('click',e=>{
-      if(e.target.closest('nav a,#burger'))setTimeout(()=>nav.style.transform='translateY(0)',50);
-    });
-  }
-
-  // Public pages must not expose an admin navigation link.
+  // Keep navigation visible and sticky; responsive CSS controls its layout.\n  // Public pages must not expose an admin navigation link.
   if(!location.pathname.endsWith('/admin.html') && location.pathname!=='/admin.html'){
     document.querySelectorAll('a[href="admin.html"],a[href="/admin.html"]').forEach(a=>a.remove());
   }
