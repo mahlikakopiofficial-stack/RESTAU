@@ -88,6 +88,7 @@
               `<button class="${x == t ? "on" : ""}" onclick="go('${x}')">${x}</button>`,
           ).join("") +
           '<button onclick="location.href=\'/website\'">← Website</button><button onclick="out()">Logout</button>';
+        if(typeof applyUniversalBranding==="function")applyUniversalBranding();
         try {
           CUR = (await api("/config")).currency;
           $("#main").innerHTML = `<h2>${t}</h2>` + (await R[t]());
