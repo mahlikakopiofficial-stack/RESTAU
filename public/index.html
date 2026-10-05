@@ -322,6 +322,7 @@
     <script src="app.js"></script>
     <script>
       let items = [],
+        regionalItems = [],
         cart = JSON.parse(localStorage.getItem("cart") || "{}"),
         cat = "Regular",
         FEE = 0,
@@ -381,6 +382,36 @@
                 .join("")
             : `<div class="grid">${L.map(renderCard).join("")}</div>`;
       }
+      const regionalKey = (id) => "r:" + Number(id);
+      window.regionalKey = regionalKey;
+      window.setRegionalDishes = (rows) => {
+        regionalItems = Array.isArray(rows)
+          ? rows.map((x) => ({
+              id: Number(x.id),
+              name: String(x.name || ""),
+              region: String(x.region || "Regional"),
+              descr: String(x.descr || ""),
+              price: Number(x.price || 0),
+            }))
+          : [];
+        renderCart();
+      };
+      window.addRegionalToCart = (dish) => {
+        if (!dish || !dish.id) return;
+        const key = regionalKey(dish.id);
+        if (!regionalItems.some((x) => Number(x.id) === Number(dish.id))) {
+          regionalItems.push({
+            id: Number(dish.id),
+            name: String(dish.name || ""),
+            region: String(dish.region || "Regional"),
+            descr: String(dish.descr || ""),
+            price: Number(dish.price || 0),
+          });
+        }
+        cart[key] = (cart[key] || 0) + 1;
+        sv();
+        toast("Regional dish added to cart");
+      };
       const sv = () => {
         localStorage.setItem("cart", JSON.stringify(cart));
         renderCart();
@@ -454,9 +485,11 @@
       window.addEventListener("focus", fillCustomerDetails);
       fillCustomerDetails();
       function renderCart() {
-        const ids = Object.keys(cart).filter((id) =>
-          items.find((i) => i.id == id),
-        );
+        const findCartItem = (key) =>
+          String(key).startsWith("r:")
+            ? regionalItems.find((i) => Number(i.id) === Number(String(key).slice(2)))
+            : items.find((i) => i.id == key);
+        const ids = Object.keys(cart).filter((id) => findCartItem(id));
         let sub = 0;
         const count = ids.reduce((s, id) => s + cart[id], 0);
         $("#cc").textContent = count;
@@ -464,10 +497,10 @@
         $("#lines").innerHTML = ids.length
           ? ids
               .map((id) => {
-                const i = items.find((x) => x.id == id),
-                  price = itemPrice(i);
+                const i = findCartItem(id),
+                  price = String(id).startsWith("r:") ? Number(i.price || 0) : itemPrice(i);
                 sub += price * cart[id];
-                return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${id},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${id},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
+                return `<div class="line"><span>${esc(i.name)}${String(id).startsWith("r:") ? " · " + esc(i.region || "Regional") : ""}</span><span><button class="btn s o" onclick='chg(${JSON.stringify(id)},-1)'>−</button> ${cart[id]} <button class="btn s o" onclick='chg(${JSON.stringify(id)},1)'>+</button></span><b>${money(price * cart[id])}</b></div>`;
               })
               .join("")
           : '<p style="padding:14px 0;opacity:.7">Your cart is empty.</p>';
@@ -530,7 +563,10 @@
       async function place(e) {
         e.preventDefault();
         const f = Object.fromEntries(new FormData(e.target));
-        f.items = Object.entries(cart).map(([id, qty]) => ({ id: +id, qty }));
+        f.items = Object.entries(cart).map(([id, qty]) => ({
+          id: String(id).startsWith("r:") ? String(id) : +id,
+          qty,
+        }));
         if (config.accepting === false) {
           toast("The restaurant is closed and cannot accept orders right now.");
           return;
