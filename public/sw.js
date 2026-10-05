@@ -1,4 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v10';
+const CACHE_NAME='pinoyambula-shell-v11';
 const SHELL=[
   '/index.html',
   '/account.html',
