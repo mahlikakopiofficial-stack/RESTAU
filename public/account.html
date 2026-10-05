@@ -12,7 +12,7 @@
     <script src="/runtime-config.js"></script>
     <script src="/pwa.js?v=20261001-auth1"></script>
   </head>
-  <body>
+  <body class="account-page">
     <div class="banig"></div>
     <nav>
       <div class="wrap">
@@ -23,8 +23,8 @@
         </ul>
       </div>
     </nav>
-    <div class="wrap">
-      <div class="box" id="auth">
+    <div class="account-shell">
+      <div class="account-card box" id="auth">
         <h2 id="ttl">Login</h2>
         <form onsubmit="go(event)">
           <div id="reg-fields" hidden>
@@ -83,24 +83,20 @@
           </button>
         </form>
       </dialog>
-      <div id="me" hidden style="padding: 30px 0">
-        <h2 id="hi"></h2>
-        <p>
-          <button class="btn s o" onclick="out()">Logout</button>
-          <a class="btn s" href="index.html#menu">Order food</a>
-        </p>
-        <section id="loyalty" style="padding: 12px 0">
+      <div id="me" hidden class="account-card">
+        <div class="account-hero"><div><p class="small">Customer account</p><h2 id="hi"></h2><p style="opacity:.72">Manage your orders, subscriptions, loyalty rewards, and support.</p></div><div class="account-actions"><a class="btn s" href="index.html#menu">Order food</a><button class="btn s o" onclick="out()">Logout</button></div></div>
+        <section id="loyalty" class="account-section">
           <h3>Loyalty</h3>
           <p id="loyalty-progress"></p>
           <div id="loyalty-rewards"></div>
         </section>
-        <h3 style="margin: 20px 0 8px">My orders</h3>
+        <section class="account-section"><h3>My orders</h3>
         <div id="order-tracker" style="margin: 15px 0">
           <div id="orderStep"></div>
         </div>
-        <div class="tw"><table id="ot"></table></div>
-        <h3 style="margin: 20px 0 8px">My 26-day subscriptions</h3>
-        <div class="tw"><table id="st"></table></div>
+        <div class="tw account-table"><table id="ot"></table></div></section>
+        <section class="account-section"><h3>My 26-day subscriptions</h3>
+        <div class="tw account-table"><table id="st"></table></div></section>
         <dialog id="orderChatDialog">
           <h3 id="orderChatTitle">Order chat</h3>
           <div
@@ -121,7 +117,7 @@
             </button>
           </form>
         </dialog>
-        <section id="support-chat" style="margin: 24px 0">
+        <section id="support-chat" class="account-section">
           <h3>Chat with PinoyAmbula</h3>
           <p style="font-size: 0.9rem; opacity: 0.75">
             No automatic replies. Send your message here and the restaurant team
@@ -181,6 +177,7 @@
           </div>
         </section>
       </div>
+    </div>
     </div>
     <script src="app.js"></script>
     <script>
