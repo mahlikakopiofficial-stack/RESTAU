@@ -428,3 +428,25 @@ header,section{
     padding:14px 10px;
   }
 }
+
+
+/* Desktop nav cascade override for the legacy 1180px media rules */
+@media (min-width:1081px){
+  nav .home-nav-link{
+    display:inline-flex;
+    margin-left:0;
+  }
+  nav ul{
+    position:static;
+    width:auto;
+    max-height:none;
+    overflow:visible;
+    padding:0;
+    background:transparent;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+    flex-direction:row;
+    align-items:center;
+  }
+}
