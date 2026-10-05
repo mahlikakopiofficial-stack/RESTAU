@@ -276,7 +276,7 @@
                     '"><b>' +
                     (m.author === "admin" ? "Restaurant" : "You") +
                     '</b><div style="font-size:.75rem;opacity:.65">' +
-                    esc(m.created) +
+                    esc(kuwaitDateTime(m.created)) +
                     '</div><p style="margin:5px 0;white-space:pre-wrap">' +
                     esc(m.message) +
                     "</p></article>",
@@ -324,7 +324,7 @@
                     " · " +
                     esc(r.status || "New") +
                     " · " +
-                    esc(r.created) +
+                    esc(kuwaitDateTime(r.created)) +
                     "</button>",
                 )
                 .join("")
@@ -451,7 +451,7 @@
                     ')">Chat about this order</button>';
                 return (
                   "<tr><td>" +
-                  esc(o.created) +
+                  esc(kuwaitDateTime(o.created)) +
                   "</td><td>" +
                   JSON.parse(o.items || "[]")
                     .map((i) => i.qty + "× " + esc(i.name))
