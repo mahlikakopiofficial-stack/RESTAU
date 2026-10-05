@@ -333,7 +333,7 @@
               ["Joined", (r) => esc(r.created)],
               ["Account access", (r) => `<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`],
               ["", (r) => del("customers", r.id)],
-            ])}
+            ])}`
           );
         },
         async Subscriptions() {
