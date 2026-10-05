@@ -1,3 +1,4 @@
+/* AUTHORITATIVE PUBLIC NAV v2 — public navigation behavior is centralized here. */
 (function(){
 'use strict';
 
