@@ -65,6 +65,14 @@
 }
 #side .admin-nav-toggle{display:none!important}
 #side .admin-nav-menu{
+  position:static!important;
+  top:auto!important;
+  z-index:auto!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
   display:flex!important;
   flex:1 1 auto!important;
   flex-direction:column!important;
