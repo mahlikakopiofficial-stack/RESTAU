@@ -175,7 +175,7 @@ async function addRegional(){
   const s=document.createElement('section');s.id='regional-favorites';s.className='master-section alt';
   s.innerHTML='<div class="wrap"><div class="t"><h2>Regional Filipino Favorites</h2><p>Famous dishes from different regions of the Philippines.</p></div><div class="master-grid" id="regional-grid"></div></div>';
   plans.insertAdjacentElement('beforebegin',s);
-  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'<button class="btn s regional-add-cart" type="button" onclick="add('+x.id+')" aria-label="Add '+escm(x.name)+' to cart">Add to cart</button></div></article>').join('');
+  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'<button class="btn s regional-add-cart" type="button" onclick="window.addRegionalToCart&&window.addRegionalToCart('+x.id+',\''+escm(x.name).replace(/'/g,"\\'")+'\','+(+x.price||0)+')" aria-label="Add '+escm(x.name)+' to cart">Add to cart</button></div></article>').join('');
 }
 
 async function addHeritage(){
