@@ -733,6 +733,24 @@ app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   notifyInquiryReply(inquiry,message);
   r.json({ok:1,id:Number(id),emailQueued:!!inquiry.email});
 }));
+app.post('/api/admin/customers/:id/messages',admin,w((q,r)=>{
+  need(q.body,'message');
+  const customer=one('SELECT id,name,email,phone FROM customers WHERE id=?',q.params.id);
+  if(!customer)return r.status(404).json({error:'Customer not found'});
+  const message=String(q.body.message).trim().slice(0,4000);
+  if(!message)throw new Error('Message is required');
+  let inquiry=one("SELECT id,name,email,phone,type,msg FROM inquiries WHERE customer_id=? ORDER BY id DESC LIMIT 1",customer.id);
+  if(!inquiry){
+    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,name,email,phone,type,msg,status) VALUES(?,?,?,?,?,?,?)')
+      .run(customer.id,customer.name,customer.email||'',customer.phone||'','Support',message,'Replied').lastInsertRowid);
+    inquiry=one('SELECT id,name,email,phone,type,msg FROM inquiries WHERE id=?',id);
+  }else{
+    db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(inquiry.id);
+  }
+  const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid;
+  if(inquiry.email)notifyInquiryReply(inquiry,message);
+  r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(id),emailQueued:!!inquiry.email});
+}));
 app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
   const subject=String(q.body.subject||'').trim();
   const message=String(q.body.message||'').trim();
@@ -1051,13 +1069,16 @@ const c=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.repla
 r.type('text/csv').send('\ufeff'+[cols.map(c).join(',')].concat(rows.map(x=>cols.map(k=>c(x[k])).join(','))).join('\n'))}));
 const up=multer({storage:multer.diskStorage({destination:UP,filename:(q,f,cb)=>cb(null,crypto.randomBytes(8).toString('hex')+path.extname(f.originalname).toLowerCase())}),limits:{fileSize:5e6},fileFilter:(q,f,cb)=>/^image\/(jpe?g|png|webp|gif)$/.test(f.mimetype)?cb(null,true):cb(new Error('Images only (jpg, png, webp, gif)'))});
 app.post('/api/admin/upload',admin,up.single('file'),w((q,r)=>{if(!q.file)throw new Error('No file');const url='/uploads/'+q.file.filename,t=q.query;
-const old=t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.target==='announcement'?one('SELECT image x FROM announcements WHERE id=?',t.id)?.x:t.target==='regional'?one('SELECT img x FROM regional_dishes WHERE id=?',t.id)?.x:t.target==='heritage'?one('SELECT img x FROM heritage WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
-if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.target==='announcement')db.prepare('UPDATE announcements SET image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(url,t.id);else if(t.target==='regional')db.prepare('UPDATE regional_dishes SET img=? WHERE id=?').run(url,t.id);else if(t.target==='heritage')db.prepare("UPDATE heritage SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
+const old=t.target==='logo'?one("SELECT v x FROM settings WHERE k='logo_url'")?.x:t.target==='hero'?one("SELECT v x FROM settings WHERE k='hero_img'")?.x:t.target==='item'?one('SELECT img x FROM items WHERE id=?',t.id)?.x:t.target==='plan'?one('SELECT img x FROM plans WHERE id=?',t.id)?.x:t.target==='announcement'?one('SELECT image x FROM announcements WHERE id=?',t.id)?.x:t.target==='regional'?one('SELECT img x FROM regional_dishes WHERE id=?',t.id)?.x:t.target==='heritage'?one('SELECT img x FROM heritage WHERE id=?',t.id)?.x:t.id?one('SELECT img x FROM gallery WHERE id=?',t.id)?.x:null;
+if(t.target==='logo')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('logo_url',?)").run(url);else if(t.target==='hero')db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img',?)").run(url);else if(t.target==='item')db.prepare('UPDATE items SET img=? WHERE id=?').run(url,t.id);else if(t.target==='plan')db.prepare('UPDATE plans SET img=? WHERE id=?').run(url,t.id);else if(t.target==='announcement')db.prepare('UPDATE announcements SET image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(url,t.id);else if(t.target==='regional')db.prepare('UPDATE regional_dishes SET img=? WHERE id=?').run(url,t.id);else if(t.target==='heritage')db.prepare("UPDATE heritage SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else if(t.id)db.prepare("UPDATE gallery SET img=?,media_type='image',media_url=? WHERE id=?").run(url,url,t.id);else db.prepare("INSERT INTO gallery(img,caption,media_type,media_url) VALUES(?,'','image',?)").run(url,url);
 if(old&&old.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(old)),()=>{});r.json({url})}));
 app.delete('/api/admin/image',admin,w((q,r)=>{
   const {target,id}=q.body||{};
   let row,clear;
-  if(target==='hero'){
+  if(target==='logo'){
+    row=one("SELECT v img FROM settings WHERE k='logo_url'");
+    clear=()=>db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('logo_url','')").run();
+  }else if(target==='hero'){
     row=one("SELECT v img FROM settings WHERE k='hero_img'");
     clear=()=>db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('hero_img','')").run();
   }else if(target==='item'){

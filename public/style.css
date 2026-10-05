@@ -88,3 +88,101 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:600px){section{padding:42px 0}.wrap{padding-left:14px;padding-right:14px}.hero{padding:58px 0;text-align:center}.hero p{margin:14px auto 24px}.hero:after{inset:0 0 0 35%}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}#inquiryConversation{padding:16px}.report-actions{display:grid;grid-template-columns:1fr 1fr}.report-actions button{width:100%}footer a{display:inline-block;margin:5px}}
 @media(max-width:600px){.tw table,.tw tbody{display:block;width:100%}.tw tr:first-child{display:none}.tw tr:not(:first-child){display:block;margin:0 0 12px;overflow:hidden;border:1px solid #e5dfd4;border-radius:8px;background:#fff}.tw td{display:grid;grid-template-columns:minmax(6rem,32%) minmax(0,1fr);gap:8px;padding:9px 10px;overflow-wrap:anywhere}.tw td::before{content:attr(data-label);font-weight:700;color:#555}.tw td[data-label=""]::before,.tw td:only-child::before{content:none}}
 @media(max-width:600px){#cart-fab{right:12px;bottom:12px}.order-tools{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.order-tools label:first-child{grid-column:1/-1}.order-tools button{width:100%}}
+
+/* Universal PinoyAmbula branding + responsive horizontal footer */
+.brand-logo{display:inline-flex;align-items:center;gap:9px;text-decoration:none!important;white-space:nowrap}
+.brand-logo img{width:40px;height:40px;display:block;object-fit:contain}
+.footer-logo img{width:48px;height:48px}
+.site-footer{background:var(--ink);color:#fff;text-align:left;padding:28px 0}
+.site-footer-inner{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(160px,1fr) minmax(160px,1fr) auto;align-items:center;gap:22px}
+.footer-brand{min-width:0}.footer-brand .brand-logo{color:#fff}.footer-brand .brand-logo span{font-weight:800}
+.footer-thanks{margin:7px 0 0 57px;font-size:.82rem;opacity:.78}
+.footer-links{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.9rem}
+.site-footer a{color:#fff}.footer-nav{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:flex-end;font-size:.85rem}
+.admin-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:1rem;padding:4px 6px 10px;border-bottom:1px solid #ffffff22;margin-bottom:4px}
+.admin-brand img{width:42px;height:42px;object-fit:contain;border-radius:10px;background:#fff}
+.brand-setting-card{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid #e5dccb;border-radius:12px;background:#fff;margin:8px 0 12px}
+.brand-setting-preview{width:72px;height:72px;border-radius:12px;background:#fffaf0;display:grid;place-items:center;flex:0 0 auto}
+.brand-setting-preview img{width:60px;height:60px;object-fit:contain}
+.brand-setting-copy{display:grid;gap:4px}.brand-setting-copy span{font-size:.82rem;color:#66736c}
+@media(max-width:900px){.site-footer-inner{grid-template-columns:1fr 1fr}.footer-nav{justify-content:flex-start}}
+@media(max-width:600px){.site-footer-inner{grid-template-columns:1fr;gap:14px}.footer-links,.footer-nav{justify-content:flex-start}.footer-thanks{margin-left:0}.brand-logo img{width:36px;height:36px}}
+
+/* UX hardening: touch targets, horizontal footer, media fallbacks, responsive controls */
+.site-footer{background:linear-gradient(135deg,#241b18 0%,#3a211d 55%,#6d2a25 100%);color:#fff;padding:24px 0 18px;border-top:3px solid var(--y)}
+.site-footer-inner{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.footer-brand{display:flex;align-items:center;gap:12px;flex:1 1 240px;min-width:220px}
+.footer-brand .footer-logo{display:inline-flex;align-items:center;gap:10px}
+.footer-logo img{width:42px;height:42px;object-fit:contain}
+.footer-thanks{margin:0!important;font-size:.8rem;opacity:.78}
+.footer-links,.footer-nav{display:flex;align-items:center;justify-content:center;gap:8px 14px;flex:1 1 180px;min-width:0}
+.footer-links a,.footer-nav a{padding:7px 4px;border-radius:8px}
+.footer-links a:hover,.footer-nav a:hover,.footer-links a:focus-visible,.footer-nav a:focus-visible{background:#ffffff18}
+.footer-nav{justify-content:flex-end;flex:0 1 auto}
+.brand-logo img{width:40px;height:40px;object-fit:contain;flex:none}
+.card,.btn,a,button,input,select,textarea{touch-action:manipulation}
+button,.btn,a.card{min-height:42px}
+.card{overflow:hidden}
+.master-item-media{display:block;min-height:190px}
+.master-slide img,.master-slide iframe{background:#ead8b7}
+.master-slide img[src=""],.master-slide img:not([src]){visibility:hidden}
+@media(max-width:900px){
+  .site-footer-inner{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .footer-brand{grid-column:1/-1}
+  .footer-nav{justify-content:flex-start}
+}
+@media(max-width:600px){
+  nav .wrap{width:100%;padding-inline:10px}
+  nav .logo{min-width:0;overflow:hidden}
+  nav .logo span{overflow:hidden;text-overflow:ellipsis}
+  nav ul{left:8px;right:8px}
+  .site-footer{padding:20px 0 16px}
+  .site-footer-inner{grid-template-columns:1fr;gap:10px;text-align:center}
+  .footer-brand,.footer-links,.footer-nav{justify-content:center;flex:1 1 auto;min-width:0}
+  .footer-brand{flex-direction:column;gap:7px}
+  .footer-nav{flex-wrap:wrap}
+  .footer-links a,.footer-nav a{padding:9px 7px}
+  .master-section{padding:38px 0}
+  .master-slide img,.master-slide iframe{height:min(58vw,300px);min-height:220px}
+}
+.admin-chat-layout{display:grid;grid-template-columns:minmax(190px,.7fr) minmax(0,1.5fr);gap:14px;margin:14px 0}
+.admin-chat-list,.admin-chat-panel{border:1px solid #e5dccb;border-radius:14px;background:#fff;min-width:0}
+.admin-chat-list{padding:10px;max-height:520px;overflow:auto}
+.admin-chat-list button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:transparent;padding:10px;border-radius:9px;cursor:pointer}
+.admin-chat-list button.on,.admin-chat-list button:hover{background:#f7eedf}
+.admin-chat-panel{display:flex;flex-direction:column;min-height:420px}
+.admin-chat-head{padding:12px 14px;border-bottom:1px solid #eee;font-weight:800}
+.admin-chat-messages{flex:1;min-height:280px;max-height:430px;overflow:auto;padding:12px;background:#faf8f3}
+.admin-chat-bubble{max-width:82%;padding:9px 11px;margin:7px 0;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-chat-bubble.customer{background:#eef5ff;margin-right:auto}
+.admin-chat-bubble.admin{background:#fff0d1;margin-left:auto}
+.admin-chat-compose{display:flex;gap:8px;padding:10px;border-top:1px solid #eee}
+.admin-chat-compose textarea{flex:1;min-height:54px;resize:vertical}
+@media(max-width:700px){.admin-chat-layout{grid-template-columns:1fr}.admin-chat-list{max-height:190px}.admin-chat-panel{min-height:360px}.admin-chat-messages{min-height:220px}}
+
+/* Final logo/footer/cart responsive pass — 2026-10-05 */
+.brand-logo{min-width:0}
+.brand-logo img.brand-mark{flex:0 0 auto;width:40px;height:40px;object-fit:contain;object-position:center}
+.footer-logo img.brand-mark{width:48px;height:48px}
+.site-footer{background:#173f35;color:#fff}
+.site-footer-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;min-width:0}
+.footer-brand{display:flex;align-items:center;gap:16px;min-width:0}
+.footer-brand .footer-thanks{margin:0;white-space:nowrap}
+.footer-links,.footer-nav{display:flex;align-items:center;justify-content:center;gap:8px 14px;flex-wrap:wrap}
+.site-footer a{opacity:.95}
+.site-footer a:hover,.site-footer a:focus-visible{color:#e8b94b;opacity:1}
+@media(max-width:900px){
+  .site-footer-inner{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .footer-brand{grid-column:1/-1;justify-content:center}
+  .footer-links,.footer-nav{justify-content:center}
+}
+@media(max-width:600px){
+  html.cart-open nav .brand-logo,body.cart-open nav .brand-logo{opacity:0;visibility:hidden;width:0;overflow:hidden;pointer-events:none}
+  .site-footer{padding:24px 0}
+  .site-footer-inner{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+  .footer-brand{flex-direction:column;gap:7px}
+  .footer-brand .footer-thanks{white-space:normal}
+  .footer-links,.footer-nav{width:100%;justify-content:center}
+  .footer-links a,.footer-nav a{min-height:42px;display:inline-flex;align-items:center;padding:8px 10px}
+  .footer-logo img.brand-mark{width:44px;height:44px}
+}

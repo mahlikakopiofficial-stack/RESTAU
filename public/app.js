@@ -16,3 +16,31 @@ if(document.title.includes('Admin')){
     const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261003-1';document.head.appendChild(n);
   },{once:true});
 }
+
+async function applyUniversalBranding(){
+  const nodes=document.querySelectorAll("[data-brand-logo]");
+  if(!nodes.length)return;
+  try{
+    const c=await api("/config","GET",null,"none");
+    const src=c.logo_url||"/icons/pinoyambula.svg";
+    nodes.forEach(node=>{
+      const img=node.querySelector("img"), text=node.querySelector("span");
+      if(img){
+        img.src=src;
+        img.alt=c.name||"PinoyAmbula";
+        img.decoding="async";
+        img.loading="eager";
+        img.onerror=()=>{ if(img.src!==location.origin+"/icons/pinoyambula.svg") img.src="/icons/pinoyambula.svg"; };
+      }
+      if(text)text.textContent=c.name||"PinoyAmbula";
+      node.setAttribute("aria-label",(c.name||"PinoyAmbula")+" home");
+    });
+  }catch(e){
+    console.warn("UNIVERSAL_BRANDING_LOAD_FAILED",e.message);
+  }
+}
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",applyUniversalBranding,{once:true});
+}else{
+  applyUniversalBranding();
+}

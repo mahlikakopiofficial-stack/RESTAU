@@ -205,7 +205,9 @@ function buildCarousel(carousel,dots,rows){
   const track=carousel.querySelector('.master-carousel-track');
   const slides=[rows[rows.length-1]].concat(rows,rows[0]);
   track.innerHTML=slides.map((x,i)=>{
-    const media=x.media_type==='video'&&x.media_url?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>':'<img src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.title||x.caption||'Gallery image')+'" loading="lazy">';
+    const media=x.media_type==='video'&&x.media_url
+  ?'<iframe src="'+escm(x.media_url)+'" title="'+escm(x.caption||x.title||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>'
+  :'<img src="'+escm(x.img||x.media_url||'/icons/pinoyambula.svg')+'" alt="'+escm(x.title||x.caption||'Heritage image')+'" loading="lazy" onerror="this.onerror=null;this.src=\'/icons/pinoyambula.svg\'">';
     return '<article class="master-slide" data-slide-index="'+i+'">'+media+'<button class="master-slide-hit" type="button" aria-label="Preview '+escm(x.title||x.caption||'gallery item')+'"></button><div class="caption"><strong>'+escm(x.title||x.caption||'PinoyAmbula')+'</strong><span> · Tap to preview</span></div></article>';
   }).join('');
   dots.innerHTML='';
