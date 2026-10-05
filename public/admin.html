@@ -7,7 +7,7 @@
     <title>Admin — PinoyAmbula</title>
     <meta name="robots" content="noindex" />
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="/admin-nav.css?v=20261005-3" />
+    <link rel="stylesheet" href="/admin-nav.css?v=20261005-4" />
     <link rel="stylesheet" href="/admin-dashboard.css?v=20261005-2" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#7b2d26" />
@@ -84,14 +84,35 @@
       function renderAdminNav(t) {
         const side = $("#side");
         if (!side) return;
+        const icons = {
+          "Overview":"⌂",
+          "Orders":"▤",
+          "Menu":"◈",
+          "Gallery":"▧",
+          "Regional Dishes":"◉",
+          "Heritage":"✦",
+          "Announcements":"◌",
+          "Customers":"♙",
+          "Subscriptions":"↻",
+          "Reports":"▥",
+          "Inquiries":"✉",
+          "Newsletter":"◎",
+          "Testimonials":"★",
+          "Plans":"◇",
+          "Settings":"⚙"
+        };
         side.innerHTML =
-          '<div class="admin-brand" data-brand-logo><img src="/icons/pinoyambula.svg" alt="PinoyAmbula" width="42" height="42"><span>PinoyAmbula</span></div>' +
-          '<button class="admin-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false" onclick="toggleAdminNav(this)">☰</button>' +
+          '<div class="admin-brand" data-brand-logo><img src="/icons/pinoyambula.svg" alt="PinoyAmbula" width="42" height="42"><span class="admin-brand-copy"><b>PinoyAmbula</b><small>Restaurant Admin</small></span></div>' +
+          '<button class="admin-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false" onclick="toggleAdminNav(this)"><span>☰</span><b>Menu</b></button>' +
           '<nav class="admin-nav-menu" id="adminNavMenu" aria-label="Admin navigation">' +
-          TABS.map((x) => '<button type="button" class="' + (x == t ? "on" : "") + '" onclick="go(&quot;' + x.replace(/"/g, '&quot;') + '&quot;)">' + x + '</button>').join("") +
+          '<div class="admin-nav-primary">' +
+          TABS.map((x) => '<button type="button" class="' + (x == t ? "on" : "") + '"' + (x == t ? ' aria-current="page"' : '') + ' onclick="go(&quot;' + x.replace(/"/g, '&quot;') + '&quot;)"><span class="admin-nav-icon" aria-hidden="true">' + (icons[x] || "•") + '</span><span>' + x + '</span></button>').join("") +
+          '</div>' +
+          '<div class="admin-nav-footer">' +
           '<span class="admin-nav-separator" aria-hidden="true"></span>' +
-          '<button type="button" onclick="location.href=&quot;/website&quot;">← Website</button>' +
-          '<button type="button" onclick="out()">Logout</button>' +
+          '<button type="button" onclick="location.href=&quot;/website&quot;"><span class="admin-nav-icon" aria-hidden="true">↗</span><span>Website</span></button>' +
+          '<button type="button" class="admin-logout" onclick="out()"><span class="admin-nav-icon" aria-hidden="true">⇥</span><span>Logout</span></button>' +
+          '</div>' +
           '</nav>';
         if(typeof applyUniversalBranding==="function")applyUniversalBranding();
       }
