@@ -1,0 +1,31 @@
+/* Admin navigation: compact, stable, responsive, and keyboard-friendly. */
+.adm{display:block;min-height:100vh;background:var(--cr)}
+#side{position:sticky;top:0;z-index:80;display:flex;align-items:center;gap:8px;min-height:64px;padding:8px 14px;background:var(--b);box-shadow:0 3px 14px #0003;overflow:visible}
+#side .admin-brand{flex:0 0 auto;display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:1rem;padding:0 8px;border:0;margin:0;white-space:nowrap}
+#side .admin-brand img{width:38px;height:38px;border-radius:9px;background:#fff;object-fit:contain}
+#side .admin-nav-toggle{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:0 0 40px;border:1px solid #ffffff44;border-radius:10px;background:#ffffff12;color:#fff;font-size:1.25rem;cursor:pointer}
+#side .admin-nav-toggle:hover,#side .admin-nav-toggle:focus-visible{background:#ffffff22;outline:2px solid var(--y);outline-offset:2px}
+#side .admin-nav-menu{display:flex;align-items:center;gap:4px;margin-left:auto;min-width:0}
+#side .admin-nav-menu button{min-height:38px;flex:0 0 auto;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:#fff;text-align:center;white-space:nowrap;font:600 .84rem/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer}
+#side .admin-nav-menu button:hover,#side .admin-nav-menu button:focus-visible{background:#ffffff18;outline:2px solid var(--y);outline-offset:1px}
+#side .admin-nav-menu button.on{background:#fff;color:var(--b);box-shadow:0 2px 7px #0002}
+#side .admin-nav-menu .admin-nav-separator{width:1px;height:25px;background:#ffffff33;margin:0 3px}
+#main{max-width:1500px;margin:0 auto;padding:24px clamp(14px,2.5vw,32px);overflow:auto}
+@media(max-width:1180px){
+  #side{padding:8px 12px}
+  #side .admin-nav-toggle{display:inline-flex}
+  #side .admin-nav-menu{position:absolute;top:60px;right:12px;left:12px;display:none;flex-direction:column;align-items:stretch;gap:3px;margin:0;padding:10px;background:#fff;border:1px solid #e5dccb;border-radius:13px;box-shadow:0 14px 35px #0003;max-height:calc(100vh - 76px);overflow:auto}
+  #side .admin-nav-menu.open{display:flex}
+  #side .admin-nav-menu button{width:100%;min-height:42px;color:var(--b);text-align:left;padding:9px 12px;border-radius:9px}
+  #side .admin-nav-menu button:hover,#side .admin-nav-menu button:focus-visible{background:#f7eedf;outline:none}
+  #side .admin-nav-menu button.on{background:var(--b);color:#fff}
+  #side .admin-nav-menu .admin-nav-separator{width:100%;height:1px;margin:5px 0;background:#e5dccb}
+}
+@media(min-width:1181px){#side .admin-nav-toggle{display:none}}
+@media(max-width:600px){
+  #side{min-height:58px;padding:7px 10px}
+  #side .admin-brand span{font-size:.92rem}
+  #side .admin-brand img{width:34px;height:34px}
+  #side .admin-nav-menu{top:55px;left:8px;right:8px}
+  #main{padding:18px 10px}
+}
