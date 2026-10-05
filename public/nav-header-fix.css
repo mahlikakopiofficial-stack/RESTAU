@@ -1,0 +1,20 @@
+/* PinoyAmbula public header: fixed, stable brand + burger, all navigation inside burger. */
+body:has(> nav){padding-top:68px}
+body:has(> nav) > nav{position:fixed;top:0;left:0;right:0;width:100%;z-index:100;background:rgba(255,255,255,.98);box-shadow:0 3px 16px #0002;backdrop-filter:blur(12px)}
+body:has(> nav) > nav .wrap{position:relative;min-height:68px;display:flex;align-items:center;padding-left:18px;padding-right:18px}
+body:has(> nav) > nav .brand-logo{position:absolute;left:18px;top:50%;transform:translateY(-50%);margin:0;z-index:2}
+body:has(> nav) > nav .home-nav-link{display:none!important}
+body:has(> nav) > nav #burger{display:inline-flex!important;position:absolute;right:18px;top:50%;transform:translateY(-50%);z-index:3;width:42px;height:42px;margin:0}
+body:has(> nav) > nav ul{display:none!important;position:absolute;top:68px;left:12px;right:12px;width:auto;margin:0!important;padding:10px;background:rgba(255,255,255,.99);flex-direction:column;align-items:stretch;gap:4px;border:1px solid #e5dccb;border-radius:14px;box-shadow:0 14px 35px #0003;max-height:calc(100vh - 82px);overflow:auto}
+body:has(> nav) > nav ul.open{display:flex!important}
+body:has(> nav) > nav ul li,body:has(> nav) > nav ul a,body:has(> nav) > nav ul .btn{width:100%}
+body:has(> nav) > nav ul a,body:has(> nav) > nav ul .btn{min-height:44px}
+body:has(> nav) #cart-fab{display:none!important}
+@media(max-width:600px){
+  body:has(> nav){padding-top:62px}
+  body:has(> nav) > nav .wrap{min-height:62px;padding-left:14px;padding-right:14px}
+  body:has(> nav) > nav .brand-logo{left:14px;font-size:1.02rem}
+  body:has(> nav) > nav .brand-logo .brand-mark{width:30px!important;height:30px!important;flex-basis:30px!important}
+  body:has(> nav) > nav #burger{right:14px;width:40px;height:40px}
+  body:has(> nav) > nav ul{top:62px;left:10px;right:10px;max-height:calc(100vh - 72px)}
+}
