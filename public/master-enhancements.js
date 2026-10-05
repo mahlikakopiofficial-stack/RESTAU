@@ -175,7 +175,9 @@ async function addRegional(){
   const s=document.createElement('section');s.id='regional-favorites';s.className='master-section alt';
   s.innerHTML='<div class="wrap"><div class="t"><h2>Regional Filipino Favorites</h2><p>Famous dishes from different regions of the Philippines.</p></div><div class="master-grid" id="regional-grid"></div></div>';
   plans.insertAdjacentElement('beforebegin',s);
-  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'</div></article>').join('');
+  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'<button type="button" class="btn s" data-regional-id="'+escm(x.id)+'">Add to cart</button></div></article>').join('');
+  if(typeof window.setRegionalDishes==='function')window.setRegionalDishes(rows);
+  q('#regional-grid').querySelectorAll('[data-regional-id]').forEach(btn=>btn.addEventListener('click',()=>{const dish=rows.find(x=>String(x.id)===String(btn.dataset.regionalId));if(dish&&typeof window.addRegionalToCart==='function')window.addRegionalToCart(dish);}));
 }
 
 async function addHeritage(){
