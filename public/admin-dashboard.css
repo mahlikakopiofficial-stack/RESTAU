@@ -1,0 +1,58 @@
+/* PinoyAmbula Admin Dashboard — responsive workspace */
+:root{--admin-bg:#f7f3ea;--admin-surface:#fffdf8;--admin-line:#e4dac8;--admin-ink:#173f35;--admin-muted:#6e746f;--admin-accent:#b8322a;--admin-gold:#f4c542}
+html,body{min-width:0;overflow-x:hidden}
+body{background:var(--admin-bg)}
+.adm{width:100%;min-height:100vh;display:block!important;background:var(--admin-bg)}
+#main{width:100%;max-width:1600px;margin:0 auto;padding:clamp(16px,2.5vw,32px);box-sizing:border-box;min-width:0;overflow:hidden}
+#main>h2{font-size:clamp(1.35rem,2.2vw,1.9rem);line-height:1.15;color:var(--admin-ink);margin:0 0 18px;font-weight:850}
+#main>h3{color:var(--admin-ink);font-size:1.05rem;margin:24px 0 10px}
+#main>p{color:var(--admin-muted);line-height:1.55}
+#main>.grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:0 0 20px}
+#main>.grid>.card{min-width:0}
+#main .card{background:var(--admin-surface);border:1px solid var(--admin-line);border-radius:14px;box-shadow:0 4px 16px rgba(23,63,53,.06);box-sizing:border-box}
+#main .stat,#main .report-kpi{min-height:112px;padding:18px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;color:var(--admin-muted);font-size:.86rem}
+#main .stat b,#main .report-kpi b{font-size:clamp(1.35rem,2.5vw,2rem);line-height:1.1;color:var(--admin-ink);overflow-wrap:anywhere}
+#main form.card{width:100%;max-width:none}
+#main .f2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+#main .f2>*{min-width:0}
+#main input,#main select,#main textarea{width:100%;max-width:100%;min-height:42px;padding:9px 11px;border:1px solid var(--admin-line);border-radius:9px;background:#fff;box-sizing:border-box;font:inherit}
+#main textarea{min-height:80px;resize:vertical}
+#main label{color:var(--admin-ink);font-size:.88rem}
+#main .btn{max-width:100%;white-space:nowrap}
+#main .tw{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;border:1px solid var(--admin-line);border-radius:12px;background:#fffdf8;-webkit-overflow-scrolling:touch}
+#main table{width:100%;min-width:760px;border-collapse:collapse}
+#main th,#main td{padding:10px 11px;vertical-align:top;border-bottom:1px solid #eee6d8;line-height:1.4}
+#main th{position:sticky;top:0;background:#f3ecdf;color:var(--admin-ink);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;z-index:1}
+#main td{font-size:.86rem}
+#main .ph{max-width:100%;overflow:hidden;border-radius:10px;background-size:cover;background-position:center}
+#main .report-actions{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+#main .report-actions label{display:flex;flex-direction:column;gap:5px;min-width:150px}
+#main .report-actions .btn{align-self:end}
+.admin-chat-layout{display:grid!important;grid-template-columns:minmax(220px,.65fr) minmax(0,1.5fr);gap:14px;width:100%;min-width:0}
+.admin-chat-list,.admin-chat-panel{min-width:0!important}
+.admin-chat-panel{overflow:hidden}
+.admin-chat-compose{min-width:0}
+.admin-chat-compose textarea{min-width:0}
+@media(max-width:1000px){
+ #main{padding:18px 14px 30px}
+ #main>.grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .f2{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+ #main{padding:14px 10px 26px}
+ #main>h2{margin-bottom:14px}
+ #main>.grid{grid-template-columns:1fr;gap:10px}
+ #main .stat,#main .report-kpi{min-height:94px;padding:14px}
+ #main .report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ #main .report-actions label{min-width:0}
+ #main .report-actions .btn{width:100%}
+ .admin-chat-layout{grid-template-columns:1fr!important}
+ .admin-chat-list{max-height:210px}
+ .admin-chat-panel{min-height:350px}
+}
+@media(max-width:430px){
+ #main{padding-inline:8px}
+ #main .report-actions{grid-template-columns:1fr}
+ #main .report-actions label,.admin-chat-compose .btn{width:100%}
+ #main .btn{max-width:100%}
+}
