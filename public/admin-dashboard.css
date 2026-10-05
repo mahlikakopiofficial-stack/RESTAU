@@ -2,8 +2,7 @@
 :root{--admin-bg:#f7f3ea;--admin-surface:#fffdf8;--admin-line:#e4dac8;--admin-ink:#173f35;--admin-muted:#6e746f;--admin-accent:#b8322a;--admin-gold:#f4c542}
 html,body{min-width:0;overflow-x:hidden}
 body{background:var(--admin-bg)}
-.adm{width:100%;min-height:100vh;display:block!important;background:var(--admin-bg)}
-#main{width:100%;max-width:1600px;margin:0 auto;padding:clamp(16px,2.5vw,32px);box-sizing:border-box;min-width:0;overflow:hidden}
+#main{width:100%;max-width:none;margin:0;padding:clamp(16px,2.5vw,32px);box-sizing:border-box;min-width:0;overflow:hidden}
 #main>h2{font-size:clamp(1.35rem,2.2vw,1.9rem);line-height:1.15;color:var(--admin-ink);margin:0 0 18px;font-weight:850}
 #main>h3{color:var(--admin-ink);font-size:1.05rem;margin:24px 0 10px}
 #main>p{color:var(--admin-muted);line-height:1.55}
