@@ -74,8 +74,8 @@ function masterCss(){
     '.announcement-image-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
     '.announcement-image-wrap img{width:180px;height:100px;object-fit:cover;border-radius:10px;border:1px solid #ddd8cc}',
     '@media (prefers-reduced-motion: reduce){.master-carousel-track{transition:none!important}}',
-    '/* AUTHORITATIVE PUBLIC NAV v2 — one responsive system, injected last */
-    'nav .wrap{position:relative!important;width:100%!important;max-width:1320px!important;min-height:72px!important;padding:0 18px!important;display:flex!important;align-items:center!important;gap:10px!important}'
+    "/* AUTHORITATIVE PUBLIC NAV v2 — one responsive system, injected last */",
+    'nav .wrap{position:relative!important;width:100%!important;max-width:1320px!important;min-height:72px!important;padding:0 18px!important;display:flex!important;align-items:center!important;gap:10px!important}',
     'nav .brand-logo{position:relative!important;left:auto!important;top:auto!important;transform:none!important;min-width:0!important;flex:0 1 auto!important;margin:0 auto 0 0!important;display:inline-flex!important;align-items:center!important;white-space:nowrap!important}'
     'nav .brand-logo span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'
     'nav .home-nav-link{display:none!important}'
