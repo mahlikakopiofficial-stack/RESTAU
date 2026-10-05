@@ -88,3 +88,22 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:600px){section{padding:42px 0}.wrap{padding-left:14px;padding-right:14px}.hero{padding:58px 0;text-align:center}.hero p{margin:14px auto 24px}.hero:after{inset:0 0 0 35%}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}#inquiryConversation{padding:16px}.report-actions{display:grid;grid-template-columns:1fr 1fr}.report-actions button{width:100%}footer a{display:inline-block;margin:5px}}
 @media(max-width:600px){.tw table,.tw tbody{display:block;width:100%}.tw tr:first-child{display:none}.tw tr:not(:first-child){display:block;margin:0 0 12px;overflow:hidden;border:1px solid #e5dfd4;border-radius:8px;background:#fff}.tw td{display:grid;grid-template-columns:minmax(6rem,32%) minmax(0,1fr);gap:8px;padding:9px 10px;overflow-wrap:anywhere}.tw td::before{content:attr(data-label);font-weight:700;color:#555}.tw td[data-label=""]::before,.tw td:only-child::before{content:none}}
 @media(max-width:600px){#cart-fab{right:12px;bottom:12px}.order-tools{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.order-tools label:first-child{grid-column:1/-1}.order-tools button{width:100%}}
+
+/* Universal PinoyAmbula branding + responsive horizontal footer */
+.brand-logo{display:inline-flex;align-items:center;gap:9px;text-decoration:none!important;white-space:nowrap}
+.brand-logo img{width:40px;height:40px;display:block;object-fit:contain}
+.footer-logo img{width:48px;height:48px}
+.site-footer{background:var(--ink);color:#fff;text-align:left;padding:28px 0}
+.site-footer-inner{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(160px,1fr) minmax(160px,1fr) auto;align-items:center;gap:22px}
+.footer-brand{min-width:0}.footer-brand .brand-logo{color:#fff}.footer-brand .brand-logo span{font-weight:800}
+.footer-thanks{margin:7px 0 0 57px;font-size:.82rem;opacity:.78}
+.footer-links{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.9rem}
+.site-footer a{color:#fff}.footer-nav{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:flex-end;font-size:.85rem}
+.admin-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:1rem;padding:4px 6px 10px;border-bottom:1px solid #ffffff22;margin-bottom:4px}
+.admin-brand img{width:42px;height:42px;object-fit:contain;border-radius:10px;background:#fff}
+.brand-setting-card{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid #e5dccb;border-radius:12px;background:#fff;margin:8px 0 12px}
+.brand-setting-preview{width:72px;height:72px;border-radius:12px;background:#fffaf0;display:grid;place-items:center;flex:0 0 auto}
+.brand-setting-preview img{width:60px;height:60px;object-fit:contain}
+.brand-setting-copy{display:grid;gap:4px}.brand-setting-copy span{font-size:.82rem;color:#66736c}
+@media(max-width:900px){.site-footer-inner{grid-template-columns:1fr 1fr}.footer-nav{justify-content:flex-start}}
+@media(max-width:600px){.site-footer-inner{grid-template-columns:1fr;gap:14px}.footer-links,.footer-nav{justify-content:flex-start}.footer-thanks{margin-left:0}.brand-logo img{width:36px;height:36px}}
