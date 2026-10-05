@@ -203,3 +203,37 @@ nav .logo span{min-width:0;overflow:hidden;text-overflow:ellipsis}
   nav .logo{flex:1 1 auto;min-width:0}
   nav ul{margin:0}
 }
+
+
+/* NAV ARCHITECTURE PATCH — 2026-10-06
+   Public site navigation is explicitly scoped. Admin navigation owns its own shell.
+*/
+.site-nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.96);box-shadow:0 3px 16px #0002;backdrop-filter:blur(12px)}
+.site-nav .wrap{display:flex;align-items:center;gap:10px;min-height:68px;width:100%;max-width:1100px;min-width:0;margin:auto;padding-left:18px;padding-right:18px}
+.site-nav .logo{min-width:0;flex:0 0 auto;white-space:nowrap}
+.site-nav .logo span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.site-nav ul{display:flex;flex:1 1 auto;min-width:0;gap:4px;list-style:none;padding:0;margin:0 0 0 auto;align-items:center;justify-content:flex-end}
+.site-nav ul li{min-width:0;flex:0 1 auto}
+.site-nav ul a,.site-nav ul .btn{min-width:0;white-space:nowrap}
+.site-nav ul a{padding:8px 7px;font-size:.78rem}
+@media(min-width:1181px){
+  .site-nav .wrap{gap:6px}
+  .site-nav ul{gap:1px}
+  .site-nav ul a,.site-nav ul .btn{padding-left:5px;padding-right:5px;font-size:.75rem}
+}
+@media(max-width:1180px){
+  .site-nav .wrap{min-height:62px;position:relative;padding-left:12px;padding-right:12px}
+  .site-nav .home-nav-link{display:inline-flex;margin-left:auto}
+  .site-nav #burger{display:inline-flex}
+  .site-nav ul{display:none;position:absolute;top:62px;left:12px;right:12px;width:auto;max-height:calc(100vh - 76px);overflow:auto;background:rgba(255,255,255,.98);flex-direction:column;align-items:stretch;gap:4px;padding:10px;margin:0;border:1px solid #e5dccb;border-radius:14px;box-shadow:0 14px 35px #0003}
+  .site-nav ul.open{display:flex}
+  .site-nav ul li,.site-nav ul a,.site-nav ul .btn{width:100%;flex:0 0 auto}
+  .site-nav ul a,.site-nav ul .btn{min-height:42px}
+}
+@media(max-width:600px){
+  .site-nav .wrap{gap:7px;padding-left:10px;padding-right:10px}
+  .site-nav .logo{font-size:1.02rem}
+  .site-nav .logo .brand-mark{width:30px!important;height:30px!important;flex-basis:30px!important}
+  .site-nav .home-nav-link{font-size:.8rem;padding:7px 10px}
+  .site-nav #burger{width:40px;height:40px}
+}
