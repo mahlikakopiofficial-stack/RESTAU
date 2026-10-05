@@ -304,7 +304,7 @@ function setupPublicNavigation(){
     }
   });
   const sync=()=>{
-    if(window.innerWidth>1180){
+    if(window.innerWidth>1000){
       list.classList.remove('open');
       burger.setAttribute('aria-expanded','false');
       burger.setAttribute('aria-label','Open navigation menu');
