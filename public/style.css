@@ -159,3 +159,30 @@ button,.btn,a.card{min-height:42px}
 .admin-chat-compose{display:flex;gap:8px;padding:10px;border-top:1px solid #eee}
 .admin-chat-compose textarea{flex:1;min-height:54px;resize:vertical}
 @media(max-width:700px){.admin-chat-layout{grid-template-columns:1fr}.admin-chat-list{max-height:190px}.admin-chat-panel{min-height:360px}.admin-chat-messages{min-height:220px}}
+
+/* Final logo/footer/cart responsive pass — 2026-10-05 */
+.brand-logo{min-width:0}
+.brand-logo img.brand-mark{flex:0 0 auto;width:40px;height:40px;object-fit:contain;object-position:center}
+.footer-logo img.brand-mark{width:48px;height:48px}
+.site-footer{background:#173f35;color:#fff}
+.site-footer-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;min-width:0}
+.footer-brand{display:flex;align-items:center;gap:16px;min-width:0}
+.footer-brand .footer-thanks{margin:0;white-space:nowrap}
+.footer-links,.footer-nav{display:flex;align-items:center;justify-content:center;gap:8px 14px;flex-wrap:wrap}
+.site-footer a{opacity:.95}
+.site-footer a:hover,.site-footer a:focus-visible{color:#e8b94b;opacity:1}
+@media(max-width:900px){
+  .site-footer-inner{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .footer-brand{grid-column:1/-1;justify-content:center}
+  .footer-links,.footer-nav{justify-content:center}
+}
+@media(max-width:600px){
+  html.cart-open nav .brand-logo,body.cart-open nav .brand-logo{opacity:0;visibility:hidden;width:0;overflow:hidden;pointer-events:none}
+  .site-footer{padding:24px 0}
+  .site-footer-inner{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+  .footer-brand{flex-direction:column;gap:7px}
+  .footer-brand .footer-thanks{white-space:normal}
+  .footer-links,.footer-nav{width:100%;justify-content:center}
+  .footer-links a,.footer-nav a{min-height:42px;display:inline-flex;align-items:center;padding:8px 10px}
+  .footer-logo img.brand-mark{width:44px;height:44px}
+}
