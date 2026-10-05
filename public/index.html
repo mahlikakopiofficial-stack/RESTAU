@@ -323,6 +323,7 @@
     <script>
       let items = [],
         cart = JSON.parse(localStorage.getItem("cart") || "{}"),
+        regionalCartItems = JSON.parse(localStorage.getItem("regionalCartItems") || "{}"),
         cat = "Regular",
         FEE = 0,
         config = {};
@@ -341,10 +342,12 @@
         const i=items.find(x=>x.id==id);
         return i ? {...i,qty:cart[key]} : null;
       };
-      window.__regionalCartItems=window.__regionalCartItems||{};
+      window.__regionalCartItems=regionalCartItems||{};
       window.addRegionalToCart=function(id,name,price){
         const key=regionalKey(id);
         window.__regionalCartItems[id]={id,name,price};
+        regionalCartItems[id]={id,name,price};
+        localStorage.setItem("regionalCartItems",JSON.stringify(regionalCartItems));
         cart[key]=(cart[key]||0)+1;
         sv();
         toast("Added to cart");
@@ -401,6 +404,7 @@
       }
       const sv = () => {
         localStorage.setItem("cart", JSON.stringify(cart));
+        localStorage.setItem("regionalCartItems", JSON.stringify(window.__regionalCartItems||{}));
         renderCart();
       };
       function add(id) {
@@ -483,7 +487,7 @@
                 const i = cartItem(id),
                   price = itemPrice(i);
                 sub += price * cart[id];
-                return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${id},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${id},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
+                return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${JSON.stringify(id)},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${JSON.stringify(id)},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
               })
               .join("")
           : '<p style="padding:14px 0;opacity:.7">Your cart is empty.</p>';
@@ -804,5 +808,6 @@
     <script src="enhancements.js"></script>
     <script src="final-fixes.js"></script>
     <script src="master-enhancements.js"></script>
+    <script src="navigation-final.js?v=20261005-1"></script>
   </body>
 </html>
