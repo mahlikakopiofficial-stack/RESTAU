@@ -301,9 +301,28 @@
           return `<div class="drop" id="gdz">⬆ Add gallery photos</div><form class="card mini" style="padding:14px;margin:14px 0" onsubmit="addGalleryVideo(event)"><b>Add a video embed</b><input name="caption" maxlength="200" placeholder="Caption"><input name="url" type="url" placeholder="YouTube, TikTok, or Facebook video URL" required><button class="btn s">Add video</button></form><div class="grid">${g.map((x) => `<div class="card">${x.media_type === "video" && x.media_url ? `<iframe class="gallery-embed" src="${esc(x.media_url)}" title="${esc(x.caption || "Gallery video")}" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>` : `<div class="ph gdz" data-id="${x.id}" style="height:160px;cursor:pointer;${x.img ? `background-image:url('${esc(x.img)}')` : ""}">${x.img ? "" : "🍽️"}</div>`}<div class="p" style="padding:8px"><input aria-label="Gallery caption" value="${esc(x.caption)}" onchange="up2('gallery','${x.id}','caption',this.value)">${del("gallery", x.id)}</div></div>`).join("")}</div>`;
         },
         async Customers() {
+          const customers=await A("/list/customers");
+          const inquiries=await A("/list/inquiries");
+          window._customerChatData={customers,inquiries};
+          const first=customers[0]?.id||"";
+          A_after=()=>initCustomerChat();
           return (
-            `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Use the secure password-reset email when a customer needs account access.</p><button class="btn s o" onclick="exp('customers')">⬇ CSV</button><br><br>` +
-            tbl(await A("/list/customers"), [
+            `<p>Customers sign in with their registered phone and password. Passwords cannot be viewed. Customer conversations are handled here so staff can reply without leaving the Customers section.</p>
+            <button class="btn s o" onclick="exp('customers')">⬇ CSV</button>
+            <div class="admin-chat-layout">
+              <div class="admin-chat-list" id="admin-chat-customers">
+                ${customers.length?customers.map(r=>`<button type="button" data-customer-chat="${r.id}" onclick="selectCustomerChat(${r.id})"><b>${esc(r.name)}</b><br><small>${esc(r.phone)} · ${esc((inquiries.filter(x=>x.customer_id==r.id)[0]?.status)||"No chat")}</small></button>`).join(""):"<p>No customers yet.</p>"}
+              </div>
+              <div class="admin-chat-panel">
+                <div class="admin-chat-head" id="admin-chat-title">Select a customer</div>
+                <div class="admin-chat-messages" id="admin-chat-messages"><p>Select a customer to view the conversation.</p></div>
+                <form class="admin-chat-compose" id="admin-chat-form" onsubmit="sendCustomerChat(event)">
+                  <textarea name="message" maxlength="4000" required placeholder="Write a reply to the customer..." disabled></textarea>
+                  <button class="btn" disabled>Send</button>
+                </form>
+              </div>
+            </div>
+            ${tbl(customers, [
               ["#", (r) => r.id],
               ["Name", (r) => esc(r.name)],
               ["Phone", (r) => esc(r.phone)],
@@ -311,13 +330,9 @@
               ["Orders", (r) => r.orders],
               ["Spent", (r) => money(r.spent)],
               ["Joined", (r) => esc(r.created)],
-              [
-                "Account access",
-                (r) =>
-                  `<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`,
-              ],
+              ["Account access", (r) => `<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`],
               ["", (r) => del("customers", r.id)],
-            ])
+            ])}
           );
         },
         async Subscriptions() {
