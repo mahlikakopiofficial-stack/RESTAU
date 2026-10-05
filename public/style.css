@@ -379,3 +379,37 @@ label:has(> input[type="radio"]){
 @media(max-width:420px){
   #menu-list .grid{grid-template-columns:1fr}
 }
+
+/* Menu action row: same button baseline on every dish card. */
+#menu-list .card .p{display:flex;flex-direction:column;height:100%}
+#menu-list .card .p>p:last-child{
+  margin-top:auto!important;
+  min-height:38px;
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+#menu-list .card .p>p:last-child .pr,
+#menu-list .card .p>p:last-child del{margin:0;line-height:1.1}
+#menu-list .card .p>p:last-child .btn{
+  float:none!important;
+  width:104px;
+  min-width:104px;
+  min-height:34px;
+  padding:6px 10px;
+  font-size:.8rem;
+  border-radius:8px;
+  white-space:nowrap;
+  flex:0 0 104px;
+}
+#regional-grid .card>.p>[data-regional-id]{margin-top:auto!important}
+@media(max-width:600px){
+  #menu-list .card .p>p:last-child .btn{
+    width:92px;
+    min-width:92px;
+    flex-basis:92px;
+    font-size:.74rem;
+    padding-inline:7px;
+  }
+}
