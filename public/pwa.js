@@ -3,7 +3,7 @@
   if (isNative) return;
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=20261003-nativefix1', {scope:'/'})
+      navigator.serviceWorker.register('/sw.js?v=20261005-nav10', {scope:'/'})
         .catch(error => console.warn('PWA service worker registration failed', error));
     });
 
@@ -40,26 +40,8 @@
     const style = document.createElement('style');
     style.id = 'responsive-nav-footer-runtime';
     style.textContent = `
-      nav .home-nav-link{display:none!important}
-      nav #nl{display:none!important}
-      nav #burger{display:inline-flex!important;margin-left:auto;flex:0 0 auto}
-      nav #nl.open{display:flex!important;position:absolute;top:72px;left:12px;right:12px;max-height:calc(100vh - 84px);overflow:auto;flex-direction:column;align-items:stretch;gap:4px;padding:12px;background:rgba(255,255,255,.99);border:1px solid #e5dccb;border-radius:16px;box-shadow:0 18px 42px #0003;z-index:80;margin:0}
-      nav #nl.open li,nav #nl.open a,nav #nl.open .btn{width:100%}
-      nav #nl.open a,nav #nl.open .btn{min-height:44px;text-align:center}
-      .admin-nav-toggle{display:none}
-      @media(max-width:980px){
-        #app{position:relative}
-        #admin-nav-toggle{display:inline-flex;margin:10px 10px 0;position:sticky;top:8px;z-index:60;box-shadow:0 4px 12px #0003}
-        #side{display:none!important;position:sticky!important;top:0!important;height:auto!important;max-height:calc(100vh - 70px)!important;overflow:auto!important;flex-direction:column!important;align-items:stretch!important;white-space:normal!important;padding:10px!important;border-radius:0 0 14px 14px}
-        #side.admin-nav-open{display:flex!important}
-        #side .admin-brand{position:static!important;display:flex!important;border:0!important;margin:0 0 4px!important}
-        #side button{width:100%!important;text-align:left!important;min-height:44px!important}
-      }
-      @media(max-width:600px){
-        nav .wrap{padding-inline:10px;gap:8px}
-        nav #burger{width:42px;height:42px;margin-left:0}
-        nav #nl.open{top:62px;left:8px;right:8px}
-      }
+      /* Navigation layout is owned by style.css + master-enhancements.js. */
+      /* Do not inject a second public/admin navigation system here. */
       .site-footer{background:var(--b)!important;color:#fff!important;border-top:3px solid var(--y)!important;padding:0!important;text-align:left!important;overflow:hidden!important}
       .site-footer-inner{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;max-width:1320px!important;min-height:58px!important;white-space:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important}
       .site-footer-inner::-webkit-scrollbar{display:none!important}
