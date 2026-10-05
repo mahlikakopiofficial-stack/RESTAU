@@ -12,18 +12,11 @@
     const burger = document.getElementById('burger');
     const menu = document.getElementById('nl');
     if (nav && burger && menu) {
-      const wrap = burger.parentElement;
-      const cartItem = menu.querySelector('li:last-child');
-      const cartButton = cartItem?.querySelector('button[onclick*="cartT"]');
-      if (cartButton && cartButton.parentElement !== wrap) {
-        cartButton.id = 'public-cart-nav';
-        cartButton.classList.add('nav-cart');
-        cartButton.innerHTML = '🛒 <span class="cart-label">Cart</span> (<span id="cc">' + (document.getElementById('cc')?.textContent || '0') + '</span>)';
-        cartItem.remove();
-        wrap.insertBefore(cartButton, burger);
-      }
+      // Keep the cart INSIDE the burger menu. Do not move it beside the logo/burger.
       const home = nav.querySelector('.home-nav-link');
       if (home) home.hidden = true;
+      const cartItem = menu.querySelector('button[onclick*="cartT"]')?.closest('li');
+      if (cartItem) cartItem.hidden = false;
     }
 
     const side = document.getElementById('side');
@@ -51,8 +44,6 @@
       nav .home-nav-link{display:none!important}
       nav #nl{display:none!important}
       nav #burger{display:inline-flex!important;margin-left:auto;flex:0 0 auto}
-      nav #public-cart-nav{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:8px 13px;border-radius:999px;white-space:nowrap;flex:0 0 auto}
-      nav #public-cart-nav .cart-label{display:inline}
       nav #nl.open{display:flex!important;position:absolute;top:72px;left:12px;right:12px;max-height:calc(100vh - 84px);overflow:auto;flex-direction:column;align-items:stretch;gap:4px;padding:12px;background:rgba(255,255,255,.99);border:1px solid #e5dccb;border-radius:16px;box-shadow:0 18px 42px #0003;z-index:80;margin:0}
       nav #nl.open li,nav #nl.open a,nav #nl.open .btn{width:100%}
       nav #nl.open a,nav #nl.open .btn{min-height:44px;text-align:center}
@@ -67,9 +58,6 @@
       }
       @media(max-width:600px){
         nav .wrap{padding-inline:10px;gap:8px}
-        nav #public-cart-nav{width:42px;height:42px;padding:0;font-size:0;border-radius:11px}
-        nav #public-cart-nav .cart-label{display:none}
-        nav #public-cart-nav #cc{font-size:.78rem;margin-left:2px}
         nav #burger{width:42px;height:42px;margin-left:0}
         nav #nl.open{top:62px;left:8px;right:8px}
       }
