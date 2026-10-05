@@ -14,7 +14,7 @@ function masterCss(){
     '.banig{background-image:repeating-linear-gradient(45deg,rgba(123,45,38,.06) 0 8px,transparent 8px 16px),repeating-linear-gradient(-45deg,rgba(242,201,76,.08) 0 8px,transparent 8px 16px);height:10px}',
     'nav{background:rgba(255,250,240,.96);border-bottom:1px solid rgba(123,45,38,.16);backdrop-filter:blur(10px)}',
     'nav ul{gap:8px}',
-    'nav ul li>a,nav ul li>button:not(.master-nav-tool){min-height:38px;min-width:96px;padding:8px 12px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:.9rem;line-height:1.1;text-decoration:none;box-sizing:border-box}',
+    'nav ul li>a,nav ul li>button:not(.master-nav-tool){min-height:38px;min-width:0;padding:8px 6px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:.76rem;line-height:1.1;text-decoration:none;box-sizing:border-box}',
     'nav ul li>button:not(.master-nav-tool){border:1px solid rgba(123,45,38,.18);background:transparent;color:inherit;cursor:pointer}',
     'nav ul li>.master-nav-tool{min-width:38px}',
     '@media(max-width:700px){nav ul li>a,nav ul li>button:not(.master-nav-tool){width:100%;min-width:0}}',
