@@ -3,7 +3,7 @@
   if (isNative) return;
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=20261005-stable1', {scope:'/'})
+      navigator.serviceWorker.register('/sw.js?v=20261006-navux', {scope:'/'})
         .catch(error => console.warn('PWA service worker registration failed', error));
     });
 
@@ -72,43 +72,6 @@
   });
 })();
 
-
-/* FINAL STABLE LANDING HEADER — 2026-10-05 */
-(function(){
-  const applyStablePublicHeader=()=>{
-    const nav=document.querySelector('body > nav');
-    if(!nav)return;
-    const burger=document.getElementById('burger');
-    const menu=document.getElementById('nl');
-    const home=nav.querySelector('.home-nav-link');
-    if(home)home.hidden=true;
-    if(!burger)return;
-    burger.style.display='inline-flex';
-    burger.style.position='absolute';
-    burger.style.right=window.matchMedia('(max-width:600px)').matches?'10px':'18px';
-    burger.style.top='50%';
-    burger.style.transform='translateY(-50%)';
-    burger.style.margin='0';
-    burger.style.width=window.matchMedia('(max-width:600px)').matches?'34px':'36px';
-    burger.style.height=window.matchMedia('(max-width:600px)').matches?'34px':'36px';
-    burger.style.minWidth=burger.style.width;
-    burger.style.minHeight=burger.style.height;
-    burger.style.padding='0';
-    burger.style.zIndex='70';
-    nav.querySelector('.wrap').style.position='relative';
-    nav.querySelector('.wrap').style.paddingRight=window.matchMedia('(max-width:600px)').matches?'56px':'72px';
-    const fab=document.getElementById('cart-fab');
-    if(fab)fab.style.display='none';
-    if(menu){
-      menu.style.left='auto';
-      menu.style.right=window.matchMedia('(max-width:600px)').matches?'8px':'18px';
-      menu.style.width=window.matchMedia('(max-width:600px)').matches?'min(230px,calc(100vw - 16px))':'min(280px,calc(100vw - 36px))';
-    }
-  };
-  window.addEventListener('resize',applyStablePublicHeader);
-  window.addEventListener('DOMContentLoaded',applyStablePublicHeader);
-  setTimeout(applyStablePublicHeader,0);
-})();
 
 /* PUBLIC NAV TOGGLE — keep the existing HTML onclick functional. */
 window.togglePublicNav = function(button){
