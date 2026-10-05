@@ -186,3 +186,20 @@ button,.btn,a.card{min-height:42px}
   .footer-links a,.footer-nav a{min-height:42px;display:inline-flex;align-items:center;padding:8px 10px}
   .footer-logo img.brand-mark{width:44px;height:44px}
 }
+
+
+/* NAV STABILITY PATCH — 2026-10-05 */
+nav .wrap{width:100%;max-width:1180px;min-width:0}
+nav .logo{min-width:0}
+nav .logo span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media(min-width:1181px){
+  nav .wrap{padding-left:12px;padding-right:12px;gap:6px}
+  nav ul{gap:1px;flex:1 1 auto;min-width:0;justify-content:flex-end}
+  nav ul a,nav ul .btn{min-width:0;padding:8px 6px;font-size:.76rem}
+  nav ul li:last-child{flex:0 0 auto}
+}
+@media(max-width:1180px){
+  nav .wrap{position:relative;width:100%;padding-left:12px;padding-right:12px}
+  nav .logo{flex:1 1 auto;min-width:0}
+  nav ul{margin:0}
+}
