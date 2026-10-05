@@ -894,11 +894,11 @@ const validDate=value=>{
   return Number.isNaN(date.valueOf())||date.toISOString().slice(0,10)!==value?null:value;
 };
 app.get('/api/admin/report-range',admin,w((q,r)=>{
-  const today=new Date().toISOString().slice(0,10);
+  const today=kuwaitToday();
   const from=validDate(q.query.from)||validDate(q.query.date)||today;
   const to=validDate(q.query.to)||validDate(q.query.date)||from;
   if(from>to)throw new Error('Start date must be on or before end date');
-  const orders=db.prepare('SELECT * FROM orders WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ? ORDER BY id DESC').all(from,to);
+  const orders=db.prepare("SELECT * FROM orders WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ? ORDER BY id DESC").all(from,to);
   const active=orders.filter(order=>order.status!=='Cancelled');
   const summary={
     from,to,orders:orders.length,
