@@ -86,3 +86,108 @@ nav #nl.open li,nav #nl.open a,nav #nl.open .btn{width:100%}nav #nl.open a,nav #
 nav #nl.open{left:auto;right:18px;width:min(245px,calc(100vw - 36px));max-height:70vh;z-index:110}
 @media(max-width:600px){nav #nl.open{right:8px;left:auto;width:min(220px,calc(100vw - 16px));max-height:65vh}nav #burger{width:36px;height:36px;font-size:1rem}}
 .site-footer{border-top:3px solid var(--y);background:linear-gradient(135deg,#123b30,#174a3a 60%,#205b48)}
+
+
+/* FINAL LANDING NAV + SERVICES PASS — 2026-10-05 */
+nav .wrap{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  width:min(1320px,100%)!important;
+}
+nav .brand-logo{
+  margin-right:auto!important;
+  flex:0 1 auto!important;
+}
+nav .home-nav-link{
+  display:none!important;
+}
+nav #burger{
+  order:3!important;
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  margin-left:0!important;
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  font-size:.95rem!important;
+  border-radius:9px!important;
+}
+nav #nl{
+  order:4!important;
+}
+@media(max-width:600px){
+  nav .wrap{gap:6px!important}
+  nav #burger{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    min-height:32px!important;
+    border-radius:8px!important;
+    font-size:.88rem!important;
+  }
+}
+
+/* Compact, orderly Our Services */
+#services{
+  padding:34px 0 38px!important;
+}
+#services .t{
+  margin-bottom:16px!important;
+}
+#services .t h2{
+  font-size:1.55rem!important;
+}
+#services .t p{
+  font-size:.82rem!important;
+}
+#services .grid{
+  max-width:1040px!important;
+  margin:0 auto!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+#services a.card{
+  min-width:0!important;
+  padding:14px 10px!important;
+  min-height:128px!important;
+  border-radius:10px!important;
+}
+#services a.card .e{
+  font-size:1.7rem!important;
+  line-height:1!important;
+  margin-bottom:8px!important;
+}
+#services a.card h3{
+  font-size:.94rem!important;
+  line-height:1.2!important;
+  margin-bottom:5px!important;
+}
+#services a.card p{
+  font-size:.74rem!important;
+  line-height:1.35!important;
+  opacity:.72!important;
+}
+@media(max-width:900px){
+  #services .grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:600px){
+  #services{
+    padding:28px 0 30px!important;
+  }
+  #services .grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  #services a.card{
+    min-height:118px!important;
+    padding:12px 8px!important;
+  }
+  #services a.card .e{font-size:1.55rem!important}
+  #services a.card h3{font-size:.88rem!important}
+  #services a.card p{font-size:.7rem!important}
+}
