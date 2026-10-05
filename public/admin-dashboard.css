@@ -55,3 +55,17 @@ body{background:var(--admin-bg)}
  #main .report-actions label,.admin-chat-compose .btn{width:100%}
  #main .btn{max-width:100%}
 }
+
+
+/* ADMIN WORKSPACE — prevent legacy shared mobile table rules from forcing horizontal width */
+#main{min-width:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important}
+#main .tw{width:100%!important;max-width:100%!important;overflow-x:auto!important;overflow-y:hidden!important}
+#main table{width:100%;min-width:0}
+@media(max-width:700px){
+  #main table{min-width:0!important}
+  #main .tw table{min-width:0!important}
+  #main .tw tbody{display:block;width:100%}
+  #main .tw tr:not(:first-child){width:100%;min-width:0}
+  #main .tw td{min-width:0;overflow-wrap:anywhere}
+  #main .f2{grid-template-columns:1fr}
+}
