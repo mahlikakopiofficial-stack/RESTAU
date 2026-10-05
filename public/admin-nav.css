@@ -29,3 +29,115 @@
   #main{padding:18px 12px 34px!important}
 }
 @media(max-width:480px){#side{padding:7px 9px!important}#side .admin-brand img{width:36px!important;height:36px!important;flex-basis:36px!important}#side .admin-brand-copy small{display:none!important}#side .admin-nav-menu{left:7px!important;right:7px!important;top:56px!important}}
+
+/* Responsive admin menu — reliable burger/dropdown layout */
+@media(max-width:1180px){
+  .adm{display:block!important;min-height:100vh!important}
+  #side{
+    position:sticky!important;
+    top:0!important;
+    height:auto!important;
+    min-height:64px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:8px 12px!important;
+    overflow:visible!important;
+    box-shadow:0 3px 14px #102e2840!important;
+  }
+  #side .admin-brand{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    padding:2px 4px!important;
+    border:0!important;
+  }
+  #side .admin-brand img{
+    width:38px!important;
+    height:38px!important;
+    flex:0 0 38px!important;
+  }
+  #side .admin-nav-toggle{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    flex:0 0 auto!important;
+    width:44px!important;
+    min-width:44px!important;
+    height:42px!important;
+    min-height:42px!important;
+    padding:0!important;
+    border:1px solid #ffffff35!important;
+    border-radius:10px!important;
+    background:#ffffff12!important;
+    color:#fff!important;
+    font-size:1.2rem!important;
+    cursor:pointer!important;
+    position:relative!important;
+    z-index:1002!important;
+  }
+  #side .admin-nav-toggle b{display:none!important}
+  #side .admin-nav-menu{
+    position:absolute!important;
+    top:100%!important;
+    left:12px!important;
+    right:12px!important;
+    width:auto!important;
+    max-height:calc(100vh - 76px)!important;
+    display:none!important;
+    flex-direction:column!important;
+    flex:0 0 auto!important;
+    padding:10px!important;
+    margin:0!important;
+    gap:8px!important;
+    overflow:auto!important;
+    background:#173f35!important;
+    border:1px solid #ffffff20!important;
+    border-radius:14px!important;
+    box-shadow:0 18px 40px #0004!important;
+    z-index:1001!important;
+    box-sizing:border-box!important;
+  }
+  #side .admin-nav-menu.open{
+    display:flex!important;
+  }
+  #side .admin-nav-primary,
+  #side .admin-nav-footer{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:4px!important;
+    min-width:0!important;
+    width:100%!important;
+  }
+  #side .admin-nav-separator{display:block!important;height:1px!important;background:#ffffff22!important;margin:4px 0!important}
+  #side .admin-nav-menu button{
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:44px!important;
+    flex:0 0 auto!important;
+    align-items:center!important;
+    gap:9px!important;
+    padding:10px 12px!important;
+    box-sizing:border-box!important;
+  }
+  #main{padding:18px 14px 34px!important}
+}
+@media(max-width:600px){
+  #side{
+    padding:7px 9px!important;
+    min-height:58px!important;
+  }
+  #side .admin-brand img{
+    width:36px!important;
+    height:36px!important;
+    flex-basis:36px!important;
+  }
+  #side .admin-brand-copy small{display:none!important}
+  #side .admin-nav-menu{
+    left:7px!important;
+    right:7px!important;
+    max-height:calc(100vh - 66px)!important;
+  }
+  #main{padding:14px 10px 28px!important}
+}
