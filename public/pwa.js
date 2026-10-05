@@ -3,7 +3,7 @@
   if (isNative) return;
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=20261005-nav10', {scope:'/'})
+      navigator.serviceWorker.register('/sw.js?v=20261005-stable1', {scope:'/'})
         .catch(error => console.warn('PWA service worker registration failed', error));
     });
 
