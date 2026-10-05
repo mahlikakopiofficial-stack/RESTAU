@@ -1,0 +1,27 @@
+/* PinoyAmbula public navigation — final responsive owner */
+.site-nav{position:sticky!important;top:0!important;z-index:200!important;background:rgba(255,250,240,.98)!important;border-bottom:1px solid #7b2d2628!important;box-shadow:0 3px 14px #0002!important}
+.site-nav .wrap{width:100%!important;max-width:1180px!important;min-height:68px!important;margin:0 auto!important;padding:8px 18px!important;display:flex!important;align-items:center!important;gap:10px!important}
+.site-nav .brand-logo{display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;min-width:0!important;white-space:nowrap!important;text-decoration:none!important;color:#173f35!important}
+.site-nav .brand-logo img{width:40px!important;height:40px!important;flex:0 0 40px!important;object-fit:contain!important}
+.site-nav .brand-logo span{font:800 1.1rem/1 Georgia,serif!important;white-space:nowrap!important}
+.site-nav .home-nav-link{display:none!important}
+.site-nav #burger{display:none!important;flex:0 0 42px!important;width:42px!important;height:42px!important;margin-left:auto!important;align-items:center!important;justify-content:center!important;border:1px solid #173f3530!important;border-radius:10px!important;background:#fff!important;color:#173f35!important;font-size:1.15rem!important;cursor:pointer!important}
+.site-nav #nl{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:3px!important;flex:1 1 auto!important;min-width:0!important;margin:0!important;padding:0!important;list-style:none!important}
+.site-nav #nl li{display:block!important;margin:0!important;min-width:0!important}
+.site-nav #nl li a,.site-nav #nl li .btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:38px!important;padding:7px 8px!important;border-radius:9px!important;white-space:nowrap!important;font:700 .78rem/1.1 system-ui,sans-serif!important;text-decoration:none!important}
+.site-nav #nl li a:hover{background:#f3e8d5!important;color:#b63a2b!important}
+@media(max-width:1180px){
+  .site-nav .wrap{min-height:62px!important;padding:7px 12px!important}
+  .site-nav .home-nav-link{display:none!important}
+  .site-nav #burger{display:inline-flex!important}
+  .site-nav #nl{position:absolute!important;left:10px!important;right:10px!important;top:62px!important;width:auto!important;max-height:calc(100vh - 76px)!important;display:none!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:3px!important;padding:9px!important;overflow:auto!important;background:#fffaf0!important;border:1px solid #7b2d2630!important;border-radius:13px!important;box-shadow:0 14px 34px #0003!important}
+  .site-nav #nl.open{display:flex!important}
+  .site-nav #nl li,.site-nav #nl li a,.site-nav #nl li .btn{width:100%!important}
+  .site-nav #nl li a,.site-nav #nl li .btn{min-height:43px!important;justify-content:flex-start!important;padding:9px 12px!important}
+}
+@media(max-width:520px){
+  .site-nav .wrap{padding:6px 10px!important;gap:7px!important}
+  .site-nav .brand-logo img{width:36px!important;height:36px!important;flex-basis:36px!important}
+  .site-nav .brand-logo span{font-size:1rem!important}
+  .site-nav #burger{width:40px!important;height:40px!important;flex-basis:40px!important}
+}
