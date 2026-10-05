@@ -623,10 +623,20 @@ function adminBoot(){
   patchDrops();
 }
 
+function loadCommerceTheme(){
+  if(document.getElementById('commerce-theme-css'))return;
+  const link=document.createElement('link');
+  link.id='commerce-theme-css';
+  link.rel='stylesheet';
+  link.href='/commerce-theme.css?v=20261005-1';
+  document.head.appendChild(link);
+}
+
 function boot(){
   masterCss();
   const isAdmin=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname.startsWith('admin-');
   if(isAdmin){setTimeout(()=>{try{adminBoot()}catch(e){console.error('MASTER_ADMIN_BOOT_FAILED',e)}},180);return}
+  loadCommerceTheme();
   setTimeout(()=>{
     try{siteBoot()}catch(e){console.error('MASTER_SITE_BOOT_FAILED',e)}
   },150);
