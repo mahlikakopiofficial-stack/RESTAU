@@ -1,11 +1,11 @@
 (() => {
   const isNative = !!window.Capacitor?.isNativePlatform?.();
-  if (!isNative && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+  if (isNative) return;
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js?v=20261003-nativefix1', {scope:'/'})
         .catch(error => console.warn('PWA service worker registration failed', error));
     });
-  }
 
   const installResponsiveNav = () => {
     const nav = document.querySelector('body > nav');
