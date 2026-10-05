@@ -771,8 +771,10 @@ ${f("hero_title", "Homepage headline")}
         d.dataset.customerId=String(id);
         d.dataset.customerEmail=email||"";
         d.dataset.inquiryId="";
-        d.querySelector("#customerChatTitle").textContent="Chat with "+name;
-        d.querySelector("#customerChatMeta").textContent=(email||"No email on file")+" · Customer #"+id;
+        const titleEl=d.querySelector("#customerChatTitle");
+        const metaEl=d.querySelector("#customerChatMeta");
+        if(titleEl)titleEl.textContent="Chat with "+name;
+        if(metaEl)metaEl.textContent=(email||"No email on file")+" · Customer #"+id;
         const list=d.querySelector("#customerChatList");
         const render=messages=>{
           list.innerHTML=messages.length?messages.map(m=>'<div class="message '+(m.author==='admin'?'staff':'')+'"><time>'+esc(m.created||'')+'</time><b>'+(m.author==='admin'?'Staff':'Customer')+'</b><p>'+esc(m.message)+'</p></div>').join(""):'<p class="small">No messages yet. Start the conversation below.</p>';
