@@ -90,7 +90,7 @@ function setupAdmin(){
  };
  const sync=()=>{
   const menu=document.getElementById('adminNavMenu'),toggle=document.querySelector('.admin-nav-toggle');if(!menu)return;
-  if(innerWidth>1180){menu.classList.remove('open');toggle?.setAttribute('aria-expanded','false');toggle?.setAttribute('aria-label','Open admin navigation');if(toggle)toggle.textContent='☰'}
+  if(innerWidth>1100){menu.classList.remove('open');toggle?.setAttribute('aria-expanded','false');toggle?.setAttribute('aria-label','Open admin navigation');if(toggle)toggle.textContent='☰'}
  };
  document.addEventListener('click',e=>{
   const side=document.getElementById('side'),menu=document.getElementById('adminNavMenu'),toggle=document.querySelector('.admin-nav-toggle');
