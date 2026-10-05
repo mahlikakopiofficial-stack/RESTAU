@@ -166,7 +166,7 @@
         let shown=0;
         cards.forEach(card=>{
           const cardCat=String(card.querySelector("select")?.value||card.dataset.cat||"");
-          const hay=[cardCat,...Array.from(card.querySelectorAll("input:not([type="checkbox"]):not([type="file"]),textarea")).map(el=>el.value)].join(" ").toLowerCase();
+          const hay=[cardCat,...Array.from(card.querySelectorAll('input:not([type="checkbox"]):not([type="file"]),textarea')).map(el=>el.value)].join(" ").toLowerCase();
           const visible=(cat==="All"||cardCat===cat)&&(!q||hay.includes(q));
           card.hidden=!visible;
           if(visible)shown++;
