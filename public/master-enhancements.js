@@ -1,4 +1,5 @@
 /* AUTHORITATIVE PUBLIC NAV v2 — public navigation behavior is centralized here. */
+/* Tested responsive breakpoint: @media(max-width:1180px) */
 (function(){
 'use strict';
 
