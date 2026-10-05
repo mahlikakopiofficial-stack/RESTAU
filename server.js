@@ -733,6 +733,24 @@ app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   notifyInquiryReply(inquiry,message);
   r.json({ok:1,id:Number(id),emailQueued:!!inquiry.email});
 }));
+app.post('/api/admin/customers/:id/messages',admin,w((q,r)=>{
+  need(q.body,'message');
+  const customer=one('SELECT id,name,email,phone FROM customers WHERE id=?',q.params.id);
+  if(!customer)return r.status(404).json({error:'Customer not found'});
+  const message=String(q.body.message).trim().slice(0,4000);
+  if(!message)throw new Error('Message is required');
+  let inquiry=one("SELECT id,name,email,phone,type,msg FROM inquiries WHERE customer_id=? ORDER BY id DESC LIMIT 1",customer.id);
+  if(!inquiry){
+    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,name,email,phone,type,msg,status) VALUES(?,?,?,?,?,?,?)')
+      .run(customer.id,customer.name,customer.email||'',customer.phone||'','Support',message,'Replied').lastInsertRowid);
+    inquiry=one('SELECT id,name,email,phone,type,msg FROM inquiries WHERE id=?',id);
+  }else{
+    db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(inquiry.id);
+  }
+  const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid;
+  if(inquiry.email)notifyInquiryReply(inquiry,message);
+  r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(id),emailQueued:!!inquiry.email});
+}));
 app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
   const subject=String(q.body.subject||'').trim();
   const message=String(q.body.message||'').trim();
