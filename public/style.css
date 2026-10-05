@@ -237,3 +237,34 @@ nav .logo span{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .site-nav .home-nav-link{font-size:.8rem;padding:7px 10px}
   .site-nav #burger{width:40px;height:40px}
 }
+
+
+/* NAV / CART / REGIONAL UX FIX — 2026-10-06 */
+.site-nav{isolation:isolate}
+.site-nav #nl{z-index:500}
+#cart{z-index:1000}
+body.cart-open{overflow:hidden}
+#cart::backdrop{background:rgba(17,24,20,.35)}
+.regional-favorites .master-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.regional-favorites .card{height:100%;display:flex;flex-direction:column}
+.regional-favorites .card .p{display:flex;flex-direction:column;flex:1;min-width:0}
+.regional-favorites .master-item-media{width:100%;height:190px;min-height:190px;object-fit:cover;object-position:center;background:#ead8b7}
+@media(max-width:1100px){
+  .site-nav .wrap{max-width:100%;padding-left:14px;padding-right:14px}
+  .site-nav #nl{left:14px;right:14px}
+  .regional-favorites .master-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .regional-favorites .master-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #cart{width:min(460px,100vw)}
+}
+@media(max-width:600px){
+  .regional-favorites .master-grid{grid-template-columns:1fr}
+  .regional-favorites .master-item-media{height:210px;min-height:210px}
+  #cart{width:100vw;padding:14px}
+}
+@media(min-width:601px) and (max-width:1180px){
+  .site-nav #nl.open{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .site-nav #nl.open li:last-child{grid-column:1/-1}
+  .site-nav #nl.open li,.site-nav #nl.open li a,.site-nav #nl.open li .btn{width:100%}
+}
