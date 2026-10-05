@@ -10,3 +10,20 @@
 #side .admin-nav-separator{width:1px;height:24px;background:#ffffff33;margin:0 3px;flex:0 0 auto}
 @media(max-width:1180px){#side{min-height:58px;padding:7px 10px}#side .admin-nav-toggle{display:inline-flex;align-items:center;justify-content:center}#side .admin-nav-menu{position:absolute;top:58px;left:10px;right:10px;display:none;flex-direction:column;align-items:stretch;gap:3px;margin:0;padding:10px;background:#fff;border:1px solid #e5dccb;border-radius:13px;box-shadow:0 14px 35px #0003;max-height:calc(100vh - 72px);overflow:auto}#side .admin-nav-menu.open{display:flex}#side .admin-nav-menu button{width:100%;min-height:42px;color:#173f35;text-align:left;padding:9px 12px}#side .admin-nav-menu button.on{background:#173f35;color:#fff}#side .admin-nav-separator{width:100%;height:1px;margin:5px 0;background:#e5dccb}}
 @media(max-width:600px){#side .admin-brand span{display:none}#side .admin-brand img{width:34px;height:34px}#side .admin-nav-menu{top:55px;left:8px;right:8px}}
+
+
+/* Dashboard content: keep the admin workspace readable at every width. */
+#main{width:100%;max-width:1600px;margin:0 auto;padding:22px clamp(12px,2vw,28px) 40px;box-sizing:border-box;overflow-x:hidden}
+#main>h2{margin:0 0 18px;font-size:clamp(1.35rem,2vw,1.8rem)}
+#main .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+#main .card{min-width:0;box-sizing:border-box}
+#main .tw{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#main table{min-width:720px}
+#main input,#main select,#main textarea{max-width:100%;box-sizing:border-box}
+@media(max-width:700px){
+  #main{padding:16px 10px 28px}
+  #main .grid{grid-template-columns:1fr}
+  #main .admin-chat-layout{grid-template-columns:1fr!important}
+  #main .report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #main .report-actions .btn{width:100%}
+}
