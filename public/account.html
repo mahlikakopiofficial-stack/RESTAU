@@ -436,26 +436,7 @@
                     );
                   })
                   .join("");
-                const driverBlock =
-                  status === "Out for delivery"
-                    ? '<div class="order-driver" style="margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ead9b8;background:#fffaf0"><b>Driver</b><br>' +
-                      (o.driver_name
-                        ? "<span>Driver name: " +
-                          esc(o.driver_name) +
-                          "</span><br>"
-                        : "<span>Driver name: pending</span><br>") +
-                      (o.driver_phone
-                        ? '<span>Driver number: <a href="tel:' +
-                          esc(o.driver_phone) +
-                          '">' +
-                          esc(o.driver_phone) +
-                          '</a> <a target="_blank" rel="noopener" href="https://wa.me/' +
-                          String(o.driver_phone).replace(/[^0-9]/g, "") +
-                          '">WhatsApp</a></span>'
-                        : "<span>Driver number: pending</span>") +
-                      "</div>"
-                    : "";
-                const receipt = o.received_at
+                const driverBlock = "";\n                const receipt = o.received_at
                   ? "Received confirmed"
                   : ["Delivered", "Completed"].includes(status)
                     ? '<button class="btn s" onclick="confirmReceipt(' +
