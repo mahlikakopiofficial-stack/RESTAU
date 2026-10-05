@@ -24,6 +24,7 @@ body{background:#f6f7f5}.preview-note{padding:10px 15px;background:#fff8e6;borde
 @media(max-width:900px){.demo-products{grid-template-columns:repeat(2,1fr)}.demo-services{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.demo-shell{padding:0 15px 40px}.demo-nav{margin:0 -15px;padding:12px 15px}.demo-hero{margin-top:12px;padding:44px 24px;min-height:390px;text-align:center;justify-content:center}.demo-hero p{margin-left:auto;margin-right:auto}.demo-products{grid-template-columns:1fr 1fr;gap:12px}.demo-photo{height:150px;font-size:56px}.demo-card .body{padding:13px}.demo-services{grid-template-columns:1fr 1fr}.demo-service{padding:18px 10px}.demo-card h3{font-size:16px}.demo-card p{font-size:13px}.demo-title{font-size:28px}}
 @media(max-width:390px){.demo-products{grid-template-columns:1fr}.demo-services{grid-template-columns:1fr}.demo-hero h1{font-size:37px}}
+.demo-nav{transition:.2s ease}.demo-nav.open{box-shadow:0 8px 24px rgba(29,41,36,.08)}
 </style>
 </head>
 <body>
@@ -33,8 +34,8 @@ body{background:#f6f7f5}.preview-note{padding:10px 15px;background:#fff8e6;borde
   <div class="demo-icons"><span class="demo-icon">⌕ Search</span><span class="demo-icon">🛒 2</span><span class="demo-icon">☰</span></div>
 </div>
 <main class="demo-shell">
-<section class="demo-hero"><div><div style="font:800 13px Inter,sans-serif;color:#e8b94b;text-transform:uppercase;letter-spacing:.09em;margin-bottom:12px">Traditional Filipino flavors</div><h1>Real food. True Filipino taste.</h1><p>Home-style Filipino favorites, made with care and delivered to your door.</p><a class="demo-btn" href="#menu">Order Now →</a></div></section>
-<section class="demo-section">
+<section id="home" class="demo-hero"><div><div style="font:800 13px Inter,sans-serif;color:#e8b94b;text-transform:uppercase;letter-spacing:.09em;margin-bottom:12px">Traditional Filipino flavors</div><h1>Real food. True Filipino taste.</h1><p>Home-style Filipino favorites, made with care and delivered to your door.</p><a class="demo-btn" href="#menu">Order Now →</a></div></section>
+<section id="services" class="demo-section">
 <h2 class="demo-title">Why customers choose us</h2><p class="demo-sub">Simple, trustworthy, and easy to order.</p>
 <div class="demo-services"><div class="demo-service"><div style="font-size:28px">🚚</div><strong>Fast & Fresh</strong><span>Delivery</span></div><div class="demo-service"><div style="font-size:28px">🛡️</div><strong>Safe & Secure</strong><span>Payments</span></div><div class="demo-service"><div style="font-size:28px">🌿</div><strong>Authentic</strong><span>Recipes</span></div><div class="demo-service"><div style="font-size:28px">❤</div><strong>Local</strong><span>Business</span></div></div>
 </section>
@@ -45,8 +46,16 @@ body{background:#f6f7f5}.preview-note{padding:10px 15px;background:#fff8e6;borde
 <div class="demo-products">
 <article class="demo-card"><div class="demo-photo">🍗</div><div class="body"><h3>Chicken Adobo</h3><p>Soy-vinegar chicken with garlic and rice.</p><div class="demo-price">2.500 KWD</div><button>Add to Cart</button></div></article><article class="demo-card"><div class="demo-photo">🥩</div><div class="body"><h3>Beef Tapa</h3><p>Garlic beef tapa with egg and rice.</p><div class="demo-price">1.800 KWD</div><button>Add to Cart</button></div></article><article class="demo-card"><div class="demo-photo">🍜</div><div class="body"><h3>Pancit Canton</h3><p>Stir-fried noodles with chicken and vegetables.</p><div class="demo-price">2.200 KWD</div><button>Add to Cart</button></div></article><article class="demo-card"><div class="demo-photo">🥥</div><div class="body"><h3>Buko Juice</h3><p>Fresh young coconut juice, served chilled.</p><div class="demo-price">0.900 KWD</div><button>Add to Cart</button></div></article>
 </div>
-<div class="demo-cart"><div class="demo-cart-head"><h3>Your Order</h3><span style="font:700 13px Inter,sans-serif;color:#68746e">2 items</span></div><div class="demo-row"><span>Chicken Adobo × 1</span><b>2.500 KWD</b></div><div class="demo-row"><span>Beef Tapa × 1</span><b>1.800 KWD</b></div><div class="demo-total"><span>Total</span><span>4.300 KWD</span></div><button class="demo-checkout">Proceed to Checkout</button></div>
+<div id="cart" class="demo-cart"><div class="demo-cart-head"><h3>Your Order</h3><span style="font:700 13px Inter,sans-serif;color:#68746e">2 items</span></div><div class="demo-row"><span>Chicken Adobo × 1</span><b>2.500 KWD</b></div><div class="demo-row"><span>Beef Tapa × 1</span><b>1.800 KWD</b></div><div class="demo-total"><span>Total</span><span>4.300 KWD</span></div><button class="demo-checkout">Proceed to Checkout</button></div>
 </section>
 </main>
+<script>
+const menuBtn=document.querySelector('.demo-icon:last-child');
+const nav=document.querySelector('.demo-nav');
+menuBtn.addEventListener('click',()=>{nav.classList.toggle('open');let m=document.getElementById('demo-mobile-nav');if(!m){m=document.createElement('div');m.id='demo-mobile-nav';m.innerHTML='<a href="#home">Home</a><a href="#menu">Menu</a><a href="#services">Services</a><a href="#cart">Cart</a><a href="#account">Account</a>';Object.assign(m.style,{position:'sticky',top:'65px',zIndex:9,background:'#fff',borderBottom:'1px solid #e5e8e4',padding:'8px 15px',boxShadow:'0 8px 20px rgba(29,41,36,.08)'});m.querySelectorAll('a').forEach(a=>Object.assign(a.style,{display:'block',padding:'11px',textDecoration:'none',font:'700 14px Inter,sans-serif',color:'#173f35'}));nav.after(m)}else m.remove()});
+document.querySelectorAll('.demo-tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.demo-tab').forEach(x=>x.classList.remove('on'));t.classList.add('on')}));
+document.querySelector('.demo-search input').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.demo-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
+document.querySelectorAll('.demo-card button').forEach(b=>b.addEventListener('click',()=>{b.textContent='Added ✓';b.style.background='#b63a2b';setTimeout(()=>{b.textContent='Add to Cart';b.style.background='#173f35'},900)}));
+</script>
 </body>
 </html>
