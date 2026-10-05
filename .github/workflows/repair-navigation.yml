@@ -1,0 +1,108 @@
+name: Repair navigation
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace admin navigation CSS and install public navigation override
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          admin = Path('public/admin-nav.css')
+          admin.write_text(r'''/* PinoyAmbula admin navigation — single clean responsive owner */
+          .adm{display:grid!important;grid-template-columns:250px minmax(0,1fr)!important;min-height:100vh!important;width:100%!important;background:#f7f3ea!important}
+          #side{position:sticky!important;top:0!important;height:100vh!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:14px 12px!important;overflow:hidden auto!important;background:#173f35!important;z-index:300!important;box-sizing:border-box!important}
+          #side .admin-brand{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important;margin:0!important;padding:6px 6px 14px!important;border-bottom:1px solid #ffffff22!important;color:#fff!important}
+          #side .admin-brand img{width:40px!important;height:40px!important;flex:0 0 40px!important;border-radius:10px!important;background:#fff!important;object-fit:contain!important}
+          #side .admin-brand-copy{min-width:0!important;overflow:hidden!important}
+          #side .admin-brand-copy b{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+          #side .admin-brand-copy small{display:block!important;margin-top:2px!important;color:#ffffffaa!important;font-size:.68rem!important;text-transform:uppercase!important;white-space:nowrap!important}
+          #side .admin-nav-toggle{display:none!important}
+          #side .admin-nav-menu{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;gap:10px!important;min-width:0!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:hidden!important}
+          #side .admin-nav-primary,#side .admin-nav-footer{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important}
+          #side .admin-nav-primary{overflow:auto!important;padding-right:2px!important}
+          #side .admin-nav-menu button{display:flex!important;align-items:center!important;width:100%!important;min-width:0!important;min-height:40px!important;flex:0 0 auto!important;gap:9px!important;padding:8px 10px!important;border:1px solid transparent!important;border-radius:9px!important;background:transparent!important;color:#fff!important;text-align:left!important;white-space:nowrap!important;overflow:hidden!important;font:600 .83rem/1.2 system-ui,sans-serif!important;cursor:pointer!important}
+          #side .admin-nav-menu button:hover{background:#ffffff14!important}
+          #side .admin-nav-menu button.on{background:#fff!important;color:#173f35!important}
+          #side .admin-nav-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:21px!important;min-width:21px!important;height:21px!important;font-size:.92rem!important}
+          #side .admin-nav-menu button>span:last-child{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
+          #main{min-width:0!important;width:100%!important;max-width:none!important;margin:0!important;padding:28px clamp(16px,3vw,38px) 44px!important;box-sizing:border-box!important;overflow-x:hidden!important}
+          @media(max-width:900px){
+            .adm{display:block!important;min-height:100vh!important}
+            #side{position:sticky!important;top:0!important;height:auto!important;min-height:64px!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px!important;padding:8px 12px!important;overflow:visible!important;box-shadow:0 3px 14px #102e2840!important}
+            #side .admin-brand{flex:1 1 auto!important;padding:2px 4px!important;border:0!important}
+            #side .admin-brand img{width:38px!important;height:38px!important;flex-basis:38px!important}
+            #side .admin-nav-toggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:44px!important;height:42px!important;padding:0!important;border:1px solid #ffffff35!important;border-radius:10px!important;background:#ffffff12!important;color:#fff!important;font-size:1.2rem!important;cursor:pointer!important}
+            #side .admin-nav-menu{position:absolute!important;left:10px!important;right:10px!important;top:60px!important;width:auto!important;max-height:calc(100vh - 72px)!important;display:none!important;padding:8px!important;gap:8px!important;overflow:auto!important;background:#173f35!important;border:1px solid #ffffff20!important;border-radius:12px!important;box-shadow:0 14px 34px #0004!important}
+            #side .admin-nav-menu.open{display:flex!important}
+            #side .admin-nav-primary,#side .admin-nav-footer{gap:3px!important}
+            #side .admin-nav-menu button{min-height:42px!important}
+            #main{padding:18px 12px 34px!important}
+          }
+          @media(max-width:480px){#side{padding:7px 9px!important}#side .admin-brand img{width:36px!important;height:36px!important;flex-basis:36px!important}#side .admin-brand-copy small{display:none!important}#side .admin-nav-menu{left:7px!important;right:7px!important;top:56px!important}}
+          ''', encoding='utf-8')
+
+          nav = Path('public/nav-repair.css')
+          nav.write_text(r'''/* PinoyAmbula public navigation — final responsive owner */
+          .site-nav{position:sticky!important;top:0!important;z-index:200!important;background:rgba(255,250,240,.98)!important;border-bottom:1px solid #7b2d2628!important;box-shadow:0 3px 14px #0002!important}
+          .site-nav .wrap{width:100%!important;max-width:1180px!important;min-height:68px!important;margin:0 auto!important;padding:8px 18px!important;display:flex!important;align-items:center!important;gap:10px!important}
+          .site-nav .brand-logo{display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;min-width:0!important;white-space:nowrap!important;text-decoration:none!important;color:#173f35!important}
+          .site-nav .brand-logo img{width:40px!important;height:40px!important;flex:0 0 40px!important;object-fit:contain!important}
+          .site-nav .brand-logo span{font:800 1.1rem/1 Georgia,serif!important;white-space:nowrap!important}
+          .site-nav .home-nav-link{display:none!important}
+          .site-nav #burger{display:none!important;flex:0 0 42px!important;width:42px!important;height:42px!important;margin-left:auto!important;align-items:center!important;justify-content:center!important;border:1px solid #173f3530!important;border-radius:10px!important;background:#fff!important;color:#173f35!important;font-size:1.15rem!important;cursor:pointer!important}
+          .site-nav #nl{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:3px!important;flex:1 1 auto!important;min-width:0!important;margin:0!important;padding:0!important;list-style:none!important}
+          .site-nav #nl li{display:block!important;margin:0!important;min-width:0!important}
+          .site-nav #nl li a,.site-nav #nl li .btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:38px!important;padding:7px 8px!important;border-radius:9px!important;white-space:nowrap!important;font:700 .78rem/1.1 system-ui,sans-serif!important;text-decoration:none!important}
+          .site-nav #nl li a:hover{background:#f3e8d5!important;color:#b63a2b!important}
+          @media(max-width:1180px){
+            .site-nav .wrap{min-height:62px!important;padding:7px 12px!important}
+            .site-nav .home-nav-link{display:none!important}
+            .site-nav #burger{display:inline-flex!important}
+            .site-nav #nl{position:absolute!important;left:10px!important;right:10px!important;top:62px!important;width:auto!important;max-height:calc(100vh - 76px)!important;display:none!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:3px!important;padding:9px!important;overflow:auto!important;background:#fffaf0!important;border:1px solid #7b2d2630!important;border-radius:13px!important;box-shadow:0 14px 34px #0003!important}
+            .site-nav #nl.open{display:flex!important}
+            .site-nav #nl li,.site-nav #nl li a,.site-nav #nl li .btn{width:100%!important}
+            .site-nav #nl li a,.site-nav #nl li .btn{min-height:43px!important;justify-content:flex-start!important;padding:9px 12px!important}
+          }
+          @media(max-width:520px){
+            .site-nav .wrap{padding:6px 10px!important;gap:7px!important}
+            .site-nav .brand-logo img{width:36px!important;height:36px!important;flex-basis:36px!important}
+            .site-nav .brand-logo span{font-size:1rem!important}
+            .site-nav #burger{width:40px!important;height:40px!important;flex-basis:40px!important}
+          }
+          ''', encoding='utf-8')
+
+          index=Path('public/index.html')
+          text=index.read_text(encoding='utf-8')
+          if 'nav-repair.css' not in text:
+              marker='<link rel="stylesheet" href="style.css" />'
+              text=text.replace(marker, marker+'\n    <link rel="stylesheet" href="/nav-repair.css?v=20261006-final" />',1)
+          index.write_text(text,encoding='utf-8')
+
+          admin_html=Path('public/admin.html')
+          text=admin_html.read_text(encoding='utf-8')
+          text=text.replace('/admin-nav.css?v=20261006-6','/admin-nav.css?v=20261006-final')
+          admin_html.write_text(text,encoding='utf-8')
+
+      - name: Validate
+        run: |
+          node --check public/master-enhancements.js
+          node --check public/app.js
+          node --check public/pwa.js
+          git diff --check
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/index.html public/admin.html public/admin-nav.css public/nav-repair.css
+          git commit -m "final clean responsive navigation" || exit 0
+          git push
