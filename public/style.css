@@ -289,3 +289,11 @@ body.cart-open{overflow:hidden}
   .site-nav #nl.open{display:flex!important}
   .site-nav #nl li:last-child{grid-column:auto!important}
 }
+
+
+/* PUBLIC RESPONSIVE 1000PX TESTED BREAKPOINT — 2026-10-06 */
+@media(max-width:1000px){
+  .site-nav .wrap{max-width:100%;padding-inline:14px}
+  .regional-favorites .card{min-width:0}
+  #main{min-width:0}
+}
