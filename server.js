@@ -650,7 +650,7 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(b.start)))throw new Error('Invalid start date');
   const start=new Date(b.start+'T00:00:00Z');
   if(isNaN(start)||start.toISOString().slice(0,10)!==b.start)throw new Error('Invalid start date');
-  if(b.start<new Date().toISOString().slice(0,10))throw new Error('Start date cannot be in the past');
+  if(b.start<kuwaitToday())throw new Error('Start date cannot be in the past');
   const duration=Math.max(1,Math.min(366,+p.duration_days||26));
   const end=new Date(start);end.setUTCDate(end.getUTCDate()+duration-1);
   const date=x=>x.toISOString().slice(0,10);
@@ -782,7 +782,7 @@ app.get('/api/admin/notifications',admin,w((q,r)=>{
   r.json({...cursors,events});
 }));
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
-app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:new Date().toISOString().slice(0,10),orders=db.prepare("SELECT * FROM orders WHERE date(created)=? ORDER BY id").all(date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(created)=?",date).n,inquiries:one('SELECT COUNT(*) n FROM inquiries WHERE date(created)=?',date).n,newsletter:one('SELECT COUNT(*) n FROM newsletter WHERE date(created)=?',date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
+app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:new Date().toISOString().slice(0,10),orders=db.prepare("SELECT * FROM orders WHERE date(datetime(created,'+3 hours'))=? ORDER BY id").all(date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(created)=?",date).n,inquiries:one('SELECT COUNT(*) n FROM inquiries WHERE date(created)=?',date).n,newsletter:one('SELECT COUNT(*) n FROM newsletter WHERE date(created)=?',date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
 const T=['orders','customers','subs','inquiries','newsletter','testimonials','gallery','items','plans'],DEL=['items','gallery','testimonials','inquiries','newsletter','customers','plans'];
 app.get('/api/admin/list/:t',admin,w((q,r)=>{const t=q.params.t;if(!T.includes(t))throw new Error('bad table');r.json(t==='customers'?db.prepare('SELECT id,name,phone,email,created,(SELECT COUNT(*) FROM orders o WHERE o.customer_id=customers.id) orders,(SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.customer_id=customers.id) spent FROM customers ORDER BY id DESC').all():db.prepare(`SELECT * FROM ${t} ORDER BY id DESC`).all())}));
 app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
@@ -898,7 +898,7 @@ app.get('/api/admin/report-range',admin,w((q,r)=>{
   const from=validDate(q.query.from)||validDate(q.query.date)||today;
   const to=validDate(q.query.to)||validDate(q.query.date)||from;
   if(from>to)throw new Error('Start date must be on or before end date');
-  const orders=db.prepare('SELECT * FROM orders WHERE date(created) BETWEEN ? AND ? ORDER BY id DESC').all(from,to);
+  const orders=db.prepare('SELECT * FROM orders WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ? ORDER BY id DESC').all(from,to);
   const active=orders.filter(order=>order.status!=='Cancelled');
   const summary={
     from,to,orders:orders.length,
