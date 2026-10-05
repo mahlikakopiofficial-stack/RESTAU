@@ -15,7 +15,7 @@ nav ul a:hover,nav ul a:focus-visible{background:#f7eedf;color:var(--r)}
 nav ul .btn{white-space:nowrap}
 #burger{display:none;font-size:1.25rem;background:#fff;border:1px solid #0002;cursor:pointer;width:42px;height:42px;border-radius:11px;align-items:center;justify-content:center;color:var(--b);box-shadow:0 2px 8px #0001}
 .home-nav-link{display:none;align-items:center;justify-content:center;padding:8px 11px;border:1px solid #0002;border-radius:10px;text-decoration:none;font-size:.82rem;font-weight:800;color:var(--b);background:#fff;white-space:nowrap}
-@media(max-width:1180px){
+@media(max-width:1000px){
   nav .wrap{min-height:62px}
   .home-nav-link{display:inline-flex;margin-left:auto}
   #burger{display:inline-flex}
@@ -25,7 +25,7 @@ nav ul .btn{white-space:nowrap}
   nav ul a,nav ul .btn{min-height:42px}
   nav ul li .btn{text-align:center}
 }
-@media(min-width:1181px){.home-nav-link{display:none}}
+@media(min-width:1001px){.home-nav-link{display:none}}
 @media(max-width:600px){
   nav .wrap{gap:7px}
   nav .logo{font-size:1.02rem}
