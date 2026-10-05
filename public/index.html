@@ -9,11 +9,11 @@
       name="description"
       content="Authentic Filipino home cooking, catering and delivery"
     />
-    <link rel="stylesheet" href="style.css?v=20261005-nav5" />
+    <link rel="stylesheet" href="style.css" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#7b2d26" />
     <script src="/runtime-config.js"></script>
-    <script src="/pwa.js?v=20261005-nav10"></script>
+    <script src="/pwa.js"></script>
   </head>
   <body>
     <div class="banig"></div>
@@ -31,7 +31,7 @@
         <a class="logo brand-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home"><img src="/icons/pinoyambula.svg?v=universal-20261005" alt="PinoyAmbula" width="40" height="40" class="brand-mark"><span>PinoyAmbula</span></a>
         <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
         <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
-        <ul id="nl">
+        <ul id="nl" onclick="this.classList.remove('open')">
           <li><a href="#services">Services</a></li>
           <li><a href="#menu">Menu</a></li>
           <li><a href="#plans">Subscription Plan</a></li>
@@ -323,7 +323,6 @@
     <script>
       let items = [],
         cart = JSON.parse(localStorage.getItem("cart") || "{}"),
-        regionalCartItems = JSON.parse(localStorage.getItem("regionalCartItems") || "{}"),
         cat = "Regular",
         FEE = 0,
         config = {};
@@ -332,26 +331,6 @@
         i.discount_price > 0 && i.discount_price < i.price
           ? i.discount_price
           : i.price;
-      const regionalKey = (id) => "r:" + String(id);
-      const cartItem = (id) => {
-        const key=String(id);
-        if(key.startsWith("r:")){
-          const r=window.__regionalCartItems?.[Number(key.slice(2))];
-          return r ? {id:key,name:r.name,cat:"Regional",price:+r.price||0,regular_price:+r.price||0,qty:cart[key]} : null;
-        }
-        const i=items.find(x=>x.id==id);
-        return i ? {...i,qty:cart[key]} : null;
-      };
-      window.__regionalCartItems=regionalCartItems||{};
-      window.addRegionalToCart=function(id,name,price){
-        const key=regionalKey(id);
-        window.__regionalCartItems[id]={id,name,price};
-        regionalCartItems[id]={id,name,price};
-        localStorage.setItem("regionalCartItems",JSON.stringify(regionalCartItems));
-        cart[key]=(cart[key]||0)+1;
-        sv();
-        toast("Added to cart");
-      };
       const card = (
         i,
       ) => `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
@@ -404,7 +383,6 @@
       }
       const sv = () => {
         localStorage.setItem("cart", JSON.stringify(cart));
-        localStorage.setItem("regionalCartItems", JSON.stringify(window.__regionalCartItems||{}));
         renderCart();
       };
       function add(id) {
@@ -476,7 +454,9 @@
       window.addEventListener("focus", fillCustomerDetails);
       fillCustomerDetails();
       function renderCart() {
-        const ids = Object.keys(cart).filter((id) => cartItem(id));
+        const ids = Object.keys(cart).filter((id) =>
+          items.find((i) => i.id == id),
+        );
         let sub = 0;
         const count = ids.reduce((s, id) => s + cart[id], 0);
         $("#cc").textContent = count;
@@ -484,10 +464,10 @@
         $("#lines").innerHTML = ids.length
           ? ids
               .map((id) => {
-                const i = cartItem(id),
+                const i = items.find((x) => x.id == id),
                   price = itemPrice(i);
                 sub += price * cart[id];
-                return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${JSON.stringify(id)},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${JSON.stringify(id)},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
+                return `<div class="line"><span>${esc(i.name)}</span><span><button class="btn s o" onclick="chg(${id},-1)">−</button> ${cart[id]} <button class="btn s o" onclick="chg(${id},1)">+</button></span><b>${money(price * cart[id])}</b></div>`;
               })
               .join("")
           : '<p style="padding:14px 0;opacity:.7">Your cart is empty.</p>';
@@ -516,7 +496,7 @@
         if (reward === 5) rewardDiscount = sub * 0.2;
         if (reward === 10) {
           const meal = ids
-            .map((id) => cartItem(id))
+            .map((id) => items.find((item) => item.id == id))
             .filter((item) => item && ["Regular", "Budget"].includes(item.cat))
             .sort((a, b) => itemPrice(a) - itemPrice(b))[0];
           if (meal) rewardDiscount = itemPrice(meal);
@@ -550,7 +530,7 @@
       async function place(e) {
         e.preventDefault();
         const f = Object.fromEntries(new FormData(e.target));
-        f.items = Object.entries(cart).map(([id, qty]) => ({ id, qty }));
+        f.items = Object.entries(cart).map(([id, qty]) => ({ id: +id, qty }));
         if (config.accepting === false) {
           toast("The restaurant is closed and cannot accept orders right now.");
           return;
@@ -807,6 +787,6 @@
     </script>
     <script src="enhancements.js"></script>
     <script src="final-fixes.js"></script>
-    <script src="master-enhancements.js?v=20261005-nav5"></script>
+    <script src="master-enhancements.js"></script>
   </body>
 </html>
