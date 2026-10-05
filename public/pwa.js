@@ -3,7 +3,7 @@
   if (isNative) return;
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=20261006-navux', {scope:'/'})
+      navigator.serviceWorker.register('/sw.js?v=20261006-adminfix', {scope:'/'})
         .catch(error => console.warn('PWA service worker registration failed', error));
     });
 
@@ -17,22 +17,6 @@
       const cartItem = menu.querySelector('button[onclick*="cartT"]')?.closest('li');
       if (cartItem) cartItem.hidden = false;
     }
-
-    const side = document.getElementById('side');
-    const adminApp = document.getElementById('app');
-    if (side && adminApp && !document.getElementById('admin-nav-toggle')) {
-      const toggle = document.createElement('button');
-      toggle.id = 'admin-nav-toggle';
-      toggle.type = 'button';
-      toggle.className = 'btn s admin-nav-toggle';
-      toggle.textContent = '☰ Admin Menu';
-      toggle.setAttribute('aria-expanded', 'false');
-      toggle.onclick = () => {
-        const open = side.classList.toggle('admin-nav-open');
-        toggle.setAttribute('aria-expanded', String(open));
-      };
-      adminApp.insertBefore(toggle, side);
-    }
   };
 
   const injectResponsiveStyles = () => {
@@ -41,7 +25,7 @@
     style.id = 'responsive-nav-footer-runtime';
     style.textContent = `
       /* Navigation layout is owned by style.css + master-enhancements.js. */
-      /* Do not inject a second public/admin navigation system here. */
+      /* Admin navigation layout is owned by admin-nav.css. */
       .site-footer{background:var(--b)!important;color:#fff!important;border-top:3px solid var(--y)!important;padding:0!important;text-align:left!important;overflow:hidden!important}
       .site-footer-inner{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;max-width:1320px!important;min-height:58px!important;white-space:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important}
       .site-footer-inner::-webkit-scrollbar{display:none!important}
@@ -67,8 +51,6 @@
   window.addEventListener('DOMContentLoaded', () => {
     injectResponsiveStyles();
     installResponsiveNav();
-    const side = document.getElementById('side');
-    if (side) new MutationObserver(installResponsiveNav).observe(side, {childList:true, subtree:true});
   });
 })();
 
