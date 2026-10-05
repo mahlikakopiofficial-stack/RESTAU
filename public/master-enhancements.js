@@ -12,12 +12,12 @@ function masterCss(){
     ':root{--pa-maroon:#7b2d26;--pa-gold:#f2c94c;--pa-cream:#fffaf0;--pa-deep:#24352f;--pa-sand:#ead8b7}',
     'body{background:var(--pa-cream);color:var(--pa-deep)}',
     '.banig{background-image:repeating-linear-gradient(45deg,rgba(123,45,38,.06) 0 8px,transparent 8px 16px),repeating-linear-gradient(-45deg,rgba(242,201,76,.08) 0 8px,transparent 8px 16px);height:10px}',
-    'nav{background:rgba(255,250,240,.96);border-bottom:1px solid rgba(123,45,38,.16);backdrop-filter:blur(10px)}',
-    'nav ul{gap:8px}',
-    'nav ul li>a,nav ul li>button:not(.master-nav-tool){min-height:38px;min-width:0;padding:8px 6px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:.76rem;line-height:1.1;text-decoration:none;box-sizing:border-box}',
-    'nav ul li>button:not(.master-nav-tool){border:1px solid rgba(123,45,38,.18);background:transparent;color:inherit;cursor:pointer}',
-    'nav ul li>.master-nav-tool{min-width:38px}',
-    '@media(max-width:700px){nav ul li>a,nav ul li>button:not(.master-nav-tool){width:100%;min-width:0}}',
+    '.site-nav{background:rgba(255,250,240,.96);border-bottom:1px solid rgba(123,45,38,.16);backdrop-filter:blur(10px)}',
+    '.site-nav ul{gap:8px}',
+    '.site-nav ul li>a,nav ul li>button:not(.master-nav-tool){min-height:38px;min-width:0;padding:8px 6px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:.76rem;line-height:1.1;text-decoration:none;box-sizing:border-box}',
+    '.site-nav ul li>button:not(.master-nav-tool){border:1px solid rgba(123,45,38,.18);background:transparent;color:inherit;cursor:pointer}',
+    '.site-nav ul li>.master-nav-tool{min-width:38px}',
+    '@media(max-width:700px){.site-nav ul li>a,nav ul li>button:not(.master-nav-tool){width:100%;min-width:0}}',
     '.logo{color:var(--pa-maroon);font-weight:800}',
     '.hero{background-color:#123b37;border-bottom:5px solid var(--pa-gold)}',
     '.card{border:1px solid rgba(123,45,38,.12);box-shadow:0 8px 26px rgba(72,42,22,.08)}',
@@ -128,7 +128,7 @@ function cartOutside(){
 }
 
 async function addPromos(){
-  const nav=document.querySelector('nav');
+  const nav=document.querySelector('.site-nav');
   if(!nav)return;
   let rows=[];
   try{rows=await api('/announcements')}catch{return}
