@@ -7,7 +7,7 @@
     <title>Admin — PinoyAmbula</title>
     <meta name="robots" content="noindex" />
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="/admin-nav.css?v=20261006-8" />
+    <link rel="stylesheet" href="/admin-nav.css?v=20261006-9" />
     <link rel="stylesheet" href="/admin-dashboard.css?v=20261006-5" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#7b2d26" />
@@ -134,23 +134,28 @@
       window.toggleAdminNav=function(btn){
         const menu=document.getElementById("adminNavMenu");
         if(!menu)return;
-        const open=menu.classList.toggle("open");
-        btn.setAttribute("aria-expanded",open?"true":"false");
+        const open=!menu.classList.contains("open");
+        menu.classList.toggle("open",open);
+        btn?.setAttribute("aria-expanded",open?"true":"false");
+        btn?.setAttribute("aria-label",open?"Close admin navigation":"Open admin navigation");
       };
       document.addEventListener("click",(e)=>{
         const menu=document.getElementById("adminNavMenu");
         const toggle=document.querySelector(".admin-nav-toggle");
-        if(menu?.classList.contains("open")&&!menu.contains(e.target)&&e.target!==toggle){
+        if(menu?.classList.contains("open")&&!menu.contains(e.target)&&!toggle?.contains(e.target)){
           menu.classList.remove("open");
           toggle?.setAttribute("aria-expanded","false");
+          toggle?.setAttribute("aria-label","Open admin navigation");
         }
       });
       window.addEventListener("resize",()=>{
+        const menu=document.getElementById("adminNavMenu");
+        const toggle=document.querySelector(".admin-nav-toggle");
+        if(!menu||!toggle)return;
         if(window.innerWidth>1180){
-          const menu=document.getElementById("adminNavMenu");
-          const toggle=document.querySelector(".admin-nav-toggle");
-          menu?.classList.remove("open");
-          toggle?.setAttribute("aria-expanded","false");
+          menu.classList.remove("open");
+          toggle.setAttribute("aria-expanded","false");
+          toggle.setAttribute("aria-label","Open admin navigation");
         }
       });
       let A_after = null;
