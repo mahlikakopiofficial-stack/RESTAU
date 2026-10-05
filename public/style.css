@@ -297,31 +297,85 @@ body.cart-open{overflow:hidden}
   .regional-favorites .card{min-width:0}
   #main{min-width:0}
 }
-\n/* Compact, uniform checkbox controls. */
+/* PUBLIC UI COMPACT / UNIFORM — 2026-10-06 */
 input[type="checkbox"],
 input[type="radio"]{
+  appearance:auto;
   width:16px!important;
   min-width:16px!important;
   max-width:16px!important;
   height:16px!important;
   min-height:16px!important;
+  max-height:16px!important;
   margin:0 6px 0 0!important;
   padding:0!important;
   flex:0 0 16px!important;
   vertical-align:middle;
   accent-color:currentColor;
 }
-label:has(input[type="checkbox"]),
-label:has(input[type="radio"]){
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]){
   display:inline-flex;
   align-items:center;
   gap:6px;
 }
-#services{padding:34px 0;}
-#services .t{margin-bottom:14px;}
-#services .grid{gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
-#services a.card{padding:14px 12px;}
-#services a.card .e{font-size:2rem;line-height:1;margin-bottom:7px;}
-#services a.card .p{padding:0;}
-#services a.card h3{margin:7px 0 5px;font-size:1rem;}
-#services a.card p{margin:0;font-size:.82rem;}
+
+/* Smaller hero */
+.hero{padding:58px 0}
+.hero h1{font-size:clamp(1.85rem,5vw,3rem)}
+.hero p{margin:10px auto 18px;max-width:600px;font-size:1rem}
+.hero .btn{margin:3px}
+
+/* Smaller menu section */
+#menu{padding:34px 0}
+#menu .t{margin-bottom:14px}
+#menu .t h2{font-size:1.75rem}
+#menu .t p{font-size:.88rem}
+#menu .menu-search{padding:10px 12px;margin:4px auto 12px}
+#menu .tabs{gap:6px;margin-bottom:14px}
+#menu .tabs button{padding:6px 12px;font-size:.82rem}
+#menu .menu-summary{margin:-2px 0 12px;font-size:.82rem}
+#menu-list .grid{gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
+.menu-card,
+.menu-card.card{height:100%;display:flex;flex-direction:column}
+.menu-card .p{min-height:160px;display:flex;flex:1;flex-direction:column;padding:13px}
+.menu-card h3{font-size:1rem;margin-bottom:5px}
+.menu-description{font-size:.82rem;margin-top:4px}
+.menu-card-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:10px;min-height:38px}
+.menu-price{min-width:0;flex:1;line-height:1.1}
+.menu-card-actions .menu-add,
+.menu-card .menu-add{width:104px;min-width:104px;min-height:34px;padding:6px 10px;font-size:.8rem;border-radius:8px;white-space:nowrap}
+.menu-card .ph{height:125px;min-height:125px;font-size:3rem}
+
+/* Regional cards use the same button baseline */
+#regional-grid .card{height:100%;display:flex;flex-direction:column}
+#regional-grid .card>.p{display:flex;flex:1;flex-direction:column;padding:13px}
+#regional-grid .card .pr{margin-top:auto;padding-top:8px}
+#regional-grid .card>[data-regional-id]{width:104px;min-width:104px;min-height:34px;padding:6px 10px;font-size:.8rem;border-radius:8px;align-self:flex-end}
+
+/* Uniform compact WhatsApp / consent checkboxes */
+.master-optin input[type="checkbox"],
+.master-optin input[type="radio"]{
+  width:16px!important;
+  min-width:16px!important;
+  max-width:16px!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  flex:0 0 16px!important;
+  margin:1px 0 0!important;
+  padding:0!important;
+}
+@media(max-width:600px){
+  .hero{padding:46px 0}
+  #menu{padding:28px 0}
+  #menu-list .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .menu-card .p{min-height:150px;padding:11px}
+  .menu-card .ph{height:105px;min-height:105px}
+  .menu-card-actions{gap:5px}
+  .menu-card-actions .menu-add,
+  .menu-card .menu-add{width:92px;min-width:92px;font-size:.74rem;padding-inline:7px}
+}
+@media(max-width:420px){
+  #menu-list .grid{grid-template-columns:1fr}
+}
