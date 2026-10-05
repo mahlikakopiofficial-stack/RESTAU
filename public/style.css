@@ -244,9 +244,10 @@ nav #nl.open a,nav #nl.open .btn{min-height:42px!important;text-align:center!imp
 
 
 /* RESPONSIVE SYSTEM — FINAL CLEAN OVERRIDE
-   Public navigation owns only the customer site. Admin navigation is isolated in admin-nav.css.
+   Public navigation: horizontal on wide/medium screens, compact menu when space is tight.
 */
 nav .wrap{
+  position:relative;
   width:min(1320px,100%);
   min-height:72px;
   padding:0 18px;
@@ -257,6 +258,7 @@ nav .wrap{
 nav .brand-logo{
   min-width:0;
   flex:0 1 auto;
+  margin:0 auto 0 0;
 }
 nav .brand-logo span{
   min-width:0;
@@ -264,26 +266,10 @@ nav .brand-logo span{
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-nav .home-nav-link{
-  display:inline-flex!important;
-  flex:0 0 auto;
-  align-items:center;
-  justify-content:center;
-  min-height:42px;
-  padding:8px 11px;
-  border:1px solid #0002;
-  border-radius:10px;
-  text-decoration:none;
-  font-size:.82rem;
-  font-weight:800;
-  color:var(--b);
-  background:#fff;
-  white-space:nowrap;
-}
+nav .home-nav-link{display:none!important}
 nav #burger{
   display:none!important;
   flex:0 0 auto;
-  margin-left:0;
 }
 nav #nl{
   display:flex!important;
@@ -296,7 +282,8 @@ nav #nl{
   flex-direction:row!important;
   align-items:center!important;
   justify-content:flex-end!important;
-  gap:4px!important;
+  flex-wrap:nowrap!important;
+  gap:2px!important;
   padding:0!important;
   margin:0 0 0 auto!important;
   background:transparent!important;
@@ -305,17 +292,48 @@ nav #nl{
   box-shadow:none!important;
 }
 nav #nl li{flex:0 0 auto;min-width:0}
-nav #nl a,nav #nl .btn{
+nav #nl a,
+nav #nl .btn{
   width:auto!important;
-  min-width:0;
-  min-height:42px;
-  padding:8px 9px;
+  min-width:0!important;
+  min-height:40px;
+  padding:7px 8px;
   white-space:nowrap;
+  font-size:.78rem;
 }
-@media(max-width:1180px){
+nav #nl .btn{padding-inline:9px}
+
+/* Medium screens: keep the navigation horizontal but tighten it. */
+@media(min-width:1001px) and (max-width:1180px){
+  nav .wrap{min-height:64px;padding:0 12px;gap:7px}
+  nav #nl{gap:0!important}
+  nav #nl a,
+  nav #nl .btn{
+    min-height:38px;
+    padding:6px 6px;
+    font-size:.72rem;
+    border-radius:8px;
+  }
+}
+
+/* Narrow screens: switch cleanly to an accessible hamburger menu. */
+@media(max-width:1000px){
   nav .wrap{min-height:62px;padding:0 14px}
-  nav .home-nav-link{display:none!important}
-  nav #burger{display:inline-flex!important;margin-left:auto;align-items:center;justify-content:center;width:42px;height:42px;padding:0;border:1px solid #0002;border-radius:11px;background:#fff;color:var(--b);font-size:1.25rem;cursor:pointer}
+  nav #burger{
+    display:inline-flex!important;
+    margin-left:auto;
+    align-items:center;
+    justify-content:center;
+    width:42px;
+    height:42px;
+    padding:0;
+    border:1px solid #0002;
+    border-radius:11px;
+    background:#fff;
+    color:var(--b);
+    font-size:1.25rem;
+    cursor:pointer;
+  }
   nav #nl{
     display:none!important;
     position:absolute!important;
@@ -328,6 +346,7 @@ nav #nl a,nav #nl .btn{
     flex-direction:column!important;
     align-items:stretch!important;
     justify-content:flex-start!important;
+    flex-wrap:nowrap!important;
     gap:5px!important;
     padding:10px!important;
     margin:0!important;
@@ -338,11 +357,24 @@ nav #nl a,nav #nl .btn{
     z-index:80!important;
   }
   nav #nl.open{display:flex!important}
-  nav #nl li,nav #nl a,nav #nl .btn{width:100%!important}
-  nav #nl a,nav #nl .btn{min-height:44px;padding:9px 12px;text-align:center;justify-content:center}
+  nav #nl li,
+  nav #nl a,
+  nav #nl .btn{width:100%!important}
+  nav #nl a,
+  nav #nl .btn{
+    min-height:44px;
+    padding:9px 12px;
+    font-size:.86rem;
+    text-align:center;
+    justify-content:center;
+  }
 }
-@media(min-width:601px) and (max-width:1180px){
-  nav #nl.open{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+@media(min-width:601px) and (max-width:1000px){
+  nav #nl.open{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
   nav #nl.open li:last-child{grid-column:1/-1}
 }
 @media(max-width:600px){
@@ -351,7 +383,12 @@ nav #nl a,nav #nl .btn{
   nav .brand-logo img.brand-mark{width:34px!important;height:34px!important}
   nav .brand-logo span{font-size:1rem}
   nav #burger{width:42px;height:42px}
-  nav #nl{top:60px!important;left:8px!important;right:8px!important;max-height:calc(100vh - 72px)!important}
+  nav #nl{
+    top:60px!important;
+    left:8px!important;
+    right:8px!important;
+    max-height:calc(100vh - 72px)!important;
+  }
   nav #nl.open{display:flex!important}
 }
 @media(max-width:430px){
