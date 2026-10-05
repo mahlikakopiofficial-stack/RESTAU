@@ -28,7 +28,7 @@
     </div>
     <nav>
       <div class="wrap">
-        <a class="logo brand-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home"><img src="/icons/pinoyambula.svg" alt="" width="40" height="40"><span>PinoyAmbula</span></a>
+        <a class="logo brand-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home"><img src="/icons/pinoyambula.svg?v=universal-20261005" alt="PinoyAmbula" width="40" height="40" class="brand-mark"><span>PinoyAmbula</span></a>
         <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
         <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
         <ul id="nl" onclick="this.classList.remove('open')">
@@ -216,7 +216,7 @@
       <div class="wrap site-footer-inner">
         <div class="footer-brand">
           <a class="brand-logo footer-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home">
-            <img src="/icons/pinoyambula.svg" alt="" width="48" height="48">
+            <img src="/icons/pinoyambula.svg?v=universal-20261005" alt="PinoyAmbula" width="48" height="48" class="brand-mark">
             <span id="ft">PinoyAmbula</span>
           </a>
           <p class="footer-thanks">Maraming Salamat po!</p>
@@ -396,7 +396,15 @@
         sv();
       }
       function cartT() {
-        $("#cart").classList.toggle("open");
+        const cart = $("#cart");
+        const isOpen = cart.classList.toggle("open");
+        document.documentElement.classList.toggle("cart-open", isOpen);
+        document.body.classList.toggle("cart-open", isOpen);
+        const navLogo = document.querySelector("nav .brand-logo");
+        if (navLogo) navLogo.setAttribute("aria-hidden", isOpen ? "true" : "false");
+        if (isOpen && window.matchMedia("(max-width: 600px)").matches) {
+          cart.querySelector("button[onclick*=\"cartT\"]")?.focus({preventScroll:true});
+        }
       }
       let loadedCustomerToken = "";
       async function fillCustomerDetails() {
