@@ -17,3 +17,38 @@
 @media(max-width:900px){.grid4,.statrow{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr 1fr}.navlinks{display:none}.burger{display:block}.nav.open .navlinks{display:flex;position:absolute;left:12px;right:12px;top:60px;background:#fff;border:1px solid var(--line);border-radius:14px;flex-direction:column;padding:8px;box-shadow:0 15px 32px rgba(0,0,0,.12)}.nav.open .navlinks a{width:100%}.admin{grid-template-columns:1fr}.side{position:sticky;top:0;z-index:5;display:flex;gap:5px;overflow:auto;white-space:nowrap}.main{padding:15px}}
 @media(max-width:560px){.grid4,.grid3,.grid2{grid-template-columns:1fr 1fr}.hero{padding:45px 22px;text-align:center}.hero p{margin-left:auto;margin-right:auto}.row{display:block}.footergrid{grid-template-columns:1fr}.section{padding:45px 0}.photo{height:155px;font-size:56px}}
 @media(max-width:380px){.grid4,.grid3,.grid2{grid-template-columns:1fr}.hero h1{font-size:38px}}
+
+/* Preview: extra mobile responsiveness + compact admin navigation */
+@media(max-width:900px){
+  .admin{grid-template-columns:1fr}
+  .admin .side{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:3px;padding:5px 6px;overflow-x:auto;white-space:nowrap}
+  .admin .side .side-brand{flex:0 0 auto;padding:4px 6px;font-size:11px}
+  .admin .side .side-brand img{width:23px;height:23px}
+  .admin .side a{flex:0 0 auto;min-height:30px;padding:6px 8px;border-radius:7px;font-size:11px}
+}
+@media(min-width:901px){
+  .admin{grid-template-columns:128px 1fr}
+  .admin .side{padding:9px 6px;gap:2px}
+  .admin .side .side-brand{padding:5px 5px 9px;font-size:11px}
+  .admin .side .side-brand img{width:24px;height:24px}
+  .admin .side a{min-height:30px;padding:6px 7px;font-size:10px;border-radius:7px}
+  .admin .main{padding:18px 20px}
+}
+@media(max-width:600px){
+  .wrap{width:min(100% - 20px,1240px)}
+  .hero{margin-top:8px;border-radius:18px;padding:42px 20px;min-height:360px}
+  .hero .btn{width:100%;margin:4px 0}
+  .section{padding:42px 0}
+  .search{height:50px}
+  .grid4,.grid3,.grid2{gap:12px}
+  .photo{height:145px}
+  .cardbody{padding:13px}
+  .gallery{height:180px}
+  .cart{bottom:10px;left:10px;right:10px;width:auto}
+  .footer{padding-bottom:30px}
+}
+@media(max-width:390px){
+  .grid4,.grid3,.grid2{grid-template-columns:1fr}
+  .service{padding:18px 12px}
+  .hero h1{font-size:36px}
+}
