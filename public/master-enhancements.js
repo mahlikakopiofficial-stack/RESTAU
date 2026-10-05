@@ -7,7 +7,8 @@ const escm=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const q=(s,r=document)=>r.querySelector(s), $=(s,r=document)=>[...r.querySelectorAll(s)];
 const kuwaitDateTime=window.kuwaitDateTime||((value)=>{
   const raw=String(value??'').trim(); if(!raw)return '';
-  const iso=/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(raw)?raw.replace(' ','T')+'Z':raw;
+  const isSqlDateTime=raw.length===19&&raw[4]==='-'&&raw[7]==='-'&&raw[10]===' '&&raw[13]===':'&&raw[16]===':';
+  const iso=isSqlDateTime?raw.replace(' ','T')+'Z':raw;
   const d=new Date(iso); if(Number.isNaN(d.valueOf()))return raw;
   return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
 });
@@ -390,17 +391,20 @@ function adminBoot(){
   const announcementToApiDateTime=value=>{
     const raw=String(value||'').trim();
     if(!raw)return '';
-    const date=new Date(raw);
+    const isLocal=raw.length>=16&&raw[4]==='-'&&raw[7]==='-'&&raw[10]==='T';
+    const date=new Date(isLocal?raw.slice(0,16)+':00+03:00':raw);
     if(Number.isNaN(date.valueOf()))throw new Error('Invalid announcement date/time');
     return date.toISOString().slice(0,19).replace('T',' ');
   };
   const announcementFromApiDateTime=value=>{
     const raw=String(value||'').trim();
     if(!raw)return '';
-    const date=new Date(raw.replace(' ','T')+'Z');
+    const iso=raw.length===19&&raw[10]===' '?raw.replace(' ','T')+'Z':raw;
+    const date=new Date(iso);
     if(Number.isNaN(date.valueOf()))return '';
-    const pad=n=>String(n).padStart(2,'0');
-    return date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'T'+pad(date.getHours())+':'+pad(date.getMinutes());
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(date);
+    const get=k=>parts.find(p=>p.type===k)?.value||'';
+    return get('year')+'-'+get('month')+'-'+get('day')+'T'+get('hour')+':'+get('minute');
   };
   const announcementInputEsc=value=>escm(value||'');
   window.saveAnnouncement=async function(id,form){
