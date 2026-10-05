@@ -60,31 +60,23 @@
         nav #burger{width:42px;height:42px;margin-left:0}
         nav #nl.open{top:62px;left:8px;right:8px}
       }
-      .site-footer{background:var(--b)!important;color:#fff!important;border-top:4px solid var(--y)!important;padding:0!important;text-align:left!important}
-      .site-footer-inner{display:grid!important;grid-template-columns:minmax(250px,1.35fr) minmax(180px,1fr) minmax(180px,1fr) auto!important;align-items:stretch!important;gap:0!important;max-width:1320px!important;padding-top:30px!important;padding-bottom:24px!important}
-      .footer-brand{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;padding:0 28px 0 0!important;min-width:0!important}
-      .footer-brand .brand-logo{color:#fff!important;font-size:1.15rem!important;font-weight:800!important}
-      .footer-brand .footer-logo img{width:52px!important;height:52px!important}
-      .footer-brand .footer-thanks{margin:7px 0 0 61px!important;white-space:normal!important;opacity:.72!important;font-size:.84rem!important}
-      .footer-links{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:6px!important;padding:0 24px!important;border-left:1px solid #ffffff20!important;min-width:0!important}
+      .site-footer{background:var(--b)!important;color:#fff!important;border-top:3px solid var(--y)!important;padding:0!important;text-align:left!important;overflow:hidden!important}
+      .site-footer-inner{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;max-width:1320px!important;min-height:58px!important;white-space:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important}
+      .site-footer-inner::-webkit-scrollbar{display:none!important}
+      .footer-brand{display:flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important}
+      .footer-brand .footer-logo img{width:34px!important;height:34px!important}
+      .footer-brand .brand-logo{color:#fff!important;font-size:.92rem!important;font-weight:800!important}
+      .footer-brand .footer-thanks{margin:0!important;opacity:.7!important;font-size:.76rem!important}
+      .footer-links,.footer-nav{display:flex!important;align-items:center!important;gap:12px!important;flex:0 0 auto!important;margin:0!important;padding:0!important;border:0!important;min-width:0!important}
       .footer-links:empty{display:none!important}
-      .footer-links a{display:inline-flex!important;align-items:center!important;min-height:32px!important;color:#fff!important;text-decoration:none!important;opacity:.9!important}
-      .footer-links a:hover,.footer-links a:focus-visible{color:var(--y)!important;opacity:1!important}
-      .footer-nav{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:6px!important;padding:0 0 0 24px!important;border-left:1px solid #ffffff20!important;font-size:.86rem!important;min-width:145px!important}
-      .footer-nav a{color:#fff!important;text-decoration:none!important;opacity:.9!important;min-height:32px!important;display:flex!important;align-items:center!important}
-      .footer-nav a:hover,.footer-nav a:focus-visible{color:var(--y)!important;opacity:1!important}
-      @media(max-width:980px){
-        .site-footer-inner{grid-template-columns:1fr 1fr!important;gap:22px 0!important}
-        .footer-brand{grid-column:1/-1!important;padding:0 0 6px!important}
-        .footer-links{border-left:0!important;padding:0!important}
-        .footer-nav{border-left:0!important;padding:0!important;min-width:0!important}
-      }
+      .site-footer a{color:#fff!important;text-decoration:none!important;opacity:.88!important;font-size:.78rem!important;white-space:nowrap!important}
+      .site-footer a:hover,.site-footer a:focus-visible{color:var(--y)!important;opacity:1!important}
       @media(max-width:600px){
-        .site-footer-inner{display:flex!important;flex-direction:column!important;gap:20px!important;padding-top:28px!important;padding-bottom:22px!important}
-        .footer-brand{align-items:center!important;text-align:center!important;padding:0!important}
-        .footer-brand .footer-thanks{margin:6px 0 0!important}
-        .footer-links,.footer-nav{align-items:center!important;text-align:center!important;width:100%!important;padding:0!important;border:0!important;gap:4px!important}
-        .footer-links a,.footer-nav a{justify-content:center!important;min-height:38px!important;padding:4px 8px!important}
+        .site-footer-inner{min-height:52px!important;gap:10px!important;padding-inline:10px!important}
+        .footer-brand .footer-logo img{width:30px!important;height:30px!important}
+        .footer-brand .footer-thanks{display:none!important}
+        .footer-links,.footer-nav{gap:10px!important}
+        .site-footer a{font-size:.74rem!important}
       }
     `;
     document.head.appendChild(style);
