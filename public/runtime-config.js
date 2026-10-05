@@ -30,11 +30,14 @@ window.PINOY_RUNTIME = Object.freeze({
 
   const enhance=()=>{
     const side=document.getElementById('side');
-    if(!side || side.dataset.navEnhanced==='1') return;
+    if(!side) return;
+    const existingMenu=side.querySelector('.admin-nav-menu');
+    const existingToggle=side.querySelector('.admin-nav-toggle');
+    if(existingMenu && existingToggle) return;
+    side.dataset.navEnhanced='1';
     const brand=side.querySelector('.admin-brand');
     const buttons=[...side.querySelectorAll(':scope > button')];
     if(!brand || !buttons.length) return;
-    side.dataset.navEnhanced='1';
 
     const menu=document.createElement('div');
     menu.className='admin-nav-menu';
