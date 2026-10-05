@@ -32,7 +32,7 @@ nav #burger{display:none!important;flex:0 0 40px!important;margin-left:0!importa
 .admin-final-nav #side .admin-nav-menu button{width:auto!important;min-width:0!important;min-height:40px!important;padding:8px 10px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:#fff!important;white-space:nowrap!important;font:600 .8rem/1.2 system-ui,sans-serif!important;text-align:center!important}
 .admin-final-nav #side .admin-nav-menu button.on{background:#fff!important;color:#173f35!important}
 .admin-final-nav #side .admin-nav-separator{width:1px!important;height:24px!important;margin:0 3px!important;background:#ffffff33!important}
-@media(max-width:1180px){
+@media(max-width:1450px){
  .admin-final-nav #side{min-height:58px!important;padding:7px 10px!important}
  .admin-final-nav #side .admin-nav-toggle{display:inline-flex!important;align-items:center!important;justify-content:center!important}
  .admin-final-nav #side .admin-nav-menu{position:absolute!important;top:58px!important;left:10px!important;right:10px!important;display:none!important;flex-direction:column!important;align-items:stretch!important;gap:3px!important;margin:0!important;padding:10px!important;background:#fff!important;border:1px solid #e5dccb!important;border-radius:13px!important;box-shadow:0 14px 35px #0003!important;max-height:calc(100vh - 72px)!important;overflow:auto!important;z-index:400!important}
