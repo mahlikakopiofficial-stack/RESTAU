@@ -87,9 +87,9 @@
           '<div class="admin-brand" data-brand-logo><img src="/icons/pinoyambula.svg" alt="PinoyAmbula" width="42" height="42"><span>PinoyAmbula</span></div>' +
           '<button class="admin-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false" onclick="toggleAdminNav(this)">☰</button>' +
           '<nav class="admin-nav-menu" id="adminNavMenu" aria-label="Admin navigation">' +
-          TABS.map((x) => '<button type="button" class="' + (x == t ? "on" : "") + '" onclick="go(\\'' + x + '\\')">' + x + '</button>').join("") +
+          TABS.map((x) => '<button type="button" class="' + (x == t ? "on" : "") + '" onclick="go(&quot;' + x.replace(/"/g, '&quot;') + '&quot;)">' + x + '</button>').join("") +
           '<span class="admin-nav-separator" aria-hidden="true"></span>' +
-          '<button type="button" onclick="location.href=\\'/website\\'">← Website</button>' +
+          '<button type="button" onclick="location.href=&quot;/website&quot;">← Website</button>' +
           '<button type="button" onclick="out()">Logout</button>' +
           '</nav>';
         if(typeof applyUniversalBranding==="function")applyUniversalBranding();
