@@ -4,6 +4,15 @@ const API_ORIGIN=String(window.PINOY_RUNTIME?.apiOrigin||'').replace(/\/$/,'');
 async function api(u,m='GET',b,key='ct'){const h={},fd=b instanceof FormData;if(b&&!fd)h['Content-Type']='application/json';if(tk(key))h.Authorization='Bearer '+tk(key);
 const r=await fetch(API_ORIGIN+'/api'+u,{method:m,headers:h,body:b?(fd?b:JSON.stringify(b)):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Error '+r.status);return d}
 const money=n=>Number(n).toFixed(3)+' '+CUR;
+const kuwaitDateTime=value=>{
+  const raw=String(value??'').trim();
+  if(!raw)return '';
+  const iso=/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(raw)?raw.replace(' ','T')+'Z':raw;
+  const d=new Date(iso);
+  if(Number.isNaN(d.valueOf()))return raw;
+  return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
+};
+window.kuwaitDateTime=kuwaitDateTime;
 const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2800)}
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
