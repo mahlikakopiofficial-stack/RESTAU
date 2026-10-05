@@ -109,3 +109,34 @@
   window.addEventListener('DOMContentLoaded',applyStablePublicHeader);
   setTimeout(applyStablePublicHeader,0);
 })();
+
+/* PUBLIC NAV TOGGLE — keep the existing HTML onclick functional. */
+window.togglePublicNav = function(button){
+  const menu = document.getElementById('nl');
+  if(!menu) return;
+  const open = !menu.classList.contains('open');
+  menu.classList.toggle('open', open);
+  if(button) button.setAttribute('aria-expanded', String(open));
+  if(button) button.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+};
+
+window.addEventListener('click', function(event){
+  const menu = document.getElementById('nl');
+  const button = document.getElementById('burger');
+  if(!menu || !button || !menu.classList.contains('open')) return;
+  if(!menu.contains(event.target) && !button.contains(event.target)){
+    menu.classList.remove('open');
+    button.setAttribute('aria-expanded','false');
+    button.setAttribute('aria-label','Open navigation menu');
+  }
+});
+
+window.addEventListener('keydown', function(event){
+  if(event.key !== 'Escape') return;
+  const menu = document.getElementById('nl');
+  const button = document.getElementById('burger');
+  if(!menu || !button) return;
+  menu.classList.remove('open');
+  button.setAttribute('aria-expanded','false');
+  button.setAttribute('aria-label','Open navigation menu');
+});
