@@ -151,11 +151,6 @@
       side.appendChild(b);
     };
     const obs=new MutationObserver(addEmailButton);obs.observe(document.body,{childList:true,subtree:true});setTimeout(addEmailButton,500);
-
-    // Keep every admin navigation control visually consistent on desktop and mobile.
-    const style=document.createElement('style');
-    style.textContent='#side{display:flex;flex-wrap:wrap;gap:8px;align-items:center}#side button,#side a{box-sizing:border-box;min-height:40px;padding:9px 12px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}#side .btn{font-size:.9rem}';
-    document.head.appendChild(style);
   }
 
   // Customer delivery/driver state: show a clear pending state until a driver is assigned.
