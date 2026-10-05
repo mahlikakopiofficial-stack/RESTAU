@@ -413,3 +413,99 @@ label:has(> input[type="radio"]){
     padding-inline:7px;
   }
 }
+
+/* ADMIN MENU FILTERS / FINAL CONTROL ALIGNMENT — 2026-10-06 */
+.admin-menu-tools{
+  display:grid;
+  grid-template-columns:auto minmax(160px,220px) auto minmax(220px,1fr) auto;
+  align-items:center;
+  gap:8px 10px;
+  margin:0 0 12px;
+  padding:10px 12px;
+  background:#fff;
+  border:1px solid #e5dccb;
+  border-radius:12px;
+}
+.admin-menu-tools label{
+  margin:0;
+  font-size:.78rem;
+  font-weight:800;
+  color:#53655b;
+}
+.admin-menu-tools input,
+.admin-menu-tools select{
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:8px 10px;
+  font-size:.85rem;
+}
+.admin-menu-tools span{
+  justify-self:end;
+  font-size:.78rem;
+  font-weight:700;
+  color:#53655b;
+  white-space:nowrap;
+}
+.admin-menu-item[hidden]{display:none!important}
+
+/* One authoritative checkbox/radio size everywhere, including admin inline styles. */
+input[type="checkbox"],
+input[type="radio"]{
+  width:16px!important;
+  min-width:16px!important;
+  max-width:16px!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  padding:0!important;
+  margin:0 6px 0 0!important;
+  flex:0 0 16px!important;
+  vertical-align:middle!important;
+}
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]){
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+#cart-fab{
+  position:fixed!important;
+  right:16px!important;
+  bottom:18px!important;
+  width:auto!important;
+  min-width:112px;
+  min-height:44px;
+  margin:0!important;
+  z-index:1200!important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+@media(max-width:900px){
+  .admin-menu-tools{
+    grid-template-columns:1fr 1fr;
+  }
+  .admin-menu-tools label:nth-of-type(2),
+  .admin-menu-tools #admin-menu-search{
+    grid-column:1/-1;
+  }
+  .admin-menu-tools span{justify-self:start}
+}
+@media(max-width:600px){
+  #cart-fab{
+    right:12px!important;
+    bottom:12px!important;
+    min-width:104px;
+    min-height:42px;
+  }
+  .admin-menu-tools{
+    grid-template-columns:1fr;
+  }
+  .admin-menu-tools label,
+  .admin-menu-tools input,
+  .admin-menu-tools select,
+  .admin-menu-tools span{
+    grid-column:auto!important;
+  }
+}
