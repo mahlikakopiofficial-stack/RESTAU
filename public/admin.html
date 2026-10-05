@@ -109,6 +109,28 @@
           } else toast(x.message);
         }
       }
+      window.toggleAdminNav=function(btn){
+        const menu=document.getElementById("adminNavMenu");
+        if(!menu)return;
+        const open=menu.classList.toggle("open");
+        btn.setAttribute("aria-expanded",open?"true":"false");
+      };
+      document.addEventListener("click",(e)=>{
+        const menu=document.getElementById("adminNavMenu");
+        const toggle=document.querySelector(".admin-nav-toggle");
+        if(menu?.classList.contains("open")&&!menu.contains(e.target)&&e.target!==toggle){
+          menu.classList.remove("open");
+          toggle?.setAttribute("aria-expanded","false");
+        }
+      });
+      window.addEventListener("resize",()=>{
+        if(window.innerWidth>1180){
+          const menu=document.getElementById("adminNavMenu");
+          const toggle=document.querySelector(".admin-nav-toggle");
+          menu?.classList.remove("open");
+          toggle?.setAttribute("aria-expanded","false");
+        }
+      });
       let A_after = null;
       const tbl = (rows, cols) =>
         `<div class="tw"><table><tr>${cols.map((c) => `<th>${c[0]}</th>`).join("")}</tr>${rows.map((r) => `<tr>${cols.map((c) => `<td data-label="${c[0]}">${c[1](r)}</td>`).join("")}</tr>`).join("") || "<tr><td>No records yet</td></tr>"}</table></div>`;
