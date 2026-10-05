@@ -7,16 +7,23 @@
 #side .admin-brand-copy b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #side .admin-brand-copy small{display:block;margin-top:2px;color:#ffffffaa;font-size:.68rem;text-transform:uppercase;white-space:nowrap}
 #side .admin-nav-toggle{display:none}
-#side .admin-nav-menu{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1 1 auto;min-width:0;margin:0;padding:0;background:transparent;border:0;box-shadow:none;overflow:visible}
-#side .admin-nav-primary{display:flex;align-items:center;gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-#side .admin-nav-primary::-webkit-scrollbar{display:none}
-#side .admin-nav-footer{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+#side .admin-nav-menu{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex:1 1 auto;min-width:0;margin:0;padding:0;background:transparent;border:0;box-shadow:none;overflow:visible}
+#side .admin-nav-primary{display:flex;align-items:center;justify-content:flex-start;gap:4px;min-width:0;flex:1 1 auto;flex-wrap:wrap;overflow:visible}
+#side .admin-nav-footer{display:flex;align-items:center;gap:4px;flex:0 0 auto;align-self:center}
 #side .admin-nav-menu button{display:inline-flex;align-items:center;width:auto;min-width:max-content;min-height:40px;flex:0 0 auto;gap:7px;padding:8px 9px;border:1px solid transparent;border-radius:9px;background:transparent;color:#fff;text-align:left;white-space:nowrap;overflow:hidden;font:600 .78rem/1.2 system-ui,sans-serif;cursor:pointer;box-sizing:border-box}
 #side .admin-nav-menu button:hover{background:#ffffff14}
 #side .admin-nav-menu button.on{background:#fff;color:#173f35}
 #side .admin-nav-icon{display:inline-flex;align-items:center;justify-content:center;width:19px;min-width:19px;height:19px;font-size:.9rem}
 #side .admin-nav-menu button>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
-#main{display:block;min-width:0;width:100%;max-width:none;margin:0;padding:clamp(18px,2.5vw,32px) clamp(14px,3vw,38px) 44px;box-sizing:border-box;overflow-x:hidden}
+#main{display:block;min-width:0;width:100%;max-width:none;margin:0;padding:clamp(18px,2.5vw,32px) clamp(14px,3vw,38px) 44px;box-sizing:border-box;overflow:visible}
+html,body{min-width:0;width:100%;overflow-x:hidden;overflow-y:auto}
+#app{width:100%;min-width:0}
+@media(min-width:1181px){
+  #side{align-items:flex-start}
+  #side .admin-brand{align-self:center}
+  #side .admin-nav-menu{align-items:center}
+  #side .admin-nav-primary{align-content:center}
+}
 @media(max-width:1180px){
   #side{min-height:64px;padding:8px 12px}
   #side .admin-brand{flex:1 1 auto;min-width:0;padding:2px 4px}
