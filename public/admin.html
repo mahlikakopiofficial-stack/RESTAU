@@ -159,6 +159,22 @@
         }
       });
       let A_after = null;
+      function filterAdminMenu(){
+        const q=String(document.getElementById("admin-menu-search")?.value||"").trim().toLowerCase();
+        const cat=String(document.getElementById("admin-menu-category")?.value||"All");
+        const cards=document.querySelectorAll("#admin-menu-list > .admin-menu-item");
+        let shown=0;
+        cards.forEach(card=>{
+          const cardCat=String(card.querySelector("select")?.value||card.dataset.cat||"");
+          const hay=[cardCat,...Array.from(card.querySelectorAll("input:not([type="checkbox"]):not([type="file"]),textarea")).map(el=>el.value)].join(" ").toLowerCase();
+          const visible=(cat==="All"||cardCat===cat)&&(!q||hay.includes(q));
+          card.hidden=!visible;
+          if(visible)shown++;
+        });
+        const count=document.getElementById("admin-menu-count");
+        if(count)count.textContent=shown+" "+(shown===1?"dish":"dishes")+" shown";
+      }
+
       const tbl = (rows, cols) =>
         `<div class="tw"><table><tr>${cols.map((c) => `<th>${c[0]}</th>`).join("")}</tr>${rows.map((r) => `<tr>${cols.map((c) => `<td data-label="${c[0]}">${c[1](r)}</td>`).join("")}</tr>`).join("") || "<tr><td>No records yet</td></tr>"}</table></div>`;
       const del = (t, id) =>
@@ -929,20 +945,4 @@ ${f("hero_title", "Homepage headline")}
     <script src="final-fixes.js"></script>
     <script src="master-enhancements.js"></script>
   </body>
-</html>      function filterAdminMenu(){
-        const q=String(document.getElementById("admin-menu-search")?.value||"").trim().toLowerCase();
-        const cat=String(document.getElementById("admin-menu-category")?.value||"All");
-        const cards=document.querySelectorAll("#admin-menu-list > .admin-menu-item");
-        let shown=0;
-        cards.forEach(card=>{
-          const matchesCat=cat==="All"||card.dataset.cat===cat;
-          const hay=String(card.dataset.search||"").toLowerCase();
-          const matchesText=!q||hay.includes(q);
-          const visible=matchesCat&&matchesText;
-          card.hidden=!visible;
-          if(visible)shown++;
-        });
-        const count=document.getElementById("admin-menu-count");
-        if(count)count.textContent=shown+" "+(shown===1?"dish":"dishes")+" shown";
-      }
-
+</html>
