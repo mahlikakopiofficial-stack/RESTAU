@@ -1,4 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v26';
+const CACHE_NAME='pinoyambula-shell-v27';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -11,6 +11,7 @@ const SHELL=[
   '/master-enhancements.js',
   '/admin-fixes.js?v=20261006-chat6',
   '/admin-notify.js?v=20261006-order1',
+  '/admin-report-fix.js?v=20261006-report2',
   '/media-runtime-fix.js',
   '/pwa.js',
   '/runtime-config.js',
