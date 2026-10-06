@@ -3,6 +3,7 @@ let CUR='KWD';const tk=k=>localStorage.getItem(k);
 const API_ORIGIN=String(window.PINOY_RUNTIME?.apiOrigin||'').replace(/\/$/,'');
 async function api(u,m='GET',b,key='ct'){const h={},fd=b instanceof FormData;if(b&&!fd)h['Content-Type']='application/json';if(tk(key))h.Authorization='Bearer '+tk(key);
 const r=await fetch(API_ORIGIN+'/api'+u,{method:m,headers:h,body:b?(fd?b:JSON.stringify(b)):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Error '+r.status);return d}
+window.api=api;
 const money=n=>Number(n).toFixed(3)+' '+CUR;
 const kuwaitDateTime=value=>{
   const raw=String(value??'').trim();
@@ -20,10 +21,15 @@ const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
 if(document.title.includes('Admin')){
   window.addEventListener('load',()=>{
-    if(document.getElementById('admin-fixes-script'))return;
-    const css=document.createElement('link');css.rel='stylesheet';css.id='admin-fixes-style';css.href='/admin-fixes.css?v=20261003-1';document.head.appendChild(css);
-    const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261003-1';document.head.appendChild(s);
-    const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261003-1';document.head.appendChild(n);
+    if(!document.getElementById('admin-fixes-style')){
+      const css=document.createElement('link');css.rel='stylesheet';css.id='admin-fixes-style';css.href='/admin-fixes.css?v=20261003-1';document.head.appendChild(css);
+    }
+    if(!document.getElementById('admin-fixes-script')){
+      const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261003-1';document.head.appendChild(s);
+    }
+    if(!document.getElementById('admin-notify-script')){
+      const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261006-order1';document.head.appendChild(n);
+    }
   },{once:true});
 }
 
