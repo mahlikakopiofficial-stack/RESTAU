@@ -251,8 +251,9 @@
       function closeOrderChat() {
         if (orderChatTimer) clearInterval(orderChatTimer);
         orderChatTimer = null;
+        activeOrderChatId = null;
         const d = $("#orderChatDialog");
-        if (d) d.close();
+        if (d?.open) d.close();
       }
       async function refreshOrderChat(orderId) {
         try {
@@ -292,10 +293,22 @@
         activeOrderChatId = orderId;
         const d = $("#orderChatDialog");
         if (!d) return;
+        if (!d.dataset.chatLifecycleBound) {
+          d.dataset.chatLifecycleBound = "1";
+          d.addEventListener("close", () => {
+            if (orderChatTimer) clearInterval(orderChatTimer);
+            orderChatTimer = null;
+            activeOrderChatId = null;
+          });
+        }
         if (orderChatTimer) clearInterval(orderChatTimer);
         if (!d.open) d.showModal();
         await refreshOrderChat(orderId);
-        orderChatTimer = setInterval(() => refreshOrderChat(orderId).catch(() => {}), 5000);
+        if (activeOrderChatId !== orderId || !d.open) return;
+        orderChatTimer = setInterval(() => {
+          if (!d.open || activeOrderChatId !== orderId) return;
+          refreshOrderChat(orderId).catch(() => {});
+        }, 5000);
       }
       async function sendOrderChat(e) {
         e.preventDefault();
@@ -332,7 +345,9 @@
                 )
                 .join("")
             : "<p>No conversations yet. Start a new message below.</p>";
-          if (rows.length && !activeChatId) openChat(rows[0].id);
+          if (activeChatId && rows.some(r => Number(r.id) === Number(activeChatId))) {
+            $("#chat-box").hidden = false;
+          }
         } catch (error) {
           toast("Chat could not load: " + error.message);
         }
@@ -393,6 +408,7 @@
             Object.fromEntries(new FormData(e.target)),
           );
           e.target.reset();
+          await loadChats();
           await openChat(activeChatId);
         } catch (error) {
           toast(error.message);
