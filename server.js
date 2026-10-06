@@ -434,7 +434,8 @@ app.get('/api/customer/orders/:id/chat',cust,w((q,r)=>{
   if(!order)return r.status(404).json({error:'Order not found'});
   const inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? AND order_id=? ORDER BY id DESC LIMIT 1',q.cid,q.params.id);
   const messages=inquiry?db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id):[];
-  r.json({order,inquiry,messages});
+  const safeMessages=messages.length?messages:(inquiry?[{id:0,author:'customer',message:inquiry.msg,created:inquiry.created}]:[]);
+  r.json({order,inquiry,messages:safeMessages});
 }));
 app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
   need(q.body,'message');
@@ -445,10 +446,10 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
   if(!message)throw new Error('Message is required');
   let inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE customer_id=? AND order_id=? ORDER BY id DESC LIMIT 1',q.cid,q.params.id);
   if(!inquiry){
-    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,order_id,name,email,phone,type,msg) VALUES(?,?,?,?,?,?,?)').run(q.cid,q.params.id,c.name,c.email||'',c.phone||'','Order #'+q.params.id,message).lastInsertRowid);
+    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,order_id,name,email,phone,type,msg,status) VALUES(?,?,?,?,?,?,?,?)').run(q.cid,q.params.id,c.name,c.email||'',c.phone||'','Order #'+q.params.id,message,'New').lastInsertRowid);
     inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE id=?',id);
   }else{
-    db.prepare("UPDATE inquiries SET status='New' WHERE id=?").run(inquiry.id);
+    db.prepare("UPDATE inquiries SET status='New',msg=? WHERE id=?").run(message,inquiry.id);
   }
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message);
   notifyAdminCustomerMessage(inquiry,message);
@@ -710,7 +711,8 @@ app.get('/api/admin/orders/:id/chat',admin,w((q,r)=>{
   if(!order)return r.status(404).json({error:'Order not found'});
   const inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE order_id=? ORDER BY id DESC LIMIT 1',q.params.id);
   const messages=inquiry?db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id):[];
-  r.json({order,inquiry,messages});
+  const safeMessages=messages.length?messages:(inquiry?[{id:0,author:'customer',message:inquiry.msg,created:inquiry.created}]:[]);
+  r.json({order,inquiry,messages:safeMessages});
 }));
 app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
   const order=one('SELECT id,customer_id,status,name,email,phone FROM orders WHERE id=?',q.params.id);
@@ -726,7 +728,7 @@ app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
     db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(id,'admin',message);
   }else{
     const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid;
-    db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(inquiry.id);
+    db.prepare("UPDATE inquiries SET status='Replied',msg=? WHERE id=?").run(message,inquiry.id);
     if(inquiry.email)notifyInquiryReply(inquiry,message);
     return r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(id),emailQueued:!!inquiry.email});
   }
