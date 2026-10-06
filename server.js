@@ -714,6 +714,27 @@ app.get('/api/admin/orders/:id/chat',admin,w((q,r)=>{
   const messages=inquiry?db.prepare('SELECT id,author,message,created FROM inquiry_messages WHERE inquiry_id=? ORDER BY id').all(inquiry.id):[];
   r.json({order,inquiry,messages});
 }));
+app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
+  const order=one('SELECT id,status,name,email,phone FROM orders WHERE id=?',q.params.id);
+  if(!order)return r.status(404).json({error:'Order not found'});
+  need(q.body,'message');
+  const message=String(q.body.message).trim().slice(0,4000);
+  if(!message)throw new Error('Message is required');
+  let inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE order_id=? ORDER BY id DESC LIMIT 1',q.params.id);
+  if(!inquiry){
+    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,order_id,name,email,phone,type,msg,status) VALUES(?,?,?,?,?,?,?,?)')
+      .run(null,order.id,order.name,order.email||'',order.phone||'','Order #'+order.id,message,'Replied').lastInsertRowid);
+    inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE id=?',id);
+    db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(id,'admin',message);
+  }else{
+    const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid;
+    db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(inquiry.id);
+    if(inquiry.email)notifyInquiryReply(inquiry,message);
+    return r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(id),emailQueued:!!inquiry.email});
+  }
+  if(inquiry.email)notifyInquiryReply(inquiry,message);
+  r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?',inquiry.id).get().id),emailQueued:!!inquiry.email});
+}));
 app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   const inquiry=one('SELECT id,name,email,type,msg FROM inquiries WHERE id=?',q.params.id);
   if(!inquiry)return r.status(404).json({error:'Inquiry not found'});
