@@ -42,6 +42,9 @@ if(document.title.includes('Admin')){
     if(!document.getElementById('admin-notify-script')){
       const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261006-order1';document.head.appendChild(n);
     }
+    if(!document.getElementById('admin-report-fix-script')){
+      const r=document.createElement('script');r.id='admin-report-fix-script';r.src='/admin-report-fix.js?v=20261006-report2';document.head.appendChild(r);
+    }
   },{once:true});
 }
 
