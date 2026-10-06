@@ -1,5 +1,6 @@
 (function(){
-  if(!document.title.includes('Admin'))return;
+  if(!document.title.includes('Admin')||window.__adminLiveStarted)return;
+  window.__adminLiveStarted=true;
 
   const handleEvent=ev=>{
     if(!ev?.type)return;
