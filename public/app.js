@@ -45,6 +45,37 @@ if(document.title.includes('Admin')){
   },{once:true});
 }
 
+function installMenuPreviewUx(){
+  if(window.__menuPreviewUxInstalled)return;
+  window.__menuPreviewUxInstalled=true;
+  const style=document.createElement('style');
+  style.id='menu-preview-responsive-fix';
+  style.textContent='dialog.master-lightbox{box-sizing:border-box;width:min(900px,94vw);max-width:94vw;max-height:92vh;margin:auto;overflow:auto}dialog.master-lightbox #menuPreviewBody,dialog.master-lightbox #masterLightboxBody{min-width:0}dialog.master-lightbox img,dialog.master-lightbox iframe{width:100%;max-width:100%;height:auto;max-height:70vh;min-height:0;object-fit:contain}dialog.master-lightbox #menuPreviewBody img{display:block;border-radius:10px} @media(max-width:600px){dialog.master-lightbox{width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:94vh;padding:10px;border-radius:12px}dialog.master-lightbox img,dialog.master-lightbox iframe{max-height:58vh}dialog.master-lightbox .close-row{position:sticky;top:0;z-index:4;padding-bottom:6px}dialog.master-lightbox .close-row button{min-width:42px;min-height:42px}}';
+  document.head.appendChild(style);
+  document.addEventListener('click',event=>{
+    const menu=document.getElementById('menuPreview');
+    if(menu?.open)menu.close();
+  },true);
+  document.addEventListener('click',event=>{
+    const media=document.getElementById('masterLightbox');
+    if(media?.open&&event.target===media)media.close();
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){
+      document.getElementById('menuPreview')?.open&&document.getElementById('menuPreview').close();
+      document.getElementById('masterLightbox')?.open&&document.getElementById('masterLightbox').close();
+    }
+  });
+}
+
+if(document.title.includes('Admin')){
+  window.addEventListener('DOMContentLoaded',installMenuPreviewUx,{once:true});
+}else if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',installMenuPreviewUx,{once:true});
+}else{
+  installMenuPreviewUx();
+}
+
 async function applyUniversalBranding(){
   const nodes=document.querySelectorAll("[data-brand-logo]");
   if(!nodes.length)return;
