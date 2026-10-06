@@ -1,5 +1,4 @@
-const CACHE_NAME='pinoyambula-shell-v27';
-// Legacy regression marker: pinoyambula-shell-v26
+const CACHE_NAME='pinoyambula-shell-v28';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -26,11 +25,7 @@ self.addEventListener('install',event=>{
 });
 
 self.addEventListener('activate',event=>{
-  event.waitUntil(
-    caches.keys().then(keys=>Promise.all(
-      keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))
-    ))
-  );
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));
   self.clients.claim();
 });
 
@@ -40,14 +35,8 @@ self.addEventListener('fetch',event=>{
   if(url.origin!==self.location.origin)return;
   if(url.pathname.startsWith('/api/'))return;
   if(request.method!=='GET')return;
-
-  event.respondWith(
-    fetch(request).then(response=>{
-      if(response.ok){
-        const copy=response.clone();
-        caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));
-      }
-      return response;
-    }).catch(()=>caches.match(request).then(cached=>cached||caches.match('/index.html')))
-  );
+  event.respondWith(fetch(request).then(response=>{
+    if(response.ok){const copy=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));}
+    return response;
+  }).catch(()=>caches.match(request).then(cached=>cached||caches.match('/index.html'))));
 });
