@@ -319,7 +319,7 @@
         </button>
       </form>
     </dialog>
-    <script src="app.js?v=20261006-ui2"></script>
+    <script src="app.js?v=20261006-tz3"></script>
     <script>
       let items = [],
         regionalItems = [],
@@ -654,7 +654,7 @@
         if (!p) return;
         $("#pn").textContent = p.name;
         $("#subd [name=plan]").value = id;
-        $("#sub-start").value = new Date().toISOString().slice(0, 10);
+        $("#sub-start").value = kuwaitToday();
         $('#sub-pay-method option[value="CARD"]').disabled =
           !config.payment_card;
         $("#sub-pay-note").textContent =
