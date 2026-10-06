@@ -361,7 +361,8 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
   };
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
   notifyInquiryReceived(inquiry);
-  notifyAdminInquiry(inquiry);\n  broadcastAdminInquiry(inquiry);
+  notifyAdminInquiry(inquiry);
+  broadcastAdminInquiry(inquiry);
   r.json({ok:1,id:inquiry.id});
 }));
 app.post('/api/register',lim(8),w((q,r)=>{
@@ -483,7 +484,8 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
     db.prepare("UPDATE inquiries SET status='New',msg=? WHERE id=?").run(message,inquiry.id);
   }
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message);
-  notifyAdminCustomerMessage(inquiry,message);\n  broadcastAdminMessage(inquiry,message);
+  notifyAdminCustomerMessage(inquiry,message);
+  broadcastAdminMessage(inquiry,message);
   r.json({ok:1,id:inquiry.id,orderId:Number(q.params.id)});
 }));
 app.get('/api/customer/inquiries/:id/messages',cust,w((q,r)=>{
