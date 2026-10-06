@@ -263,7 +263,9 @@
           try {
             const data = await api("/customer/orders/" + orderId + "/chat");
             $("#orderChatTitle").textContent =
-              "Chat about Order #" + orderId + " · " + data.order.status;
+              "Chat about Order #" + orderId +
+              " · " + data.order.status +
+              (data.inquiry ? " · Conversation #" + data.inquiry.id : " · New conversation");
             if (!data.inquiry) {
               $("#orderChatMessages").innerHTML =
                 '<p style="opacity:.7">No messages yet. Send a message below to start the conversation with the restaurant.</p>';
