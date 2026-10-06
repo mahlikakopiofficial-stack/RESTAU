@@ -715,7 +715,7 @@ app.get('/api/admin/orders/:id/chat',admin,w((q,r)=>{
   r.json({order,inquiry,messages});
 }));
 app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
-  const order=one('SELECT id,status,name,email,phone FROM orders WHERE id=?',q.params.id);
+  const order=one('SELECT id,customer_id,status,name,email,phone FROM orders WHERE id=?',q.params.id);
   if(!order)return r.status(404).json({error:'Order not found'});
   need(q.body,'message');
   const message=String(q.body.message).trim().slice(0,4000);
