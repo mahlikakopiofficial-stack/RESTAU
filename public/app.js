@@ -12,9 +12,9 @@ const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2800)}
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
-if(document.title.includes('Admin')){window.addEventListener('load',()=>{if(!document.getElementById('admin-fixes-style')){const css=document.createElement('link');css.rel='stylesheet';css.id='admin-fixes-style';css.href='/admin-fixes.css?v=20261003-1';document.head.appendChild(css);}if(!document.getElementById('admin-fixes-script')){const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261006-chat6';document.head.appendChild(s);}if(!document.getElementById('admin-notify-script')){const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261006-order1';document.head.appendChild(n);}if(!document.getElementById('admin-report-fix-script')){const r=document.createElement('script');r.id='admin-report-fix-script';r.src='/admin-report-fix.js?v=20261006-report2';document.head.appendChild(r);}}, {once:true});}
+if(document.title.includes('Admin')){window.addEventListener('load',()=>{if(!document.getElementById('admin-fixes-style')){const css=document.createElement('link');css.rel='stylesheet';css.id='admin-fixes-style';css.href='/admin-fixes.css?v=20261003-1';document.head.appendChild(css);}if(!document.getElementById('admin-fixes-script')){const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261006-chat6';document.head.appendChild(s);}if(!document.getElementById('admin-notify-script')){const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261006-order1';document.head.appendChild(n);}if(!document.getElementById('admin-report-fix-script')){const r=document.createElement('script');r.id='admin-report-fix-script';r.src='/admin-report-fix.js?v=20261006-report3';document.head.appendChild(r);}}, {once:true});}
 
-function installMenuPreviewUx(){if(window.__menuPreviewUxInstalled)return;window.__menuPreviewUxInstalled=true;const style=document.createElement('style');style.id='menu-preview-responsive-fix';style.textContent='dialog.master-lightbox{box-sizing:border-box;width:min(900px,94vw);max-width:94vw;max-height:92vh;margin:auto;overflow:auto}dialog.master-lightbox #menuPreviewBody,dialog.master-lightbox #masterLightboxBody{min-width:0}dialog.master-lightbox img,dialog.master-lightbox iframe{width:100%;max-width:100%;height:auto;max-height:70vh;min-height:0;object-fit:contain}dialog.master-lightbox #menuPreviewBody img{display:block;border-radius:10px}@media(max-width:600px){dialog.master-lightbox{width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:94vh;padding:10px;border-radius:12px}dialog.master-lightbox img,dialog.master-lightbox iframe{max-height:58vh}dialog.master-lightbox .close-row{position:sticky;top:0;z-index:4;padding-bottom:6px}.close-row button{min-width:42px;min-height:42px}}';document.head.appendChild(style);document.addEventListener('click',event=>{const menu=document.getElementById('menuPreview');if(menu?.open)menu.close();},true);document.addEventListener('click',event=>{const media=document.getElementById('masterLightbox');if(media?.open&&event.target===media)media.close();});document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.getElementById('menuPreview')?.open&&document.getElementById('menuPreview').close();document.getElementById('masterLightbox')?.open&&document.getElementById('masterLightbox').close();}});}
+function installMenuPreviewUx(){if(window.__menuPreviewUxInstalled)return;window.__menuPreviewUxInstalled=true;const style=document.createElement('style');style.id='menu-preview-responsive-fix';style.textContent='dialog.master-lightbox{box-sizing:border-box;width:min(900px,94vw);max-width:94vw;max-height:92vh;margin:auto;overflow:auto}dialog.master-lightbox #menuPreviewBody,dialog.master-lightbox #masterLightboxBody{min-width:0}dialog.master-lightbox img,dialog.master-lightbox iframe{width:100%;max-width:100%;height:auto;max-height:70vh;min-height:0;object-fit:contain}dialog.master-lightbox #menuPreviewBody img{display:block;border-radius:10px}@media(max-width:600px){dialog.master-lightbox{width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:94vh;padding:10px;border-radius:12px}dialog.master-lightbox img,dialog.master-lightbox iframe{max-height:58vh}dialog.master-lightbox .close-row{position:sticky;top:0;z-index:4;padding-bottom:6px}.close-row button{min-width:42px;min-height:42px}}';document.head.appendChild(style);document.addEventListener('click',event=>{const menu=document.getElementById('menuPreview');if(menu?.open)menu.close();},true);document.addEventListener('click',event=>{const media=document.getElementById('masterLightbox');if(media?.open&&event.target===media)media.close();});document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.getElementById('menuPreview')?.open&&document.getElementById('menuPreview').close();document.getElementById('masterLightbox')?.open&&document.getElementById('masterLightbox')?.close();}});}
 if(document.title.includes('Admin'))window.addEventListener('DOMContentLoaded',installMenuPreviewUx,{once:true});else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installMenuPreviewUx,{once:true});else installMenuPreviewUx();
 
 async function applyUniversalBranding(){
@@ -32,7 +32,7 @@ async function applyUniversalBranding(){
         img.alt=c.name||'PinoyAmbula';
         img.decoding='async';
         img.loading='eager';
-        img.onerror=()=>{if(img.src!==location.origin+fallback)img.src=fallback;};
+        img.onerror=()=>{if(!img.src.endsWith(fallback))img.src=fallback;};
       }
       if(text)text.textContent=c.name||'PinoyAmbula';
       node.setAttribute('aria-label',(c.name||'PinoyAmbula')+' home');
@@ -41,6 +41,30 @@ async function applyUniversalBranding(){
     const manifest=document.querySelector('link[rel="manifest"]');
     if(manifest)manifest.href='/manifest.json?brand='+version;
     window.PINOY_BRANDING={logoUrl:configured||fallback,name:c.name||'PinoyAmbula'};
-  }catch(e){console.warn('UNIVERSAL_BRANDING_LOAD_FAILED',e.message);}
+    return window.PINOY_BRANDING;
+  }catch(e){console.warn('UNIVERSAL_BRANDING_LOAD_FAILED',e.message);return null;}
 }
+
+window.saveUniversalLogo=async function(){
+  const input=document.getElementById('logo-file');
+  const file=input?.files?.[0];
+  if(!file){toast('Choose a logo image first');return false;}
+  if(!/^image\/(png|jpe?g|webp|svg\+xml)$/.test(file.type)){toast('Logo must be PNG, JPG, WEBP or SVG');return false;}
+  if(file.size>5*1024*1024){toast('Logo must be 5 MB or smaller');return false;}
+  const button=document.querySelector('[onclick*="saveUniversalLogo"]');
+  if(button)button.disabled=true;
+  try{
+    const fd=new FormData();fd.append('file',file,file.name);
+    const result=await api('/admin/upload?target=logo','POST',fd,'at');
+    if(!result?.url)throw new Error('Logo upload did not return a URL');
+    const preview=document.getElementById('logo-preview');
+    if(preview)preview.src=result.url+(result.url.includes('?')?'&':'?')+'brand='+Date.now();
+    await applyUniversalBranding();
+    toast('Universal logo uploaded and applied to customer + admin');
+    input.value='';
+    return true;
+  }catch(e){toast('Logo upload failed: '+e.message);console.error('UNIVERSAL_LOGO_UPLOAD_FAILED',e);return false;}
+  finally{if(button)button.disabled=false;}
+};
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyUniversalBranding,{once:true});else applyUniversalBranding();
