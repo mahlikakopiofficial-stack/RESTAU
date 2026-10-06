@@ -1,5 +1,5 @@
-const CACHE_NAME='pinoyambula-shell-v27';
-const CACHE_VERSION='v27';
+const CACHE_NAME='pinoyambula-shell-v28';
+const CACHE_VERSION='v28';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -13,7 +13,7 @@ const SHELL=[
   '/admin-fixes.js?v=20261006-chat6',
   '/admin-notify.js?v=20261006-order1',
   '/media-runtime-fix.js?v=20261003-android1',
-  '/pwa.js?v=20261006-navux3',
+  '/pwa.js?v=20261006-v28',
   '/runtime-config.js',
   '/manifest.json',
   '/icons/pinoyambula.svg'
