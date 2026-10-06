@@ -244,6 +244,22 @@
           i.click();
         };
       }
+      window.printReport=function(){
+        const report=window._lastReport;
+        if(!report)return;
+        const w=open('','_blank','width=1000,height=800');
+        if(!w){toast('Please allow pop-ups to print the report.');return}
+        w.document.write('<!doctype html><html><head><title>Restaurant report '+report.from+' to '+report.to+'</title><style>body{font:14px Arial;padding:24px}table{border-collapse:collapse;width:100%;margin:16px 0}td,th{border:1px solid #ccc;padding:6px;text-align:left}.metrics{display:flex;gap:20px;flex-wrap:wrap}</style></head><body><h1>Restaurant report</h1><p>'+report.from+' to '+report.to+'</p><div class="metrics"><b>Sales '+money(report.revenue)+'</b><b>Orders '+report.orders+'</b><b>Delivered '+report.delivered+'</b><b>Inquiries '+report.inquiries+'</b></div><h2>Top items</h2><table><tr><th>Item</th><th>Qty</th></tr>'+(report.topItems||[]).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.qty+'</td></tr>').join('')+'</table><h2>Orders</h2><table><tr><th>#</th><th>Date</th><th>Customer</th><th>Phone</th><th>Delivery address</th><th>Items</th><th>Status</th><th>Total</th></tr>'+(report.ordersList||[]).map(x=>'<tr><td>'+x.id+'</td><td>'+esc(adminKuwaitDateTime(x.created))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone)+'</td><td>'+esc(x.address)+'</td><td>'+esc(x.items||'')+'</td><td>'+esc(x.status)+'</td><td>'+money(x.total)+'</td></tr>').join('')+'</table></body></html>');
+        w.document.close();w.focus();setTimeout(()=>w.print(),150);
+      };
+      window.exportReport=function(){
+        const report=window._lastReport;
+        if(!report)return;
+        const rows=[['From',report.from],['To',report.to],['Sales',report.revenue],['Paid revenue',report.paidRevenue],['Paid orders',report.paidOrders],['Orders',report.orders],['Delivered',report.delivered],['Preparing',report.preparing],['Out for delivery',report.outForDelivery],['Average order',report.averageOrder],['Inquiries',report.inquiries],[],['Order ID','Created','Name','Email','Phone','Address','PACI','Payment','Payment status','Order status','Total']];
+        for(const order of report.ordersList||[])rows.push([order.id,adminKuwaitDateTime(order.created),order.name,order.email,order.phone,order.address,order.paci,order.pay,order.payment_status,order.status,order.total]);
+        const csv=rows.map(row=>row.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+        const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='report-'+report.from+'-to-'+report.to+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      };
       const R = {
         async Reports() {
           const today = adminKuwaitToday(),
