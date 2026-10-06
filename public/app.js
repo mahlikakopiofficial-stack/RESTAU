@@ -37,7 +37,7 @@ if(document.title.includes('Admin')){
       const css=document.createElement('link');css.rel='stylesheet';css.id='admin-fixes-style';css.href='/admin-fixes.css?v=20261003-1';document.head.appendChild(css);
     }
     if(!document.getElementById('admin-fixes-script')){
-      const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261003-1';document.head.appendChild(s);
+      const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261006-chat5';document.head.appendChild(s);
     }
     if(!document.getElementById('admin-notify-script')){
       const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261006-order1';document.head.appendChild(n);
