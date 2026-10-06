@@ -187,8 +187,8 @@
       }
       const sel = (t, id, v, o) =>
         `<select onchange="A('/status/${t}/${id}','PUT',{status:this.value}).then(()=>toast('Updated'))">${o.map((x) => `<option${x == v ? " selected" : ""}>${x}</option>`).join("")}</select>`;
-      const adminKuwaitToday=()=>typeof window.kuwaitToday==="function"?window.adminKuwaitToday():new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kuwait",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-      const adminKuwaitDateTime=value=>typeof window.kuwaitDateTime==="function"?window.adminKuwaitDateTime(value):String(value??"");
+      const adminKuwaitToday=()=>typeof window.kuwaitToday==="function"?window.kuwaitToday():new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kuwait",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      const adminKuwaitDateTime=value=>typeof window.kuwaitDateTime==="function"?window.kuwaitDateTime(value):String(value??"");
       async function upl(f, qs) {
         if (!f) return;
         const fd = new FormData();
