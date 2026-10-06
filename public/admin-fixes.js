@@ -24,7 +24,7 @@
   const refresh=async()=>{
     try{
       const x=await A('/orders/'+id+'/chat');
-      document.getElementById('adminOrderChatTitle').textContent='Order #'+id+' chat · '+x.order.status;
+      document.getElementById('adminOrderChatTitle').textContent='Order #'+id+' chat · '+x.order.status+(x.inquiry?' · Conversation #'+x.inquiry.id:' · New conversation');
       document.getElementById('adminOrderChatMessages').innerHTML=x.messages?.length?x.messages.map(m=>`<article class="message ${m.author==='admin'?'staff':''}"><b>${m.author==='admin'?'Restaurant':'Customer'}</b><time>${esc0(m.created)}</time><p>${esc0(m.message)}</p></article>`).join(''):'<p>No chat messages yet. Send the first reply below.</p>';
       const box=document.getElementById('adminOrderChatMessages');box.scrollTop=box.scrollHeight;
     }catch(e){toast(e.message)}
