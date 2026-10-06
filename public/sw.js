@@ -1,20 +1,20 @@
-const CACHE_NAME='pinoyambula-shell-v29';
+const CACHE_NAME='pinoyambula-shell-v30';
 const SHELL=[
   '/index.html',
   '/account.html',
   '/admin.html',
   '/reset-password.html',
   '/style.css',
-  '/app.js',
+  '/app.js?v=20261006-logo2',
   '/enhancements.js',
   '/final-fixes.js',
   '/master-enhancements.js',
   '/admin-fixes.js?v=20261006-chat6',
   '/admin-notify.js?v=20261006-order1',
   '/admin-report-fix.js?v=20261006-report3',
-  '/media-runtime-fix.js',
-  '/pwa.js',
-  '/runtime-config.js',
+  '/media-runtime-fix.js?v=20261006-logo2',
+  '/pwa.js?v=20261006-navux3',
+  '/runtime-config.js?v=20261006-logo2',
   '/manifest.json',
   '/icons/pinoyambula.svg'
 ];
