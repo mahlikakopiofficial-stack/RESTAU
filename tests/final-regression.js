@@ -118,6 +118,19 @@ t('newsletter campaign admin UI and Gmail OAuth setup',()=>{
   assert(!envExample.includes('GMAIL_APP_PASSWORD'));
   assert(server.includes("app.get('/api/admin/notification-status'"));
 });
-t('Kuwait timezone',()=>{assert(app.includes("timeZone:'Asia/Kuwait'"));assert(account.includes('kuwaitDateTime'));assert(master.includes('timeZone:\'Asia/Kuwait\''));assert(server.includes('Asia/Kuwait')||server.includes("'+3 hours'"));});
+t('Kuwait timezone',()=>{
+  assert(app.includes("timeZone:'Asia/Kuwait'"));
+  assert(app.includes('window.kuwaitDateTime=kuwaitDateTime'));
+  assert(app.includes('window.kuwaitToday=kuwaitToday'));
+  assert(account.includes('kuwaitDateTime'));
+  assert(admin.includes('kuwaitDateTime'));
+  assert(admin.includes('kuwaitToday()'));
+  assert(master.includes('timeZone:\'Asia/Kuwait\''));
+  assert(enhancements.includes('kuwaitDateTime'));
+  assert(enhancements.includes('kuwaitToday()'));
+  assert(index.includes('kuwaitToday()'));
+  assert(server.includes('kuwaitToday()'));
+  assert(server.includes("date(datetime(created,'+3 hours'))"));
+});
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
 if(tests.length){console.error('\nTEST RESULT: FAIL');process.exit(1)}else console.log('\nTEST RESULT: PASS');
