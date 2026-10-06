@@ -254,47 +254,48 @@
         const d = $("#orderChatDialog");
         if (d) d.close();
       }
+      async function refreshOrderChat(orderId) {
+        try {
+          const data = await api("/customer/orders/" + orderId + "/chat");
+          $("#orderChatTitle").textContent =
+            "Chat about Order #" + orderId +
+            (data.inquiry ? " · Conversation #" + data.inquiry.id : " · New conversation") +
+            " · " + data.order.status;
+          if (!data.inquiry) {
+            $("#orderChatMessages").innerHTML =
+              '<p style="opacity:.7">No messages yet. Send a message below to start the conversation with the restaurant.</p>';
+          } else {
+            $("#orderChatMessages").innerHTML = data.messages
+              .map(
+                (m) =>
+                  '<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:' +
+                  (m.author === "admin" ? "#fff3d6" : "#eef5ff") +
+                  '"><b>' +
+                  (m.author === "admin" ? "Restaurant" : "You") +
+                  '</b><div style="font-size:.75rem;opacity:.65">' +
+                  esc(kuwaitDateTime(m.created)) +
+                  '</div><p style="margin:5px 0;white-space:pre-wrap">' +
+                  esc(m.message) +
+                  "</p></article>",
+              )
+              .join("");
+            $("#orderChatMessages").scrollTop =
+              $("#orderChatMessages").scrollHeight;
+          }
+          return data;
+        } catch (error) {
+          toast(error.message);
+          throw error;
+        }
+      }
       async function openOrderChat(orderId) {
         activeOrderChatId = orderId;
         const d = $("#orderChatDialog");
         if (!d) return;
         if (orderChatTimer) clearInterval(orderChatTimer);
-        const refresh = async () => {
-          try {
-            const data = await api("/customer/orders/" + orderId + "/chat");
-            $("#orderChatTitle").textContent =
-              "Chat about Order #" + orderId +
-              " · " + data.order.status +
-              (data.inquiry ? " · Conversation #" + data.inquiry.id : " · New conversation");
-            if (!data.inquiry) {
-              $("#orderChatMessages").innerHTML =
-                '<p style="opacity:.7">No messages yet. Send a message below to start the conversation with the restaurant.</p>';
-            } else {
-              $("#orderChatMessages").innerHTML = data.messages
-                .map(
-                  (m) =>
-                    '<article style="padding:8px 10px;margin:6px 0;border-radius:10px;background:' +
-                    (m.author === "admin" ? "#fff3d6" : "#eef5ff") +
-                    '"><b>' +
-                    (m.author === "admin" ? "Restaurant" : "You") +
-                    '</b><div style="font-size:.75rem;opacity:.65">' +
-                    esc(kuwaitDateTime(m.created)) +
-                    '</div><p style="margin:5px 0;white-space:pre-wrap">' +
-                    esc(m.message) +
-                    "</p></article>",
-                )
-                .join("");
-              $("#orderChatMessages").scrollTop =
-                $("#orderChatMessages").scrollHeight;
-            }
-          } catch (error) {
-            toast(error.message);
-            closeOrderChat();
-          }
-        };
-        d.showModal();
-        await refresh();
-        orderChatTimer = setInterval(refresh, 5000);
+        if (!d.open) d.showModal();
+        await refreshOrderChat(orderId);
+        orderChatTimer = setInterval(() => refreshOrderChat(orderId).catch(() => {}), 5000);
       }
       async function sendOrderChat(e) {
         e.preventDefault();
@@ -306,7 +307,7 @@
             Object.fromEntries(new FormData(e.target)),
           );
           e.target.reset();
-          await openOrderChat(activeOrderChatId);
+          await refreshOrderChat(activeOrderChatId);
         } catch (error) {
           toast(error.message);
         }
@@ -446,11 +447,10 @@
                       o.id +
                       ')">Confirm received</button>'
                     : "";
-                const orderChat = ["Delivered", "Completed"].includes(status)
-                  ? ""
-                  : '<button class="btn s o" type="button" onclick="openOrderChat(' +
-                    o.id +
-                    ')">Chat about this order</button>';
+                const orderChat =
+                  '<button class="btn s o" type="button" onclick="openOrderChat(' +
+                  o.id +
+                  ')">Chat about this order</button>';
                 return (
                   "<tr><td>" +
                   esc(kuwaitDateTime(o.created)) +
