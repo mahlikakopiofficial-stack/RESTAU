@@ -952,35 +952,7 @@ const validDate=value=>{
   const date=new Date(value+'T00:00:00Z');
   return Number.isNaN(date.valueOf())||date.toISOString().slice(0,10)!==value?null:value;
 };
-app.get('/api/admin/report-range',admin,w((q,r)=>{
-  const today=kuwaitToday();
-  const from=validDate(q.query.from)||validDate(q.query.date)||today;
-  const to=validDate(q.query.to)||validDate(q.query.date)||from;
-  if(from>to)throw new Error('Start date must be on or before end date');
-  const orders=db.prepare("SELECT * FROM orders WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ? ORDER BY id DESC").all(from,to);
-  const active=orders.filter(order=>order.status!=='Cancelled');
-  const summary={
-    from,to,orders:orders.length,
-    delivered:orders.filter(order=>order.status==='Delivered').length,
-    newOrders:orders.filter(order=>['New','Pending'].includes(order.status)).length,
-    preparing:orders.filter(order=>order.status==='Preparing').length,
-    outForDelivery:orders.filter(order=>order.status==='Out for delivery').length,
-    cancelled:orders.filter(order=>order.status==='Cancelled').length,
-    revenue:active.reduce((sum,order)=>sum+(+order.total||0),0),
-    paidOrders:active.filter(order=>order.payment_status==='Paid').length,
-    paidRevenue:active.filter(order=>order.payment_status==='Paid').reduce((sum,order)=>sum+(+order.total||0),0),
-    averageOrder:active.length?active.reduce((sum,order)=>sum+(+order.total||0),0)/active.length:0,
-    activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active' AND start<=? AND \"end\">=?",to,from).n,
-    newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ?",from,to).n,
-    inquiries:one("SELECT COUNT(*) n FROM inquiries WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ?",from,to).n,
-    newsletter:one("SELECT COUNT(*) n FROM newsletter WHERE date(datetime(created,'+3 hours')) BETWEEN ? AND ?",from,to).n,
-    ordersList:orders
-  };
-  const top={};
-  for(const order of active){try{for(const item of JSON.parse(order.items||'[]'))top[item.name]=(top[item.name]||0)+item.qty}catch{}}
-  summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));
-  r.json(summary);
-}));
+
 const F=['cat','region','name','descr','ingredients','price','discount_price','emoji','active'];
 app.put('/api/admin/items/:id',admin,w((q,r)=>{const k=Object.keys(q.body).filter(x=>F.includes(x));if('price' in q.body&&!(+q.body.price>=0))throw new Error('Invalid price');if(!k.length)throw new Error('nothing to update');db.prepare(`UPDATE items SET ${k.map(x=>x+'=?').join(',')} WHERE id=?`).run(...k.map(x=>q.body[x]),q.params.id);r.json({ok:1})}));
 app.post('/api/admin/items',admin,w((q,r)=>{
