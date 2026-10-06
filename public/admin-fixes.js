@@ -13,28 +13,38 @@
   };
   window.confirmAdminOrder=async function(id){try{await A('/status/orders/'+id,'PUT',{status:'Confirmed'});toast('Order #'+id+' confirmed');go('Orders')}catch(e){toast(e.message)}};
   window.openAdminOrderChat=async function(id){
-  let d=document.getElementById('adminOrderChat');
-  if(!d){
-    d=document.createElement('dialog');d.id='adminOrderChat';
-    d.innerHTML='<h3 id="adminOrderChatTitle"></h3><div id="adminOrderChatMessages" class="conversation"></div><form onsubmit="sendAdminOrderChat(event)"><textarea name="message" rows="3" maxlength="4000" required placeholder="Reply to the customer..."></textarea><button class="btn">Send reply</button> <button type="button" class="btn o" onclick="adminOrderChatClose()">Close</button></form>';
-    document.body.appendChild(d);
-  }
-  window.__adminOrderChatId=id;
-  if(window.__adminOrderChatTimer)clearInterval(window.__adminOrderChatTimer);
-  const refresh=async()=>{
-    try{
-      const x=await A('/orders/'+id+'/chat');
-      document.getElementById('adminOrderChatTitle').textContent='Order #'+id+' chat · '+x.order.status+(x.inquiry?' · Conversation #'+x.inquiry.id:' · New conversation');
-      document.getElementById('adminOrderChatMessages').innerHTML=x.messages?.length?x.messages.map(m=>`<article class="message ${m.author==='admin'?'staff':''}"><b>${m.author==='admin'?'Restaurant':'Customer'}</b><time>${esc0(m.created)}</time><p>${esc0(m.message)}</p></article>`).join(''):'<p>No chat messages yet. Send the first reply below.</p>';
-      const box=document.getElementById('adminOrderChatMessages');box.scrollTop=box.scrollHeight;
-    }catch(e){toast(e.message)}
+    let d=document.getElementById('adminOrderChat');
+    if(!d){
+      d=document.createElement('dialog');d.id='adminOrderChat';
+      d.innerHTML='<h3 id="adminOrderChatTitle"></h3><div id="adminOrderChatMessages" class="conversation"></div><form onsubmit="sendAdminOrderChat(event)"><textarea name="message" rows="3" maxlength="4000" required placeholder="Reply to the customer..."></textarea><button class="btn">Send reply</button> <button type="button" class="btn o" onclick="adminOrderChatClose()">Close</button></form>';
+      document.body.appendChild(d);
+    }
+    window.__adminOrderChatId=id;
+    if(window.__adminOrderChatTimer)clearInterval(window.__adminOrderChatTimer);
+    const refresh=async()=>{
+      try{
+        const x=await A('/orders/'+id+'/chat');
+        document.getElementById('adminOrderChatTitle').textContent='Order #'+id+' chat · '+x.order.status+(x.inquiry?' · Conversation #'+x.inquiry.id:' · New conversation');
+        document.getElementById('adminOrderChatMessages').innerHTML=x.messages?.length?x.messages.map(m=>`<article class="message ${m.author==='admin'?'staff':''}"><b>${m.author==='admin'?'Restaurant':'Customer'}</b><time>${esc0(m.created)}</time><p>${esc0(m.message)}</p></article>`).join(''):'<p>No chat messages yet. Send the first reply below.</p>';
+        const box=document.getElementById('adminOrderChatMessages');box.scrollTop=box.scrollHeight;
+      }catch(e){toast(e.message)}
+    };
+    window.__adminOrderChatRefresh=refresh;
+    if(!d.open)d.showModal();
+    await refresh();
+    window.__adminOrderChatTimer=setInterval(refresh,5000);
   };
-  d.showModal();
-  await refresh();
-  window.__adminOrderChatTimer=setInterval(refresh,5000);
-};
-window.adminOrderChatClose=function(){if(window.__adminOrderChatTimer)clearInterval(window.__adminOrderChatTimer);window.__adminOrderChatTimer=null;document.getElementById('adminOrderChat')?.close()};
-  window.sendAdminOrderChat=async function(e){e.preventDefault();if(!window.__adminOrderChatId)return;try{await A('/orders/'+window.__adminOrderChatId+'/chat','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();toast('Reply sent');openAdminOrderChat(window.__adminOrderChatId)}catch(x){toast(x.message)}};
+window.adminOrderChatClose=function(){if(window.__adminOrderChatTimer)clearInterval(window.__adminOrderChatTimer);window.__adminOrderChatTimer=null;window.__adminOrderChatRefresh=null;document.getElementById('adminOrderChat')?.close()};
+  window.sendAdminOrderChat=async function(e){
+    e.preventDefault();
+    if(!window.__adminOrderChatId)return;
+    try{
+      await A('/orders/'+window.__adminOrderChatId+'/chat','POST',Object.fromEntries(new FormData(e.target)));
+      e.target.reset();
+      toast('Reply sent');
+      await (window.__adminOrderChatRefresh?.()||Promise.resolve());
+    }catch(x){toast(x.message)}
+  };
   R.Orders=async function(){const all=await A('/list/orders'),f=window._of||'All',rows=f==='All'?all:all.filter(x=>x.status===f),filters=['All','Pending','New','Confirmed','Preparing','Out for delivery','Delivered','Cancelled','Completed'];window._ol=all;return `<div class="admin-fix-toolbar"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${filters.map(x=>`<option${x===f?' selected':''}>${x}</option>`).join('')}</select>${btn('↻ Refresh',`go('Orders')`,'btn s o')}${btn('⬇ CSV',`exp('orders')`,'btn s o')}<span class="admin-live">● Live order monitor</span></div><div class="admin-alert-note">New orders are checked automatically every 5 seconds while the admin portal is open. Pending/New orders have a direct Confirm button.</div><div class="tw"><table><thead><tr><th>#</th><th>Date</th><th>Customer</th><th>Drop location</th><th>Items</th><th>Payment</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>${orderRows(rows)||'<tr><td colspan="9">No orders found.</td></tr>'}</tbody></table></div>`};
   async function loadInquiry(id){const data=await A('/inquiries/'+id+'/messages'),box=document.getElementById('adminInquiryMessages');if(!box)return;box.innerHTML=data.map(m=>`<article class="message ${m.author==='admin'?'staff':''}"><b>${m.author==='admin'?'Restaurant':'Customer'}</b><time>${esc0(m.created)}</time><p>${esc0(m.message)}</p></article>`).join('');box.scrollTop=box.scrollHeight}
   window.openAdminInquiry=async function(id){let d=document.getElementById('adminInquiryChat');if(!d){d=document.createElement('dialog');d.id='adminInquiryChat';d.innerHTML='<h3 id="adminInquiryTitle">Inquiry</h3><div id="adminInquiryMessages" class="conversation"></div><form onsubmit="sendAdminInquiry(event)"><textarea name="message" rows="4" maxlength="4000" required placeholder="Write a reply to the customer..."></textarea><button class="btn">Send reply</button> <button type="button" class="btn o" onclick="adminInquiryClose()">Close</button></form>';document.body.appendChild(d)}window.__adminInquiryId=id;if(window.__adminInquiryTimer)clearInterval(window.__adminInquiryTimer);try{const rows=await A('/list/inquiries'),q=rows.find(x=>Number(x.id)===Number(id));document.getElementById('adminInquiryTitle').textContent=`Inquiry #${id} · ${q?.name||'Customer'} · ${q?.type||'General'}`;d.showModal();await loadInquiry(id);window.__adminInquiryTimer=setInterval(()=>loadInquiry(id).catch(()=>{}),5000)}catch(e){toast(e.message)}};
