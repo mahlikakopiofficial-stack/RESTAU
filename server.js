@@ -240,6 +240,22 @@ const safeEq=(a,b)=>{const h=v=>crypto.createHash('sha256').update(String(v??'')
 const escHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
 
+// Live admin order stream. Orders are pushed to connected admin dashboards
+// immediately after the database transaction commits; polling is not required.
+const adminOrderStreams=new Set();
+const broadcastAdminOrder=order=>{
+  const payload='data: '+JSON.stringify({
+    type:'order',
+    id:Number(order.id),
+    name:String(order.name||''),
+    status:String(order.status||''),
+    created:String(order.created||'')
+  })+'\n\n';
+  for(const stream of adminOrderStreams){
+    try{stream.write(payload)}catch(e){adminOrderStreams.delete(stream)}
+  }
+};
+
 const allowedOrigins = new Set([
   'https://localhost',
   'http://localhost',
@@ -623,7 +639,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const savedOrder=one('SELECT * FROM orders WHERE id=?',id);
   notifyOrderReceived(savedOrder);
   if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
-  notifyAdminOrder(savedOrder);
+  notifyAdminOrder(savedOrder);\n  // Push only after the order is safely committed and re-read from SQLite.\n  broadcastAdminOrder(savedOrder);
 
   r.json({
     id:Number(id),
@@ -787,6 +803,27 @@ app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
 app.get('/api/admin/newsletter/campaigns',admin,w((q,r)=>{
   r.json(db.prepare('SELECT * FROM newsletter_campaigns ORDER BY id DESC LIMIT 20').all());
 }));
+app.get('/api/admin/events',(q,r)=>{
+  if(rd(q)?.r!=='admin')return r.status(401).json({error:'Admin login required'});
+  r.status(200).set({
+    'Content-Type':'text/event-stream; charset=utf-8',
+    'Cache-Control':'no-cache, no-transform',
+    'Connection':'keep-alive',
+    'X-Accel-Buffering':'no'
+  });
+  if(typeof r.flushHeaders==='function')r.flushHeaders();
+  r.write('retry: 3000\n\n');
+  adminOrderStreams.add(r);
+  const heartbeat=setInterval(()=>{try{r.write(': heartbeat\n\n')}catch(e){}},25000);
+  const close=()=>{
+    clearInterval(heartbeat);
+    adminOrderStreams.delete(r);
+  };
+  q.on('close',close);
+  r.on('close',close);
+  r.on('error',close);
+});
+
 app.get('/api/admin/notifications',admin,w((q,r)=>{
   const hasCursor=['orders','inquiries','messages'].some(key=>q.query[key]!==undefined);
   const cursors={
