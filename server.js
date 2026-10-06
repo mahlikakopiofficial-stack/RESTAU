@@ -804,7 +804,44 @@ app.get('/api/admin/notifications',admin,w((q,r)=>{
   r.json({...cursors,events});
 }));
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
-app.get('/api/admin/report',admin,w((q,r)=>{const date=/^\d{4}-\d{2}-\d{2}$/.test(q.query.date||'')?q.query.date:kuwaitToday(),orders=db.prepare("SELECT * FROM orders WHERE date(datetime(created,'+3 hours'))=? ORDER BY id").all(date),active=orders.filter(x=>x.status!=='Cancelled'),summary={date,orders:orders.length,delivered:orders.filter(x=>x.status==='Delivered').length,newOrders:orders.filter(x=>x.status==='New').length,preparing:orders.filter(x=>x.status==='Preparing').length,outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,cancelled:orders.filter(x=>x.status==='Cancelled').length,revenue:active.reduce((s,x)=>s+x.total,0),averageOrder:active.length?active.reduce((s,x)=>s+x.total,0)/active.length:0,activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(datetime(created,'+3 hours'))=?",date).n,inquiries:one("SELECT COUNT(*) n FROM inquiries WHERE date(datetime(created,'+3 hours'))=?",date).n,newsletter:one("SELECT COUNT(*) n FROM newsletter WHERE date(datetime(created,'+3 hours'))=?",date).n};const top={};for(const o of active){try{for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+i.qty}catch{}}summary.topItems=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));r.json(summary)}));
+const buildAdminReport=(fromInput,toInput)=>{
+  const kwToday=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const validDate=v=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v||''));
+  const from=validDate(fromInput)?String(fromInput):kwToday;
+  const to=validDate(toInput)?String(toInput):from;
+  if(from>to)throw new Error('Report From date cannot be after To date');
+  const orders=db.prepare("SELECT * FROM orders WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=? ORDER BY id").all(from,to);
+  const active=orders.filter(x=>x.status!=='Cancelled');
+  const paid=active.filter(x=>String(x.payment_status||'').toLowerCase()==='paid');
+  const top={};
+  for(const o of active){
+    try{
+      for(const i of JSON.parse(o.items||'[]'))top[i.name]=(top[i.name]||0)+(+i.qty||0);
+    }catch{}
+  }
+  return {
+    from,to,date:from===to?from:null,
+    orders:orders.length,
+    delivered:orders.filter(x=>x.status==='Delivered').length,
+    newOrders:orders.filter(x=>x.status==='New').length,
+    preparing:orders.filter(x=>x.status==='Preparing').length,
+    outForDelivery:orders.filter(x=>x.status==='Out for delivery').length,
+    cancelled:orders.filter(x=>x.status==='Cancelled').length,
+    revenue:active.reduce((sum,x)=>sum+(+x.total||0),0),
+    paidRevenue:paid.reduce((sum,x)=>sum+(+x.total||0),0),
+    paidOrders:paid.length,
+    averageOrder:active.length?active.reduce((sum,x)=>sum+(+x.total||0),0)/active.length:0,
+    activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,
+    newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
+    inquiries:one("SELECT COUNT(*) n FROM inquiries WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
+    newsletter:one("SELECT COUNT(*) n FROM newsletter WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
+    topItems:Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty})),
+    ordersList:orders
+  };
+};
+app.get('/api/admin/report',admin,w((q,r)=>r.json(buildAdminReport(q.query.date,q.query.date))));
+app.get('/api/admin/report-range',admin,w((q,r)=>r.json(buildAdminReport(q.query.from,q.query.to))));
+
 const T=['orders','customers','subs','inquiries','newsletter','testimonials','gallery','items','plans'],DEL=['items','gallery','testimonials','inquiries','newsletter','customers','plans'];
 app.get('/api/admin/list/:t',admin,w((q,r)=>{const t=q.params.t;if(!T.includes(t))throw new Error('bad table');r.json(t==='customers'?db.prepare('SELECT id,name,phone,email,created,(SELECT COUNT(*) FROM orders o WHERE o.customer_id=customers.id) orders,(SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.customer_id=customers.id) spent FROM customers ORDER BY id DESC').all():db.prepare(`SELECT * FROM ${t} ORDER BY id DESC`).all())}));
 app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
