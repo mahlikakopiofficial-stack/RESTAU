@@ -652,9 +652,12 @@ app.post('/api/order',lim(30),w((q,r)=>{
   if(whatsappOptIn)db.prepare('UPDATE customers SET whatsapp_opt_in=1 WHERE id=?').run(customerId);
   db.prepare('UPDATE orders SET whatsapp_opt_in=? WHERE id=?').run(whatsappOptIn?1:0,id);
   const savedOrder=one('SELECT * FROM orders WHERE id=?',id);
+  // Push immediately after the committed SQLite write. Email/WhatsApp notifications
+  // must never delay the dashboard's live order delivery.
+  broadcastAdminOrder(savedOrder);
   notifyOrderReceived(savedOrder);
   if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
-  notifyAdminOrder(savedOrder);\n  // Push only after the order is safely committed and re-read from SQLite.\n  broadcastAdminOrder(savedOrder);
+  notifyAdminOrder(savedOrder);
 
   r.json({
     id:Number(id),
