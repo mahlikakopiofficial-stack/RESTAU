@@ -1,4 +1,5 @@
 const CACHE_NAME='pinoyambula-shell-v26';
+const CACHE_VERSION='v26';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -20,8 +21,15 @@ const SHELL=[
 ];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(SHELL)));
-  self.skipWaiting();
+  event.waitUntil((async()=>{
+    const cache=await caches.open(CACHE_NAME);
+    await Promise.all(SHELL.map(async url=>{
+      const response=await fetch(new Request(url,{cache:'reload'}));
+      if(!response.ok)throw new Error('Shell asset failed: '+url+' ('+response.status+')');
+      await cache.put(url,response);
+    }));
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate',event=>{
