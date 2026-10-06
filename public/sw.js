@@ -12,7 +12,7 @@ const SHELL=[
   '/master-enhancements.js',
   '/admin-fixes.js?v=20261006-chat6',
   '/admin-notify.js?v=20261006-order1',
-  '/admin-report-fix.js?v=20261006-report3',
+  '/admin-report-fix.js?v=20261006-report4',
   '/media-runtime-fix.js?v=20261003-android1',
   '/pwa.js?v=20261006-navux3',
   '/runtime-config.js',
