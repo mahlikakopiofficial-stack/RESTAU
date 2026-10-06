@@ -29,7 +29,7 @@
       <div id="side"></div>
       <div id="main"></div>
     </div>
-    <script src="app.js?v=20261006-order1"></script>
+    <script src="app.js?v=20261006-tz3"></script>
     <script>
       const K = "at",
         A = (u, m, b) => api("/admin" + u, m, b, K),
@@ -237,7 +237,7 @@
       }
       const R = {
         async Reports() {
-          const today = new Date().toISOString().slice(0, 10),
+          const today = kuwaitToday(),
             from = window._reportFrom || today,
             to = window._reportTo || today,
             r = await A(
@@ -276,7 +276,7 @@
             "<h3>Orders</h3>" +
             tbl(r.ordersList, [
               ["#", (x) => x.id],
-              ["Date", (x) => esc(x.created)],
+              ["Date", (x) => esc(kuwaitDateTime(x.created))],
               ["Customer", (x) => esc(x.name)],
               ["Status", (x) => esc(x.status)],
               ["Total", (x) => money(x.total)],
@@ -308,7 +308,7 @@
             `<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>New orders and customer messages alert while the admin portal is open.</small></p>` +
             tbl(L, [
               ["#", (r) => r.id],
-              ["Date", (r) => esc(r.created)],
+              ["Date", (r) => esc(kuwaitDateTime(r.created))],
               ["Customer", (r) => `${esc(r.name)}<br>${esc(r.phone)}`],
               [
                 "Drop location",
@@ -691,7 +691,7 @@ ${f("hero_title", "Homepage headline")}
               esc(r.id) +
               "</b></div>" +
               '<div class="row muted"><span>Order date</span><span>' +
-              esc(r.created) +
+              esc(kuwaitDateTime(r.created)) +
               "</span></div>" +
               '<div class="row"><span>Status</span><span class="status">' +
               esc(r.status || "New") +
@@ -874,7 +874,7 @@ ${f("hero_title", "Homepage headline")}
             return;
           }
           const rows=await A("/inquiries/"+activeCustomerInquiryId+"/messages");
-          $("#admin-chat-messages").innerHTML=rows.map(m=>'<div class="admin-chat-bubble '+(m.author==="admin"?"admin":"customer")+'"><b>'+(m.author==="admin"?"You":"Customer")+'</b><div style="font-size:.72rem;opacity:.6">'+esc(m.created)+'</div>'+esc(m.message)+'</div>').join("");
+          $("#admin-chat-messages").innerHTML=rows.map(m=>'<div class="admin-chat-bubble '+(m.author==="admin"?"admin":"customer")+'"><b>'+(m.author==="admin"?"You":"Customer")+'</b><div style="font-size:.72rem;opacity:.6">'+esc(kuwaitDateTime(m.created))+'</div>'+esc(m.message)+'</div>').join("");
           $("#admin-chat-messages").scrollTop=$("#admin-chat-messages").scrollHeight;
         }catch(e){toast("Chat could not load: "+e.message)}
       }
