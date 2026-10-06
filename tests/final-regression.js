@@ -23,6 +23,7 @@ const envExample=read('.env.example');
 const runtime=read('public/runtime-config.js');
 const pwa=read('public/pwa.js');
 const notify=read('public/admin-notify.js');
+const sw=read('public/sw.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
 for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/sw.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
