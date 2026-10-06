@@ -440,7 +440,6 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
   need(q.body,'message');
   const order=one('SELECT id,status FROM orders WHERE id=? AND customer_id=?',q.params.id,q.cid);
   if(!order)return r.status(404).json({error:'Order not found'});
-  if(['Delivered','Completed'].includes(order.status))return r.status(404).json({error:'Order chat is closed'});
   const c=one('SELECT name,email,phone FROM customers WHERE id=?',q.cid);
   const message=String(q.body.message).trim().slice(0,4000);
   if(!message)throw new Error('Message is required');
