@@ -8,7 +8,7 @@
       if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
         try{new Notification('New PinoyAmbula order',{body:'Order #'+ev.id+' from '+(ev.name||'customer')});}catch(e){}
       }
-      if(typeof go==='function')go('Orders');
+      if(typeof go==='function'){go('Orders');}
     }else if(ev.type==='inquiry'){
       toast('💬 New inquiry from '+(ev.name||'customer'));
       if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
