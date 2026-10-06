@@ -25,6 +25,7 @@ nav #burger{display:none!important;flex:0 0 40px!important;margin-left:0!importa
  nav #burger{flex-basis:38px!important;width:38px!important;height:38px!important;min-width:38px!important}
  nav #nl{top:60px!important;left:8px!important;right:8px!important}
 }
+`;
 
 function install(){
  if(document.getElementById('pa-final-nav-style'))return;
