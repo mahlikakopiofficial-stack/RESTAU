@@ -267,6 +267,7 @@ app.use((q,r,n)=>{r.set({'X-Content-Type-Options':'nosniff','X-Frame-Options':'S
 app.use(express.json({limit:'100kb'}));
 app.get('/api/health',(q,r)=>r.json({ok:1,up:Math.round(process.uptime()),items:one('SELECT COUNT(*) n FROM items').n}));
 app.get('/api/config',(q,r)=>{
+  r.set('Cache-Control','no-store');
   const st=S();
   r.json({
     ...st,
