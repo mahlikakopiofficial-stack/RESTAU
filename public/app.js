@@ -73,6 +73,26 @@ window.saveUniversalLogo=async function(){
     return true;
   }catch(e){toast('Logo upload failed: '+e.message);console.error('UNIVERSAL_LOGO_UPLOAD_FAILED',e);return false;}
   finally{if(button)button.disabled=false;}
-};
+}
+
+// The customer page has an older inline applyCfg() which can overwrite the
+// universal logo with a relative /uploads/... URL after app.js runs. Re-apply
+// the canonical server media URL after config/render and whenever branding is
+// changed, so website, PWA and native Capacitor surfaces stay identical.
+function enforceUniversalBranding(){
+  const branding=window.PINOY_BRANDING;
+  if(!branding)return;
+  document.querySelectorAll('[data-brand-logo] img').forEach(img=>{
+    const current=String(img.getAttribute('src')||'');
+    const target=branding.logoUrl+(branding.logoUrl.includes('?')?'&':'?')+'brand='+encodeURIComponent(branding.logoUrl);
+    if(current!==target)img.src=target;
+  });
+  document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"]').forEach(link=>{
+    const target=branding.logoUrl+(branding.logoUrl.includes('?')?'&':'?')+'brand='+encodeURIComponent(branding.logoUrl);
+    if(link.href!==target)link.href=target;
+  });
+}
+window.addEventListener('DOMContentLoaded',()=>{setTimeout(enforceUniversalBranding,0);setTimeout(enforceUniversalBranding,250);setTimeout(enforceUniversalBranding,1000);});
+new MutationObserver(()=>enforceUniversalBranding()).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['src']});
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyUniversalBranding,{once:true});else applyUniversalBranding();
