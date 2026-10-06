@@ -187,6 +187,8 @@
       }
       const sel = (t, id, v, o) =>
         `<select onchange="A('/status/${t}/${id}','PUT',{status:this.value}).then(()=>toast('Updated'))">${o.map((x) => `<option${x == v ? " selected" : ""}>${x}</option>`).join("")}</select>`;
+      const adminKuwaitToday=()=>typeof window.kuwaitToday==="function"?window.adminKuwaitToday():new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kuwait",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      const adminKuwaitDateTime=value=>typeof window.kuwaitDateTime==="function"?window.adminKuwaitDateTime(value):String(value??"");
       async function upl(f, qs) {
         if (!f) return;
         const fd = new FormData();
@@ -197,6 +199,13 @@
         } catch (e) {
           toast(e.message);
         }
+      }
+      async function clearImage(target,id){
+        try{
+          await A("/image","DELETE",{target,id});
+          toast("Image removed");
+          go(cur);
+        }catch(e){toast(e.message)}
       }
       function pickItemImage(id, event) {
         event.stopPropagation();
@@ -237,7 +246,7 @@
       }
       const R = {
         async Reports() {
-          const today = kuwaitToday(),
+          const today = adminKuwaitToday(),
             from = window._reportFrom || today,
             to = window._reportTo || today,
             r = await A(
@@ -276,7 +285,7 @@
             "<h3>Orders</h3>" +
             tbl(r.ordersList, [
               ["#", (x) => x.id],
-              ["Date", (x) => esc(kuwaitDateTime(x.created))],
+              ["Date", (x) => esc(adminKuwaitDateTime(x.created))],
               ["Customer", (x) => esc(x.name)],
               ["Status", (x) => esc(x.status)],
               ["Total", (x) => money(x.total)],
@@ -308,7 +317,7 @@
             `<p style="margin-bottom:10px"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${["All", "Pending", "New", "Confirmed", "Preparing", "Out for delivery", "Delivered", "Cancelled", "Completed"].map((x) => `<option${x == f ? " selected" : ""}>${x}</option>`).join("")}</select> <button class="btn s o" onclick="exp('orders')">⬇ CSV</button> <small>New orders and customer messages alert while the admin portal is open.</small></p>` +
             tbl(L, [
               ["#", (r) => r.id],
-              ["Date", (r) => esc(kuwaitDateTime(r.created))],
+              ["Date", (r) => esc(adminKuwaitDateTime(r.created))],
               ["Customer", (r) => `${esc(r.name)}<br>${esc(r.phone)}`],
               [
                 "Drop location",
@@ -407,7 +416,7 @@
               ["Email", (r) => esc(r.email)],
               ["Orders", (r) => r.orders],
               ["Spent", (r) => money(r.spent)],
-              ["Joined", (r) => esc(kuwaitDateTime(r.created))],
+              ["Joined", (r) => esc(adminKuwaitDateTime(r.created))],
               ["Account access", (r) => `<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`],
               ["", (r) => del("customers", r.id)],
             ])}`
@@ -464,7 +473,7 @@
           return (
             `<button class="btn s o" onclick="exp('inquiries')">⬇ CSV</button><br><br>` +
             tbl(await A("/list/inquiries"), [
-              ["Date", (r) => esc(kuwaitDateTime(r.created))],
+              ["Date", (r) => esc(adminKuwaitDateTime(r.created))],
               ["Name", (r) => esc(r.name)],
               ["Contact", (r) => esc(r.phone) + "<br>" + esc(r.email)],
               ["Topic", (r) => esc(r.type)],
@@ -489,7 +498,7 @@
             `<button class="btn s" onclick="navigator.clipboard.writeText(_em).then(()=>toast('Emails copied'))">Copy all emails</button> <button class="btn s o" onclick="exp('newsletter')">⬇ CSV</button><br><br>` +
             tbl(n, [
               ["Email", (r) => esc(r.email)],
-              ["Date", (r) => esc(kuwaitDateTime(r.created))],
+              ["Date", (r) => esc(adminKuwaitDateTime(r.created))],
               ["", (r) => del("newsletter", r.id)],
             ])
           );
@@ -615,7 +624,7 @@ ${f("hero_title", "Homepage headline")}
           if (!r.ok) throw Error("Export failed");
           const a = document.createElement("a");
           a.href = URL.createObjectURL(await r.blob());
-          a.download = t + "-" + kuwaitToday() + ".csv";
+          a.download = t + "-" + adminKuwaitToday() + ".csv";
           a.click();
         } catch (e) {
           toast(e.message);
@@ -691,7 +700,7 @@ ${f("hero_title", "Homepage headline")}
               esc(r.id) +
               "</b></div>" +
               '<div class="row muted"><span>Order date</span><span>' +
-              esc(kuwaitDateTime(r.created)) +
+              esc(adminKuwaitDateTime(r.created)) +
               "</span></div>" +
               '<div class="row"><span>Status</span><span class="status">' +
               esc(r.status || "New") +
@@ -874,7 +883,7 @@ ${f("hero_title", "Homepage headline")}
             return;
           }
           const rows=await A("/inquiries/"+activeCustomerInquiryId+"/messages");
-          $("#admin-chat-messages").innerHTML=rows.map(m=>'<div class="admin-chat-bubble '+(m.author==="admin"?"admin":"customer")+'"><b>'+(m.author==="admin"?"You":"Customer")+'</b><div style="font-size:.72rem;opacity:.6">'+esc(kuwaitDateTime(m.created))+'</div>'+esc(m.message)+'</div>').join("");
+          $("#admin-chat-messages").innerHTML=rows.map(m=>'<div class="admin-chat-bubble '+(m.author==="admin"?"admin":"customer")+'"><b>'+(m.author==="admin"?"You":"Customer")+'</b><div style="font-size:.72rem;opacity:.6">'+esc(adminKuwaitDateTime(m.created))+'</div>'+esc(m.message)+'</div>').join("");
           $("#admin-chat-messages").scrollTop=$("#admin-chat-messages").scrollHeight;
         }catch(e){toast("Chat could not load: "+e.message)}
       }
