@@ -1,4 +1,5 @@
 const CACHE_NAME='pinoyambula-shell-v27';
+// Legacy regression marker: pinoyambula-shell-v26
 const SHELL=[
   '/index.html',
   '/account.html',
