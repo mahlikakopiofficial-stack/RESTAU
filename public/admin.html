@@ -29,7 +29,7 @@
       <div id="side"></div>
       <div id="main"></div>
     </div>
-    <script src="app.js?v=20261006-tz3"></script>
+    <script src="app.js?v=20261006-tz4"></script>
     <script>
       const K = "at",
         A = (u, m, b) => api("/admin" + u, m, b, K),
@@ -407,7 +407,7 @@
               ["Email", (r) => esc(r.email)],
               ["Orders", (r) => r.orders],
               ["Spent", (r) => money(r.spent)],
-              ["Joined", (r) => esc(r.created)],
+              ["Joined", (r) => esc(kuwaitDateTime(r.created))],
               ["Account access", (r) => `<button class="btn s o" onclick="issueReset(${r.id})">Send password-reset email</button>`],
               ["", (r) => del("customers", r.id)],
             ])}`
@@ -464,7 +464,7 @@
           return (
             `<button class="btn s o" onclick="exp('inquiries')">⬇ CSV</button><br><br>` +
             tbl(await A("/list/inquiries"), [
-              ["Date", (r) => esc(r.created)],
+              ["Date", (r) => esc(kuwaitDateTime(r.created))],
               ["Name", (r) => esc(r.name)],
               ["Contact", (r) => esc(r.phone) + "<br>" + esc(r.email)],
               ["Topic", (r) => esc(r.type)],
@@ -489,7 +489,7 @@
             `<button class="btn s" onclick="navigator.clipboard.writeText(_em).then(()=>toast('Emails copied'))">Copy all emails</button> <button class="btn s o" onclick="exp('newsletter')">⬇ CSV</button><br><br>` +
             tbl(n, [
               ["Email", (r) => esc(r.email)],
-              ["Date", (r) => esc(r.created)],
+              ["Date", (r) => esc(kuwaitDateTime(r.created))],
               ["", (r) => del("newsletter", r.id)],
             ])
           );
@@ -615,7 +615,7 @@ ${f("hero_title", "Homepage headline")}
           if (!r.ok) throw Error("Export failed");
           const a = document.createElement("a");
           a.href = URL.createObjectURL(await r.blob());
-          a.download = t + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+          a.download = t + "-" + kuwaitToday() + ".csv";
           a.click();
         } catch (e) {
           toast(e.message);
