@@ -25,6 +25,8 @@
   // Keep every admin report view on the same Kuwait-date range endpoint.
   // This also prevents enhancements.js from replacing Reports with the older single-date route.
   if(typeof R==='object'){
+    // Reports is owned here so later enhancement scripts cannot restore the broken legacy renderer.
+
     R.Report=async function(){
       const date=window._reportDate||window.kuwaitToday();
       const r=await A('/report-range?from='+encodeURIComponent(date)+'&to='+encodeURIComponent(date));
@@ -47,5 +49,8 @@
       const r=await A('/report-range?from='+encodeURIComponent(date)+'&to='+encodeURIComponent(date));
       return '<div class="report-actions"><button class="btn s" onclick="go(\'Reports\')">Open full report</button><button class="btn s o" onclick="exportReport()">⬇ Today\'s CSV</button></div><h3>Today\'s summary — '+r.from+'</h3><div class="grid"><div class="card report-kpi">Today\'s sales<b>'+money(r.revenue)+'</b></div><div class="card report-kpi">Today\'s orders<b>'+r.orders+'</b></div><div class="card report-kpi">Delivered<b>'+r.delivered+'</b></div><div class="card report-kpi">Cancelled<b>'+r.cancelled+'</b></div><div class="card report-kpi">New subscriptions<b>'+r.newSubscriptions+'</b></div><div class="card report-kpi">Active subscriptions<b>'+r.activeSubscriptions+'</b></div></div><h3 style="margin:24px 0 10px">Overall</h3><div class="grid">'+[['All orders',s.orders],['All-time revenue',money(s.revenue)],['Customers',s.customers],['Inquiries',s.inquiries],['Newsletter',s.subscribers]].map(x=>'<div class="card stat">'+x[0]+'<b>'+x[1]+'</b></div>').join('')+'</div><h3 style="margin:24px 0 10px">Top items today</h3>'+tbl(r.topItems,[['Item',x=>esc(x.name)],['Qty',x=>x.qty]]);
     };
+    if(typeof cur!=='undefined' && cur==='Reports' && typeof go==='function'){
+      setTimeout(()=>go('Reports'),0);
+    }
   }
 })();
