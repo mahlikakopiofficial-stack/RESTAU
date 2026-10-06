@@ -243,18 +243,33 @@ const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
 // Live admin order stream. Orders are pushed to connected admin dashboards
 // immediately after the database transaction commits; polling is not required.
 const adminOrderStreams=new Set();
-const broadcastAdminOrder=order=>{
-  const payload='data: '+JSON.stringify({
-    type:'order',
-    id:Number(order.id),
-    name:String(order.name||''),
-    status:String(order.status||''),
-    created:String(order.created||'')
-  })+'\n\n';
+const broadcastAdminEvent=(event)=>{
+  const payload='data: '+JSON.stringify(event)+'\n\n';
   for(const stream of adminOrderStreams){
     try{stream.write(payload)}catch(e){adminOrderStreams.delete(stream)}
   }
 };
+const broadcastAdminOrder=order=>broadcastAdminEvent({
+  type:'order',
+  id:Number(order.id),
+  name:String(order.name||''),
+  status:String(order.status||''),
+  created:String(order.created||'')
+});
+const broadcastAdminInquiry=inquiry=>broadcastAdminEvent({
+  type:'inquiry',
+  id:Number(inquiry.id),
+  name:String(inquiry.name||'customer'),
+  created:String(inquiry.created||'')
+});
+const broadcastAdminMessage=(inquiry,message)=>broadcastAdminEvent({
+  type:'message',
+  id:Number(inquiry.id),
+  name:String(inquiry.name||'customer'),
+  inquiry_id:Number(inquiry.id),
+  message:String(message||''),
+  created:String(inquiry.created||'')
+});
 
 const allowedOrigins = new Set([
   'https://localhost',
@@ -346,7 +361,7 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
   };
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
   notifyInquiryReceived(inquiry);
-  notifyAdminInquiry(inquiry);
+  notifyAdminInquiry(inquiry);\n  broadcastAdminInquiry(inquiry);
   r.json({ok:1,id:inquiry.id});
 }));
 app.post('/api/register',lim(8),w((q,r)=>{
@@ -468,7 +483,7 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
     db.prepare("UPDATE inquiries SET status='New',msg=? WHERE id=?").run(message,inquiry.id);
   }
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message);
-  notifyAdminCustomerMessage(inquiry,message);
+  notifyAdminCustomerMessage(inquiry,message);\n  broadcastAdminMessage(inquiry,message);
   r.json({ok:1,id:inquiry.id,orderId:Number(q.params.id)});
 }));
 app.get('/api/customer/inquiries/:id/messages',cust,w((q,r)=>{
