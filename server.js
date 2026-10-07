@@ -122,7 +122,7 @@ Other Asian|Japan|Salmon Sushi Roll|8-piece salmon maki roll|3.200|🍣
 Other Asian|Korea|Bibimbap|Rice bowl with vegetables, beef and gochujang|3.000|🍲
 Other Asian|Thailand|Pad Thai|Rice noodles, shrimp, peanuts and lime|2.800|🍜
 Other Asian|Thailand|Green Curry|Coconut green curry with chicken and rice|2.900|🥥
-Other Asian|Vietnam|Pho Bo|Beef noodle soup with herbs|3.000|🍜
+Other Asian|Vietnam|Pho Bo|Beef noodle soup with herbs|3.000|🍜`.split('\n').forEach(l=>{const a=l.split('|');ins.run(...a.slice(0,4),+a[4],a[5])});
 ['Handaan feast|🍽️','Pancit for long life|🍜','Halo-halo summer|🍧','Lechon celebration|🐖','Sampaguita table|🌼','Kain tayo!|🍚'].forEach(x=>db.prepare('INSERT INTO gallery(caption,img) VALUES(?,NULL)').run(x));
 [['Maria S.','Tastes just like my Lola\'s adobo. The delivery was fast and hot!',5],['Ahmed K.','Ordered catering for 30 people. Everyone loved the pancit and lechon.',5],['Joy R.','Budget meals are so filling. Tapsilog every Friday!',5]].forEach(x=>db.prepare('INSERT INTO testimonials(name,text,stars) VALUES(?,?,?)').run(...x));
 }
