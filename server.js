@@ -840,11 +840,13 @@ app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
     if(inquiry.email)notifyInquiryReply(inquiry,message);
     return r.json({ok:1,inquiryId:Number(inquiry.id),id,emailQueued:!!inquiry.email});
   }
+  const sentId=Number(db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?',inquiry.id).get().id);
+  broadcastCustomerMessage(order.customer_id,{id:sentId,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
   if(inquiry.email)notifyInquiryReply(inquiry,message);
-  r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?',inquiry.id).get().id),emailQueued:!!inquiry.email});
+  r.json({ok:1,inquiryId:Number(inquiry.id),id:sentId,emailQueued:!!inquiry.email});
 }));
 app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
-  const inquiry=one('SELECT id,name,email,type,msg FROM inquiries WHERE id=?',q.params.id);
+  const inquiry=one('SELECT id,customer_id,name,email,type,msg FROM inquiries WHERE id=?',q.params.id);
   if(!inquiry)return r.status(404).json({error:'Inquiry not found'});
   need(q.body,'message');
   const message=String(q.body.message).trim();
