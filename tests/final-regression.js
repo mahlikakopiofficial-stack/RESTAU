@@ -26,7 +26,7 @@ const notify=read('public/admin-notify.js');
 const sw=read('public/sw.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
-for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/sw.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/admin-fixes.js','public/admin-notify.js','public/sw.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
 t('admin inline script syntax',()=>{const scripts=[...admin.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`admin-inline-${index+1}.js`}))});
 t('account inline script syntax',()=>{const scripts=[...account.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`account-inline-${index+1}.js`}))});
 t('customer site inline script syntax',()=>{const scripts=[...index.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`index-inline-${index+1}.js`}))});
@@ -50,10 +50,71 @@ t('regional cart + floating cart',()=>{assert(index.includes('window.addRegional
 t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261006-tz4'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261006-tz4'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
 t('admin responsive navigation',()=>{assert(admin.includes('admin-nav-toggle'));assert(admin.includes('admin-nav-menu'));assert(admin.includes('toggleAdminNav'));assert(fs.existsSync(path.join(root,'public','admin-nav.css')));});
 t('universal logo upload and branding',()=>{assert(server.includes("fileFilter:(q,f,cb)=>/^image\\/(jpe?g|png|webp|gif|svg\\+xml)$/"));assert(admin.includes('id="logo-file"'));assert(admin.includes('image/svg+xml'));assert(admin.includes('saveUniversalLogo'));assert(app.includes("api('/admin/upload?target=logo'"));assert(app.includes('const configured=String(c.logo_url||\'\').trim()'));assert(app.includes('resolveMediaUrl(configured)'));assert(app.includes('applyUniversalBranding'));assert(app.includes('window.PINOY_BRANDING'));assert(server.includes("r.set('Cache-Control','no-store')"));});
-t('admin order live delivery',()=>{assert(server.includes("app.get('/api/admin/notifications"));assert(server.includes("SELECT id,'order' type,name,created FROM orders WHERE id>?"));assert(admin.includes('admin-notify.js?v=20261006-order1'));assert(app.includes('window.api=api'));assert(app.includes('admin-notify.js?v=20261006-order1'));assert(notify.includes("setInterval(async()=>"));assert(notify.includes("go('Orders')"));});
-t('customer and admin order chatbox stays available',()=>{assert(!server.includes("Order chat is closed"));assert(account.includes('Conversation #'));assert(account.includes('async function refreshOrderChat(orderId)'));assert(!account.includes('const orderChat = ["Delivered", "Completed"].includes(status)'));assert(adminFixes.includes("Conversation #'+x.inquiry.id"));assert(adminFixes.includes('window.__adminOrderChatRefresh=refresh'));assert(adminFixes.includes('await (window.__adminOrderChatRefresh?.()||Promise.resolve())'));assert(adminFixes.includes("d.addEventListener('close'"));assert(adminFixes.includes("window.__adminOrderChatId=null"));assert(admin.includes('admin-fixes.js?v=20261006-chat6'));assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v28'"));assert(sw.includes("const CACHE_VERSION='v28'"));assert(pwa.includes("/sw.js?v=20261006-v28"));assert(pwa.includes("updateViaCache:'none'"));assert(index.includes('/pwa.js?v=20261006-v28'));assert(admin.includes('/pwa.js?v=20261006-v28'));const shellMatch=sw.match(/const SHELL=\[(.*?)\];/s);assert(shellMatch);for(const asset of [...shellMatch[1].matchAll(/'([^']+)'/g)].map(m=>m[1])){const localPath=asset.split('?')[0].replace(/^\//,'');assert(fs.existsSync(path.join(root,'public',localPath)),`missing service-worker shell asset: ${asset}`)}assert(sw.includes('/icons/pinoyambula.svg'));assert(sw.includes('/admin-fixes.js?v=20261006-chat6'));assert(app.includes('admin-fixes.js?v=20261006-chat6'));});
-t('admin chat buttons render after fixes load',()=>{assert(admin.includes('admin-fixes.js?v=20261006-chat6'));assert(admin.includes('onload="if(tk(&quot;at&quot;))go(cur)"'));assert(adminFixes.includes("btn('💬 Chat'"));assert(adminFixes.includes("btn('💬 Reply'"));assert(adminFixes.includes('if(!d.open)d.showModal()'));});
-t('admin customer chat and inquiry reply',()=>{assert(server.includes("app.get('/api/admin/orders/:id/chat"));assert(server.includes("app.post('/api/admin/orders/:id/chat"));assert(server.includes("app.get('/api/admin/inquiries/:id/messages"));assert(server.includes("app.post('/api/admin/inquiries/:id/messages"));assert(admin.includes('id="admin-fixes-script" src="admin-fixes.js?v=20261006-chat6"'));assert(adminFixes.includes("btn('💬 Chat'"));assert(adminFixes.includes('openAdminOrderChat'));assert(adminFixes.includes('sendAdminOrderChat'));assert(adminFixes.includes("btn('💬 Reply'"));assert(adminFixes.includes('openAdminInquiry'));assert(adminFixes.includes('sendAdminInquiry'));assert(adminFixes.includes("window.__adminInquiryId=null"));});
+t('admin order live delivery',()=>{
+  assert(server.includes("app.get('/api/admin/events"));
+  assert(server.includes("app.get('/api/admin/notifications"));
+  assert(server.includes("SELECT id,'order' type,name,created FROM orders WHERE id>?"));
+  assert(server.includes('broadcastAdminOrder(savedOrder)'));
+  assert(server.includes("broadcast type='+String(event?.type||'')"));
+  assert(admin.includes('admin-notify.js?v=20261007-live3'));
+  assert(app.includes('window.api=api'));
+  assert(notify.includes('/api/admin/events'));
+  assert(notify.includes('/api/admin/notifications'));
+  assert(notify.includes('primeCursors'));
+  assert(notify.includes('startFallback'));
+  assert(notify.includes('setInterval(poll,1000)'));
+  assert(notify.includes("go('Orders')"));
+});
+t('customer and admin order chatbox stays available',()=>{
+  assert(!server.includes("Order chat is closed"));
+  assert(account.includes('Conversation #'));
+  assert(account.includes('async function refreshOrderChat(orderId)'));
+  assert(!account.includes('const orderChat = ["Delivered", "Completed"].includes(status)'));
+  assert(adminFixes.includes("Conversation #'+x.inquiry.id"));
+  assert(adminFixes.includes('window.__adminOrderChatRefresh=refresh'));
+  assert(adminFixes.includes('await (window.__adminOrderChatRefresh?.()||Promise.resolve())'));
+  assert(adminFixes.includes("d.addEventListener('close'"));
+  assert(adminFixes.includes("window.__adminOrderChatId=null"));
+  assert(admin.includes('admin-fixes.js?v=20261007-live3'));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v31'"));
+  assert(sw.includes("const CACHE_VERSION='v31'"));
+  assert(sw.includes('/admin-fixes.js?v=20261007-live4'));
+  assert(sw.includes('/admin-notify.js?v=20261007-live4'));
+  assert(pwa.includes("/sw.js?v=20261006-v28"));
+  assert(pwa.includes("updateViaCache:'none'"));
+  assert(index.includes('/pwa.js?v=20261006-v28'));
+  assert(admin.includes('/pwa.js?v=20261006-v28'));
+  const shellMatch=sw.match(/const SHELL=\[(.*?)\];/s);
+  assert(shellMatch);
+  for(const asset of [...shellMatch[1].matchAll(/'([^']+)'/g)].map(m=>m[1])){
+    const localPath=asset.split('?')[0].replace(/^\//,'');
+    assert(fs.existsSync(path.join(root,'public',localPath)), 'missing service-worker shell asset: '+asset);
+  }
+  assert(sw.includes('/icons/pinoyambula.svg'));
+});
+t('admin chat buttons render after fixes load',()=>{
+  assert(admin.includes('admin-fixes.js?v=20261007-live3'));
+  assert(admin.includes('onload="if(tk(&quot;at&quot;))go(cur)"'));
+  assert(adminFixes.includes("btn('💬 Chat'"));
+  assert(adminFixes.includes("btn('💬 Reply'"));
+  assert(adminFixes.includes('if(!d.open)d.showModal()'));
+});
+t('admin customer chat and inquiry reply',()=>{
+  assert(server.includes("app.get('/api/admin/orders/:id/chat"));
+  assert(server.includes("app.post('/api/admin/orders/:id/chat"));
+  assert(server.includes("app.get('/api/admin/inquiries/:id/messages"));
+  assert(server.includes("app.post('/api/admin/inquiries/:id/messages"));
+  assert(server.includes('broadcastAdminMessage(inquiry,message)'));
+  assert(server.includes('broadcastAdminInquiry(inquiry)'));
+  assert(admin.includes('id="admin-fixes-script" src="admin-fixes.js?v=20261007-live3"'));
+  assert(adminFixes.includes("btn('💬 Chat'"));
+  assert(adminFixes.includes('openAdminOrderChat'));
+  assert(adminFixes.includes('sendAdminOrderChat'));
+  assert(adminFixes.includes("btn('💬 Reply'"));
+  assert(adminFixes.includes('openAdminInquiry'));
+  assert(adminFixes.includes('sendAdminInquiry'));
+  assert(adminFixes.includes("window.__adminInquiryId=null"));
+});
 t('admin functions and Kuwait report',()=>{assert(admin.includes('const adminKuwaitToday='));assert(admin.includes('const adminKuwaitDateTime='));assert(admin.includes('const today = adminKuwaitToday()'));assert(admin.includes('adminKuwaitDateTime(x.created)'));assert(admin.includes('async function clearImage(target,id)'));assert(admin.includes('A("/image","DELETE",{target,id})'));assert(admin.includes('clearImage(\'item\','));assert(master.includes('window.addAdminPlan=async function'));assert(admin.includes('async Reports()'));assert(admin.includes('adminKuwaitToday()'));assert(admin.includes('/report-range?from='));assert(server.includes("app.get('/api/admin/report-range'"));assert((server.match(/app\.get\('\/api\/admin\/report-range'/g)||[]).length===1);assert(server.includes('buildAdminReport'));assert(server.includes('ordersList:orders'));assert(server.includes('paidRevenue:'));assert(!enhancements.includes('R.Report='));assert(!enhancements.includes('window.printReport='));assert(!enhancements.includes('window.exportReport='));});
 t('admin menu category search',()=>{assert(admin.includes('id="admin-menu-category"'));assert(admin.includes('id="admin-menu-search"'));assert(admin.includes('filterAdminMenu'));assert(admin.includes('class="card admin-menu-item"'));assert(style.includes('.admin-menu-tools'));});
 t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
