@@ -61,7 +61,7 @@ t('admin order live delivery',()=>{
   assert(server.includes('broadcastAdminMessage(inquiry,message,Number(id))'));
   assert(server.includes('broadcastCustomerOrder(savedOrder)'));
   assert(server.includes('broadcastCustomerOrderStatus(after)'));
-  assert(admin.includes('admin-notify.js?v=20261007-live6'));
+  assert(admin.includes('admin-notify.js?v=20261007-live7'));
   assert(app.includes('window.api=api'));
   assert(app.includes('/api/customer/events'));
   assert(app.includes('customer-auth-ready'));
@@ -73,8 +73,8 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v34'"));
-  assert(sw.includes('/admin-notify.js?v=20261007-live6'));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v35'"));
+  assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
 
@@ -101,10 +101,10 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes('await (window.__adminOrderChatRefresh?.()||Promise.resolve())'));
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
-  assert(admin.includes('admin-fixes.js?v=20261007-live3'));
+  assert(admin.includes('admin-fixes.js?v=20261007-live8'));
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v34'"));
-  assert(sw.includes("const CACHE_VERSION='v34'"));
-  assert(sw.includes('/admin-fixes.js?v=20261007-live4'));
+  assert(sw.includes("const CACHE_VERSION='v35'"));
+  assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live6'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
   assert(pwa.includes("updateViaCache:'none'"));
@@ -132,9 +132,12 @@ t('admin customer chat and inquiry reply',()=>{
   assert(server.includes("app.post('/api/admin/orders/:id/chat"));
   assert(server.includes("app.get('/api/admin/inquiries/:id/messages"));
   assert(server.includes("app.post('/api/admin/inquiries/:id/messages"));
-  assert(server.includes('broadcastAdminMessage(inquiry,message)'));
+  assert(server.includes('broadcastAdminMessage(inquiry,message,messageId)'));
   assert(server.includes('broadcastAdminInquiry(inquiry)'));
-  assert(admin.includes('id="admin-fixes-script" src="admin-fixes.js?v=20261007-live3"'));
+  assert(server.includes("customer_id:Number(inquiry.customer_id||0)"));
+  assert(admin.includes('id="admin-fixes-script" src="admin-fixes.js?v=20261007-live8"'));
+  assert(admin.includes('admin-live-event'));
+  assert(admin.includes('ADMIN_CUSTOMER_CHAT_LIVE_REFRESH_FAILED'));
   assert(adminFixes.includes("btn('💬 Chat'"));
   assert(adminFixes.includes('openAdminOrderChat'));
   assert(adminFixes.includes('sendAdminOrderChat'));
@@ -199,8 +202,12 @@ t('WhatsApp registration and admin notifications',()=>{
   assert(server.includes("'customer:'+id+':registered'"));
   assert(server.includes("SELECT whatsapp_opt_in FROM customers WHERE id=?"));
   assert(whatsapp.includes('WHATSAPP_TEMPLATE_NAME'));
+  assert(server.includes("WHATSAPP_ADMIN_TO"));
+  assert(server.includes("notifyAdminWhatsApp"));
+  assert(server.includes("VALUES('whatsapp',?,?,?)").includes);
+  assert(server.includes(").run(eventKey,recipient,'Pending')"));
   assert(server.includes("app.get('/api/admin/notifications"));
-  assert(master.includes('setInterval(pollAdminNotifications,12000)'));
+  assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
   assert(server.includes("app.post('/api/admin/inquiries/:id/messages'"));
   assert(enhancements.includes('sendInquiryReply'));
 });
