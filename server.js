@@ -244,9 +244,10 @@ const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
 // immediately after the database transaction commits; polling is not required.
 const adminOrderStreams=new Set();
 const broadcastAdminEvent=(event)=>{
+  console.log('[ADMIN-SSE] broadcast type='+String(event?.type||'')+' id='+String(event?.id||'')+' clients='+adminOrderStreams.size);
   const payload='data: '+JSON.stringify(event)+'\n\n';
   for(const stream of adminOrderStreams){
-    try{stream.write(payload)}catch(e){adminOrderStreams.delete(stream)}
+    try{stream.write(payload);if(typeof stream.flush==='function')stream.flush()}catch(e){adminOrderStreams.delete(stream)}
   }
 };
 const broadcastAdminOrder=order=>broadcastAdminEvent({
@@ -506,6 +507,8 @@ app.post('/api/customer/inquiries',lim(20),cust,w((q,r)=>{
   };
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
   notifyAdminCustomerMessage(inquiry,message);
+  broadcastAdminInquiry(inquiry);
+  broadcastAdminMessage(inquiry,message);
   r.json({ok:1,id:inquiry.id});
 }));
 app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
@@ -518,6 +521,7 @@ app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
     .run(inquiry.id,'customer',message).lastInsertRowid;
   db.prepare("UPDATE inquiries SET status='New' WHERE id=?").run(inquiry.id);
   notifyAdminCustomerMessage(inquiry,message);
+  broadcastAdminMessage(inquiry,message);
   r.json({ok:1,id:Number(id)});
 }));
 app.get('/api/me',cust,w((q,r)=>{
@@ -834,10 +838,12 @@ app.get('/api/admin/events',(q,r)=>{
   if(typeof r.flushHeaders==='function')r.flushHeaders();
   r.write('retry: 3000\n\n');
   adminOrderStreams.add(r);
-  const heartbeat=setInterval(()=>{try{r.write(': heartbeat\n\n')}catch(e){}},25000);
+  console.log('[ADMIN-SSE] connected clients='+adminOrderStreams.size);
+  const heartbeat=setInterval(()=>{try{r.write(': heartbeat\n\n');if(typeof r.flush==='function')r.flush()}catch(e){}},15000);
   const close=()=>{
     clearInterval(heartbeat);
     adminOrderStreams.delete(r);
+    console.log('[ADMIN-SSE] disconnected clients='+adminOrderStreams.size);
   };
   q.on('close',close);
   r.on('close',close);
