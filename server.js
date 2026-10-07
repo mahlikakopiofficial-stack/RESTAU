@@ -77,9 +77,7 @@ const ensureColumn=(table,column,definition)=>{
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
-'Sinigang na Baboy':'Pork, tamarind, tomato, onion, radish, okra, eggplant, kangkong, fish sauce, water',
 'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
-'Lechon Kawali':'Pork belly, garlic, bay leaf, salt, black pepper, cooking oil, liver sauce',
 'Pancit Canton':'Wheat noodles, chicken, cabbage, carrots, green beans, onion, garlic, soy sauce, oyster sauce',
 'Tapsilog':'Beef tapa, garlic, soy sauce, calamansi, sugar, garlic rice, egg, cooking oil',
 'Longsilog':'Longganisa, garlic rice, egg, cooking oil, garlic, vinegar dip',
@@ -90,15 +88,12 @@ const ingredientDefaults={
 'Halo-Halo':'Shaved ice, sweet beans, nata de coco, kaong, ube, leche flan, evaporated milk, sugar',
 'Pancit Party Tray (10 pax)':'Pancit bihon, chicken, cabbage, carrots, green beans, onion, garlic, soy sauce, oyster sauce',
 'Adobo Tray (20 pax)':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
-'Lechon Belly (15 pax)':'Pork belly, garlic, lemongrass, onion, salt, black pepper, bay leaf, cooking oil',
 'Chicken Katsu Curry':'Chicken breast, panko, flour, egg, Japanese curry, onion, carrot, potato, rice',
 'Salmon Sushi Roll':'Salmon, sushi rice, nori, rice vinegar, cucumber, sesame, soy sauce',
 'Bibimbap':'Rice, beef, spinach, carrot, bean sprouts, zucchini, egg, gochujang, sesame oil',
-'Kimchi Jjigae':'Kimchi, pork, tofu, onion, garlic, gochugaru, stock',
 'Pad Thai':'Rice noodles, shrimp, tofu, bean sprouts, egg, peanuts, tamarind, fish sauce, sugar, lime',
 'Green Curry':'Chicken, green curry paste, coconut milk, Thai basil, eggplant, fish sauce, sugar, rice',
 'Pho Bo':'Beef, rice noodles, onion, ginger, star anise, cinnamon, herbs, fish sauce, beef broth',
-'Banh Mi':'Baguette, pork, pate, pickled carrot, pickled daikon, cucumber, cilantro, mayonnaise'};
 for(const [name,ingredients] of Object.entries(ingredientDefaults)) db.prepare("UPDATE items SET ingredients=? WHERE name=? AND COALESCE(ingredients,'')=''").run(ingredients,name);
 db.exec(`CREATE TABLE IF NOT EXISTS inquiry_messages(
   id INTEGER PRIMARY KEY,
@@ -110,9 +105,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS inquiry_messages(
 if(!db.prepare('SELECT COUNT(*) n FROM items').get().n){
 const ins=db.prepare('INSERT INTO items(cat,region,name,descr,price,emoji) VALUES(?,?,?,?,?,?)');
 `Regular|Filipino|Chicken Adobo|Soy-vinegar braised chicken, garlic, bay leaf, steamed rice|2.500|🍗
-Regular|Filipino|Sinigang na Baboy|Sour tamarind pork soup with vegetables|2.800|🍲
 Regular|Filipino|Kare-Kare|Oxtail peanut stew with bagoong and vegetables|3.500|🥘
-Regular|Filipino|Lechon Kawali|Crispy deep-fried pork belly with liver sauce|3.200|🥓
 Regular|Filipino|Pancit Canton|Stir-fried noodles with chicken and vegetables|2.200|🍜
 Budget|Filipino|Tapsilog|Beef tapa, garlic rice and fried egg|1.800|🍳
 Budget|Filipino|Longsilog|Sweet longganisa, garlic rice and egg|1.600|🌭
@@ -123,15 +116,12 @@ Drinks|Filipino|Calamansi Juice|Filipino lime, sweet and tangy|0.800|🍋
 Drinks|Filipino|Halo-Halo|Shaved ice, sweet beans, leche flan, ube ice cream|1.800|🍧
 Catering|Filipino|Pancit Party Tray (10 pax)|Pancit bihon tray for gatherings|15.000|🍜
 Catering|Filipino|Adobo Tray (20 pax)|Chicken adobo party tray with rice|30.000|🍗
-Catering|Filipino|Lechon Belly (15 pax)|Whole roasted pork belly, order 1 day ahead|45.000|🐖
 Other Asian|Japan|Chicken Katsu Curry|Crispy cutlet with Japanese curry rice|2.900|🍛
 Other Asian|Japan|Salmon Sushi Roll|8-piece salmon maki roll|3.200|🍣
 Other Asian|Korea|Bibimbap|Rice bowl with vegetables, beef and gochujang|3.000|🍲
-Other Asian|Korea|Kimchi Jjigae|Spicy kimchi and pork stew|2.800|🌶️
 Other Asian|Thailand|Pad Thai|Rice noodles, shrimp, peanuts and lime|2.800|🍜
 Other Asian|Thailand|Green Curry|Coconut green curry with chicken and rice|2.900|🥥
 Other Asian|Vietnam|Pho Bo|Beef noodle soup with herbs|3.000|🍜
-Other Asian|Vietnam|Banh Mi|Crispy baguette with pork, pickles and herbs|1.900|🥖`.split('\n').forEach(l=>{const a=l.split('|');ins.run(...a.slice(0,4),+a[4],a[5])});
 ['Handaan feast|🍽️','Pancit for long life|🍜','Halo-halo summer|🍧','Lechon celebration|🐖','Sampaguita table|🌼','Kain tayo!|🍚'].forEach(x=>db.prepare('INSERT INTO gallery(caption,img) VALUES(?,NULL)').run(x));
 [['Maria S.','Tastes just like my Lola\'s adobo. The delivery was fast and hot!',5],['Ahmed K.','Ordered catering for 30 people. Everyone loved the pancit and lechon.',5],['Joy R.','Budget meals are so filling. Tapsilog every Friday!',5]].forEach(x=>db.prepare('INSERT INTO testimonials(name,text,stars) VALUES(?,?,?)').run(...x));
 }
@@ -154,11 +144,9 @@ const addSweet=db.prepare("INSERT INTO items(cat,region,name,descr,price,emoji) 
 for(const [name,descr,price,emoji] of sweets)addSweet.run(name,descr,price,emoji,name);
 if(!db.prepare('SELECT COUNT(*) n FROM regional_dishes').get().n){
   const regional=[
-    ['Bicol Express','Bicol Region','Pork or seafood stew with coconut milk and chili, commonly associated with Bicol cuisine.',3.200],
     ['Chicken Inasal','Western Visayas','Char-grilled marinated chicken associated with Bacolod and the Western Visayas.',3.000],
     ['La Paz Batchoy','Western Visayas','Rich noodle soup associated with La Paz, Iloilo.',2.800],
     ['Pinapaitan','Ilocos Region','Savory and bitter Ilocano stew traditionally made with offal and bile.',2.800],
-    ['Bagnet','Ilocos Region','Crispy Ilocano pork belly dish served in bite-size pieces.',3.500],
     ['Pancit Batil Patung','Cagayan Valley','Noodle dish associated with Tuguegarao and nearby areas.',2.600],
     ['Kansi','Western Visayas','Sour beef soup associated with Negros Occidental and Iloilo.',3.100],
     ['Kinilaw','Visayas and Mindanao','Vinegar-cured seafood preparation found across many coastal communities in the Philippines.',2.900]
@@ -167,7 +155,6 @@ if(!db.prepare('SELECT COUNT(*) n FROM regional_dishes').get().n){
   regional.forEach((x,i)=>ri.run(x[0],x[1],x[2],x[3],i));
 }
 const moreRegional=[
-  ['Sisig','Central Luzon','Sizzling chopped pork or seafood with calamansi and aromatics, strongly associated with Pampanga.',3.200],
   ['Bringhe','Central Luzon','Kapampangan-style festive rice dish cooked with coconut milk and chicken.',3.000],
   ['Pinangat','Bicol Region','Taro leaves simmered with coconut and savory filling, a Bicol classic.',2.900],
   ['Binagol','Eastern Visayas','Sweet taro-based delicacy traditionally prepared in a polished coconut shell.',2.200],
