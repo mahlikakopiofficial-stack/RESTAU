@@ -71,6 +71,7 @@ const ensureColumn=(table,column,definition)=>{
   ['plans','img',"TEXT DEFAULT ''"],
   ['inquiries','customer_id','INTEGER'],
   ['inquiries','order_id','INTEGER'],
+  ['inquiries','status',"TEXT DEFAULT 'New'"],
   ['announcements','updated_at','TEXT']
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 const ingredientDefaults={
@@ -847,20 +848,32 @@ app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
   if(!message)throw new Error('Message is required');
   let inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE order_id=? ORDER BY id DESC LIMIT 1',q.params.id);
   if(!inquiry){
-    const id=Number(db.prepare('INSERT INTO inquiries(customer_id,order_id,name,email,phone,type,msg,status) VALUES(?,?,?,?,?,?,?,?)')
-      .run(order.customer_id,order.id,order.name,order.email||'',order.phone||'','Order #'+order.id,message,'Replied').lastInsertRowid);
+    const result=db.prepare(
+      'INSERT INTO inquiries(customer_id,order_id,name,email,phone,type,msg,status) VALUES(@customer_id,@order_id,@name,@email,@phone,@type,@msg,@status)'
+    ).run({
+      customer_id:order.customer_id==null?null:Number(order.customer_id),
+      order_id:Number(order.id),
+      name:String(order.name||''),
+      email:String(order.email||''),
+      phone:String(order.phone||''),
+      type:'Order #'+Number(order.id),
+      msg:message,
+      status:'Replied'
+    });
+    const id=Number(result.lastInsertRowid);
     inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE id=?',id);
     db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(id,'admin',message);
   }else{
-    const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid);
-    db.prepare("UPDATE inquiries SET status='Replied',msg=? WHERE id=?").run(message,inquiry.id);
-    broadcastCustomerMessage(order.customer_id,{id,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
-    if(inquiry.email)notifyInquiryReply(inquiry,message);
+    const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(Number(inquiry.id),'admin',message).lastInsertRowid);
+    db.prepare("UPDATE inquiries SET status='Replied',msg=? WHERE id=?").run(message,Number(inquiry.id));
+    broadcastCustomerMessage(Number(order.customer_id),{id,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
+    if(inquiry.email)Promise.resolve(notifyInquiryReply(inquiry,message)).catch(error=>console.error('ADMIN_ORDER_REPLY_EMAIL_FAILED',error.message));
     return r.json({ok:1,inquiryId:Number(inquiry.id),id,emailQueued:!!inquiry.email});
   }
-  const sentId=Number(db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?',inquiry.id).get().id);
-  broadcastCustomerMessage(order.customer_id,{id:sentId,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
-  if(inquiry.email)notifyInquiryReply(inquiry,message);
+  const sentRow=db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?').get(Number(inquiry.id));
+  const sentId=Number(sentRow?.id||0);
+  broadcastCustomerMessage(Number(order.customer_id),{id:sentId,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
+  if(inquiry.email)Promise.resolve(notifyInquiryReply(inquiry,message)).catch(error=>console.error('ADMIN_ORDER_REPLY_EMAIL_FAILED',error.message));
   r.json({ok:1,inquiryId:Number(inquiry.id),id:sentId,emailQueued:!!inquiry.email});
 }));
 app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
