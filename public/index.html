@@ -13,7 +13,7 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#7b2d26" />
     <script src="/runtime-config.js"></script>
-    <script src="/pwa.js?v=20261006-v28"></script>
+    <script src="/pwa.js?v=20261006-v29"></script>
   </head>
   <body>
     <div class="banig"></div>
@@ -740,16 +740,23 @@
           const imgEl=document.querySelector('[data-service-image="'+slot+'"]');
           if(nameEl&&c[nameKey]!==undefined)nameEl.textContent=c[nameKey];
           if(descEl&&c[descKey]!==undefined)descEl.textContent=c[descKey];
-          if(imgEl&&c[imgKey]){
-            imgEl.textContent="";
-            const img=document.createElement("img");
-            img.src=c[imgKey];
-            img.alt="";
-            img.loading="lazy";
-            img.style.width="100%";
-            img.style.height="100%";
-            img.style.objectFit="cover";
-            imgEl.appendChild(img);
+          if(imgEl){
+            const raw=String(c[imgKey]||"").trim();
+            const url=raw && typeof resolveMediaUrl==="function" ? resolveMediaUrl(raw) : raw;
+            imgEl.innerHTML="";
+            if(url){
+              imgEl.classList.add("service-image-filled");
+              const img=document.createElement("img");
+              img.src=url;
+              img.alt="";
+              img.loading="eager";
+              img.decoding="async";
+              img.addEventListener("error",()=>{img.remove();imgEl.textContent="🖼️";},{once:true});
+              imgEl.appendChild(img);
+            }else{
+              imgEl.classList.remove("service-image-filled");
+              imgEl.textContent=imgEl.dataset.serviceFallback||"🍽️";
+            }
           }
         });
 
