@@ -335,8 +335,8 @@ const adminCursorSnapshot=()=>({
 const adminEventsAfter=(cursor={})=>{
   const events=[
     ...db.prepare("SELECT id,'order' type,name,created FROM orders WHERE id>? ORDER BY id LIMIT 1000").all(Math.max(0,+cursor.orders||0)),
-    ...db.prepare("SELECT id,'inquiry' type,name,created FROM inquiries WHERE id>? ORDER BY id LIMIT 1000").all(Math.max(0,+cursor.inquiries||0)),
-    ...db.prepare("SELECT m.id,'message' type,i.name,m.created,i.id inquiry_id,m.message FROM inquiry_messages m JOIN inquiries i ON i.id=m.inquiry_id WHERE m.author='customer' AND m.id>? ORDER BY m.id LIMIT 1000").all(Math.max(0,+cursor.messages||0))
+    ...db.prepare("SELECT id,'inquiry' type,customer_id,order_id,name,created FROM inquiries WHERE id>? ORDER BY id LIMIT 1000").all(Math.max(0,+cursor.inquiries||0)),
+    ...db.prepare("SELECT m.id,'message' type,i.customer_id,i.order_id,i.name,m.created,i.id inquiry_id,m.message FROM inquiry_messages m JOIN inquiries i ON i.id=m.inquiry_id WHERE m.author='customer' AND m.id>? ORDER BY m.id LIMIT 1000").all(Math.max(0,+cursor.messages||0))
   ];
   events.sort((a,b)=>String(a.created).localeCompare(String(b.created))||a.id-b.id);
   return events;
@@ -344,10 +344,12 @@ const adminEventsAfter=(cursor={})=>{
 const broadcastAdminMessage=(inquiry,message,messageId)=>broadcastAdminEvent({
   type:'message',
   id:Number(messageId||0),
+  customer_id:Number(inquiry.customer_id||0),
+  order_id:Number(inquiry.order_id||0),
   name:String(inquiry.name||'customer'),
   inquiry_id:Number(inquiry.id),
   message:String(message||''),
-  created:String(inquiry.created||'')
+  created:new Date().toISOString()
 });
 
 const allowedOrigins = new Set([
