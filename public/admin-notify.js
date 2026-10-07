@@ -27,6 +27,7 @@
     const id=Number(ev.id)||0;
     if(key&&id&&id<=seen[key])return;
 
+    window.dispatchEvent(new CustomEvent('admin-live-event',{detail:ev}));
     advance(ev);
 
     if(ev.type==='order'){
