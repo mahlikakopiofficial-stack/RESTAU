@@ -587,6 +587,7 @@ app.post('/api/customer/inquiries',lim(20),cust,w((q,r)=>{
   };
   const messageId=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg).lastInsertRowid);
   notifyAdminCustomerMessage(inquiry,message);
+  Promise.resolve(notifyAdminWhatsApp('message:'+messageId,adminMessageWhatsAppText(inquiry,message))).catch(()=>{});
   broadcastAdminInquiry(inquiry);
   broadcastAdminMessage(inquiry,message,messageId);
   r.json({ok:1,id:inquiry.id});
@@ -601,6 +602,7 @@ app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
     .run(inquiry.id,'customer',message).lastInsertRowid;
   db.prepare("UPDATE inquiries SET status='New' WHERE id=?").run(inquiry.id);
   notifyAdminCustomerMessage(inquiry,message);
+  Promise.resolve(notifyAdminWhatsApp('message:'+Number(id),adminMessageWhatsAppText(inquiry,message))).catch(()=>{});
   broadcastAdminMessage(inquiry,message,Number(id));
   r.json({ok:1,id:Number(id)});
 }));
