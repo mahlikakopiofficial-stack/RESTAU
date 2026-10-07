@@ -1441,11 +1441,11 @@ app.get('/api/admin/heritage',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM he
 app.post('/api/admin/heritage',admin,w((q,r)=>{need(q.body,'title');const type=['image','video'].includes(q.body.media_type)?q.body.media_type:'image';const id=Number(db.prepare('INSERT INTO heritage(title,caption,media_type,img,media_url,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(String(q.body.title).slice(0,160),String(q.body.caption||'').slice(0,600),type,String(q.body.img||''),String(q.body.media_url||'').slice(0,500),q.body.active===0?0:1,Math.trunc(+q.body.sort_order||0)).lastInsertRowid);r.json({ok:1,id});}));
 app.put('/api/admin/heritage/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','caption','media_type','img','media_url','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE heritage SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='media_type'?(['image','video'].includes(q.body[k])?q.body[k]:'image'):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
 app.delete('/api/admin/heritage/:id',admin,w((q,r)=>{const row=one('SELECT img FROM heritage WHERE id=?',q.params.id);if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});db.prepare('DELETE FROM heritage WHERE id=?').run(q.params.id);r.json({ok:1});}));
-app.get('/api/admin/whatsapp/status',admin,(q,r)=>r.json(whatsappStatus()));
+app.get('/api/admin/whatsapp/status',admin,(q,r)=>r.json({...whatsappStatus(),adminRecipientConfigured:Boolean(adminWhatsAppRecipient())}));
 app.get('/api/admin/notification-status',admin,(q,r)=>r.json({
   emailConfigured:Boolean(E.GMAIL_USER&&E.GMAIL_CLIENT_ID&&E.GMAIL_CLIENT_SECRET&&E.GMAIL_REFRESH_TOKEN),
   adminEmailConfigured:Boolean(E.GMAIL_ADMIN_NOTIFY_TO||E.GMAIL_USER),
-  whatsapp:whatsappStatus()
+  whatsapp:{...whatsappStatus(),adminRecipientConfigured:Boolean(adminWhatsAppRecipient())}
 }));
 app.get('/check.html',(q,r,n)=>E.ENABLE_CHECK==='0'?r.status(404).send('Not found'):n());
 app.use((q,r,n)=>{
