@@ -263,9 +263,23 @@ const broadcastAdminInquiry=inquiry=>broadcastAdminEvent({
   name:String(inquiry.name||'customer'),
   created:String(inquiry.created||'')
 });
-const broadcastAdminMessage=(inquiry,message)=>broadcastAdminEvent({
+const adminCursorSnapshot=()=>({
+  orders:Number(db.prepare('SELECT COALESCE(MAX(id),0) id FROM orders').get().id||0),
+  inquiries:Number(db.prepare('SELECT COALESCE(MAX(id),0) id FROM inquiries').get().id||0),
+  messages:Number(db.prepare("SELECT COALESCE(MAX(id),0) id FROM inquiry_messages WHERE author='customer'").get().id||0)
+});
+const adminEventsAfter=(cursor={})=>{
+  const events=[
+    ...db.prepare("SELECT id,'order' type,name,created FROM orders WHERE id>? ORDER BY id LIMIT 1000").all(Math.max(0,+cursor.orders||0)),
+    ...db.prepare("SELECT id,'inquiry' type,name,created FROM inquiries WHERE id>? ORDER BY id LIMIT 1000").all(Math.max(0,+cursor.inquiries||0)),
+    ...db.prepare("SELECT m.id,'message' type,i.name,m.created,i.id inquiry_id,m.message FROM inquiry_messages m JOIN inquiries i ON i.id=m.inquiry_id WHERE m.author='customer' AND m.id>? ORDER BY m.id LIMIT 1000").all(Math.max(0,+cursor.messages||0))
+  ];
+  events.sort((a,b)=>String(a.created).localeCompare(String(b.created))||a.id-b.id);
+  return events;
+};
+const broadcastAdminMessage=(inquiry,message,messageId)=>broadcastAdminEvent({
   type:'message',
-  id:Number(inquiry.id),
+  id:Number(messageId||0),
   name:String(inquiry.name||'customer'),
   inquiry_id:Number(inquiry.id),
   message:String(message||''),
@@ -484,9 +498,9 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
   }else{
     db.prepare("UPDATE inquiries SET status='New',msg=? WHERE id=?").run(message,inquiry.id);
   }
-  db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message);
+  const messageId=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message).lastInsertRowid);
   notifyAdminCustomerMessage(inquiry,message);
-  broadcastAdminMessage(inquiry,message);
+  broadcastAdminMessage(inquiry,message,messageId);
   r.json({ok:1,id:inquiry.id,orderId:Number(q.params.id)});
 }));
 app.get('/api/customer/inquiries/:id/messages',cust,w((q,r)=>{
@@ -505,10 +519,10 @@ app.post('/api/customer/inquiries',lim(20),cust,w((q,r)=>{
       .run(q.cid,c.name,c.email||'',c.phone||'',type,message).lastInsertRowid),
     customer_id:q.cid,name:c.name,email:c.email||'',phone:c.phone||'',type,msg:message
   };
-  db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
+  const messageId=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg).lastInsertRowid);
   notifyAdminCustomerMessage(inquiry,message);
   broadcastAdminInquiry(inquiry);
-  broadcastAdminMessage(inquiry,message);
+  broadcastAdminMessage(inquiry,message,messageId);
   r.json({ok:1,id:inquiry.id});
 }));
 app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
@@ -521,7 +535,7 @@ app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
     .run(inquiry.id,'customer',message).lastInsertRowid;
   db.prepare("UPDATE inquiries SET status='New' WHERE id=?").run(inquiry.id);
   notifyAdminCustomerMessage(inquiry,message);
-  broadcastAdminMessage(inquiry,message);
+  broadcastAdminMessage(inquiry,message,Number(id));
   r.json({ok:1,id:Number(id)});
 }));
 app.get('/api/me',cust,w((q,r)=>{
@@ -839,6 +853,27 @@ app.get('/api/admin/events',(q,r)=>{
   r.write('retry: 3000\n\n');
   adminOrderStreams.add(r);
   console.log('[ADMIN-SSE] connected clients='+adminOrderStreams.size);
+
+  const hasCursor=['orders','inquiries','messages'].some(key=>q.query[key]!==undefined);
+  if(hasCursor){
+    const replay=adminEventsAfter({
+      orders:q.query.orders,
+      inquiries:q.query.inquiries,
+      messages:q.query.messages
+    });
+    for(const event of replay){
+      try{r.write('data: '+JSON.stringify(event)+'\n\n')}catch(e){break}
+    }
+    if(typeof r.flush==='function')r.flush();
+    console.log('[ADMIN-SSE] replay events='+replay.length);
+  }else{
+    const cursor=adminCursorSnapshot();
+    try{
+      r.write('data: '+JSON.stringify({type:'ready',...cursor})+'\n\n');
+      if(typeof r.flush==='function')r.flush();
+    }catch(e){}
+  }
+
   const heartbeat=setInterval(()=>{try{r.write(': heartbeat\n\n');if(typeof r.flush==='function')r.flush()}catch(e){}},15000);
   const close=()=>{
     clearInterval(heartbeat);
@@ -852,19 +887,13 @@ app.get('/api/admin/events',(q,r)=>{
 
 app.get('/api/admin/notifications',admin,w((q,r)=>{
   const hasCursor=['orders','inquiries','messages'].some(key=>q.query[key]!==undefined);
-  const cursors={
-    orders:db.prepare('SELECT COALESCE(MAX(id),0) id FROM orders').get().id,
-    inquiries:db.prepare('SELECT COALESCE(MAX(id),0) id FROM inquiries').get().id,
-    messages:db.prepare("SELECT COALESCE(MAX(id),0) id FROM inquiry_messages WHERE author='customer'").get().id
-  };
+  const cursors=adminCursorSnapshot();
   if(!hasCursor)return r.json({...cursors,events:[]});
-  const events=[
-    ...db.prepare("SELECT id,'order' type,name,created FROM orders WHERE id>? ORDER BY id LIMIT 25").all(Math.max(0,+q.query.orders||0)),
-    ...db.prepare("SELECT id,'inquiry' type,name,created FROM inquiries WHERE id>? ORDER BY id LIMIT 25").all(Math.max(0,+q.query.inquiries||0)),
-    ...db.prepare("SELECT m.id,'message' type,i.name,m.created,i.id inquiry_id FROM inquiry_messages m JOIN inquiries i ON i.id=m.inquiry_id WHERE m.author='customer' AND m.id>? ORDER BY m.id LIMIT 25").all(Math.max(0,+q.query.messages||0))
-  ];
-  events.sort((a,b)=>String(a.created).localeCompare(String(b.created))||a.id-b.id);
-  r.json({...cursors,events});
+  r.json({...cursors,events:adminEventsAfter({
+    orders:q.query.orders,
+    inquiries:q.query.inquiries,
+    messages:q.query.messages
+  })});
 }));
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
 const buildAdminReport=(fromInput,toInput)=>{
