@@ -342,7 +342,7 @@
         "</span>"
       : '<span class="pr">' + money(i.price) + "</span>"
   }
-  <button class="btn s menu-add" onclick="add(${i.id})" aria-label="Add ${esc(i.name)} to cart">Add</button>
+  <button type="button" class="btn s menu-add" onclick="window.addMenuToCart(${i.id})" aria-label="Add ${esc(i.name)} to cart">Add to cart</button>
 </p></div></div>`;
       function setCat(c) {
         cat = c;
@@ -414,10 +414,15 @@
         localStorage.setItem("cart", JSON.stringify(cart));
         renderCart();
       };
-      function add(id) {
-        cart[id] = (cart[id] || 0) + 1;
+      window.addMenuToCart = (id) => {
+        const dish = items.find((x) => Number(x.id) === Number(id));
+        if (!dish) return;
+        cart[dish.id] = (cart[dish.id] || 0) + 1;
         sv();
         toast("Added to cart");
+      };
+      function add(id) {
+        window.addMenuToCart(id);
       }
       function chg(id, d) {
         cart[id] = (cart[id] || 0) + d;
