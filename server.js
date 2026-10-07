@@ -219,6 +219,15 @@ const notificationOnce=async(eventKey,recipient,text)=>{
   }
 };
 const restaurantName=()=>String(S().name||NAME).trim();
+const adminWhatsAppRecipient=()=>String(process.env.WHATSAPP_ADMIN_TO||'').trim();
+const adminOrderWhatsAppText=order=>restaurantName()+': NEW ORDER #'+order.id+' from '+String(order.name||'Customer')+'. Total '+Number(order.total||0).toFixed(3)+' '+String(S().currency||CUR)+'. Payment: '+String(order.pay||'COD')+'.';
+const adminInquiryWhatsAppText=inquiry=>restaurantName()+': NEW INQUIRY #'+inquiry.id+' from '+String(inquiry.name||'Customer')+'. Topic: '+String(inquiry.type||'General')+'. '+String(inquiry.msg||'').slice(0,700);
+const adminMessageWhatsAppText=(inquiry,message)=>restaurantName()+': NEW CUSTOMER MESSAGE from '+String(inquiry.name||'Customer')+(inquiry.order_id?' for order #'+inquiry.order_id:'')+'. '+String(message||'').slice(0,700);
+const notifyAdminWhatsApp=(eventKey,text)=>{
+  const recipient=adminWhatsAppRecipient();
+  if(!recipient)return Promise.resolve({skipped:true,reason:'WHATSAPP_ADMIN_TO is not configured'});
+  return notificationOnce('admin:'+eventKey,recipient,text);
+};
 const orderWhatsAppText=(order,event)=>restaurantName()+': Order #'+order.id+' for '+String(order.name||'Customer')+' is now '+(event==='received'?'received':String(event).toLowerCase())+'. Total: '+Number(order.total||0).toFixed(3)+' '+String(S().currency||CUR)+'.';
 const subscriptionWhatsAppText=(sub,event)=>restaurantName()+': Your '+String(sub.plan||'subscription')+' is '+String(event)+'. Schedule: '+sub.start+' to '+sub.end+'.';
 const sweep=()=>db.prepare("UPDATE subs SET status='Completed' WHERE status='Active' AND \"end\"<date('now')").run();sweep();setInterval(sweep,36e5).unref();
@@ -430,6 +439,7 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
   notifyInquiryReceived(inquiry);
   notifyAdminInquiry(inquiry);
+  Promise.resolve(notifyAdminWhatsApp('inquiry:'+inquiry.id+':received',adminInquiryWhatsAppText(inquiry))).catch(()=>{});
   broadcastAdminInquiry(inquiry);
   r.json({ok:1,id:inquiry.id});
 }));
@@ -553,6 +563,7 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
   }
   const messageId=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message).lastInsertRowid);
   notifyAdminCustomerMessage(inquiry,message);
+  Promise.resolve(notifyAdminWhatsApp('message:'+messageId,adminMessageWhatsAppText(inquiry,message))).catch(()=>{});
   broadcastAdminMessage(inquiry,message,messageId);
   r.json({ok:1,id:inquiry.id,orderId:Number(q.params.id)});
 }));
@@ -731,6 +742,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   broadcastCustomerOrder(savedOrder);
   notifyOrderReceived(savedOrder);
   if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
+  Promise.resolve(notifyAdminWhatsApp('order:'+id+':received',adminOrderWhatsAppText(savedOrder))).catch(()=>{});
   notifyAdminOrder(savedOrder);
 
   r.json({
