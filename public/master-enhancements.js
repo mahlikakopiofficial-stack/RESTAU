@@ -260,12 +260,12 @@ function patchMenu(){
     }
     const ingredients=String(i.ingredients||'').trim();
     d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p>'+(ingredients?'<section class="preview-ingredients"><h3>Ingredients</h3><p>'+escm(ingredients)+'</p></section>':'')+'<p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
-    d.querySelector('#menuPreviewBody button.btn').onclick=()=>{add(i.id);d.close()};
+    d.querySelector('#menuPreviewBody button.btn').onclick=()=>{window.addMenuToCart(i.id);d.close()};
     if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
   };
   window.card=function(i){
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
-    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><div class="menu-card-category"><span>Category</span><b>'+escm(i.cat||'Menu')+'</b>'+(i.region&&i.cat==='Other Asian'?'<em> · '+escm(i.region)+'</em>':'')+'</div><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s menu-add" type="button" onclick="add('+i.id+')" aria-label="Add '+escm(i.name)+' to cart">Add</button></div></div></article>';
+    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><div class="menu-card-category"><span>Category</span><b>'+escm(i.cat||'Menu')+'</b>'+(i.region&&i.cat==='Other Asian'?'<em> · '+escm(i.region)+'</em>':'')+'</div><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s menu-add" type="button" onclick="window.addMenuToCart('+i.id+')" aria-label="Add '+escm(i.name)+' to cart">Add to cart</button></div></div></article>';
   };
   try{renderMenu()}catch{}
 }
