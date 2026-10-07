@@ -14,7 +14,101 @@ const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2800)}
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
-if(document.title.includes('Admin')){window.addEventListener('load',()=>{if(!document.getElementById('admin-fixes-style')){const css=document.createElement('link');css.rel='stylesheet';css.id='admin-fixes-style';css.href='/admin-fixes.css?v=20261003-1';document.head.appendChild(css);}if(!document.getElementById('admin-fixes-script')){const s=document.createElement('script');s.id='admin-fixes-script';s.src='/admin-fixes.js?v=20261006-chat6';document.head.appendChild(s);}if(!document.getElementById('admin-notify-script')){const n=document.createElement('script');n.id='admin-notify-script';n.src='/admin-notify.js?v=20261006-order1';document.head.appendChild(n);}}, {once:true});}
+if(document.title.includes('Admin'))window.addEventListener('load',()=>{
+  if(!document.getElementById('admin-fixes-style')){
+    const css=document.createElement('link');
+    css.rel='stylesheet';
+    css.id='admin-fixes-style';
+    css.href='/admin-fixes.css?v=20261003-1';
+    document.head.appendChild(css);
+  }
+},{once:true});
+
+(function startCustomerLiveNotifications(){
+  if(document.title.includes('Admin')||window.__customerLiveStarted)return;
+  const token=()=>tk('ct');
+  if(!token())return;
+  window.__customerLiveStarted=true;
+  let controller=null,reconnectTimer=null,reconnectDelay=1000;
+  const seen={orders:0,messages:0};
+
+  const handleEvent=ev=>{
+    if(!ev?.type)return;
+    if(ev.type==='ready'){
+      seen.orders=Math.max(seen.orders,Number(ev.orders)||0);
+      seen.messages=Math.max(seen.messages,Number(ev.messages)||0);
+      return;
+    }
+    if(ev.type==='order'||ev.type==='order_status'){
+      if((Number(ev.id)||0)<=seen.orders)return;
+      seen.orders=Number(ev.id)||seen.orders;
+      const label=ev.type==='order'
+        ? 'Order #'+ev.id+' received'
+        : 'Order #'+ev.id+' is now '+(ev.status||'updated');
+      if(typeof toast==='function')toast('🔔 '+label);
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+        try{new Notification('PinoyAmbula',{body:label});}catch(e){}
+      }
+      window.dispatchEvent(new CustomEvent('customer-live-event',{detail:ev}));
+      return;
+    }
+    if(ev.type==='message'){
+      if((Number(ev.id)||0)<=seen.messages)return;
+      seen.messages=Number(ev.id)||seen.messages;
+      if(typeof toast==='function')toast('💬 New message from PinoyAmbula');
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+        try{new Notification('PinoyAmbula message',{body:'You have a new restaurant reply.'});}catch(e){}
+      }
+      window.dispatchEvent(new CustomEvent('customer-live-event',{detail:ev}));
+    }
+  };
+
+  const connect=()=>{
+    if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}
+    try{controller?.abort()}catch(e){}
+    controller=new AbortController();
+
+    const qs=new URLSearchParams();
+    if(seen.orders||seen.messages){
+      qs.set('orders',String(seen.orders));
+      qs.set('messages',String(seen.messages));
+    }
+    const base=(window.PINOY_RUNTIME?.apiOrigin||'')+'/api/customer/events';
+    const url=qs.toString()?base+'?'+qs.toString():base;
+
+    fetch(url,{
+      headers:{Authorization:'Bearer '+token(),Accept:'text/event-stream'},
+      cache:'no-store',
+      signal:controller.signal
+    }).then(async response=>{
+      if(!response.ok)throw new Error('Customer live notifications '+response.status);
+      reconnectDelay=1000;
+      const reader=response.body?.getReader();
+      if(!reader)throw new Error('Customer live stream unavailable');
+      const decoder=new TextDecoder();let buffer='';
+      while(true){
+        const part=await reader.read();
+        if(part.done)break;
+        buffer+=decoder.decode(part.value,{stream:true});
+        const frames=buffer.split('\n\n');buffer=frames.pop()||'';
+        for(const frame of frames){
+          const data=frame.split('\n').filter(x=>x.startsWith('data:')).map(x=>x.slice(5).trim()).join('');
+          if(data)try{handleEvent(JSON.parse(data));}catch(e){}
+        }
+      }
+      throw new Error('Customer live stream closed');
+    }).catch(()=>{
+      if(!token())return;
+      reconnectTimer=setTimeout(connect,reconnectDelay);
+      reconnectDelay=Math.min(reconnectDelay*2,10000);
+    });
+  };
+
+  if(typeof Notification!=='undefined'&&Notification.permission==='default')
+    Notification.requestPermission().catch(()=>{});
+
+  connect();
+})();
 
 function installMenuPreviewUx(){if(window.__menuPreviewUxInstalled)return;window.__menuPreviewUxInstalled=true;const style=document.createElement('style');style.id='menu-preview-responsive-fix';style.textContent='dialog.master-lightbox{box-sizing:border-box;width:min(900px,94vw);max-width:94vw;max-height:92vh;margin:auto;overflow:auto}dialog.master-lightbox #menuPreviewBody,dialog.master-lightbox #masterLightboxBody{min-width:0}dialog.master-lightbox img,dialog.master-lightbox iframe{width:100%;max-width:100%;height:auto;max-height:70vh;min-height:0;object-fit:contain}dialog.master-lightbox #menuPreviewBody img{display:block;border-radius:10px}@media(max-width:600px){dialog.master-lightbox{width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:94vh;padding:10px;border-radius:12px}dialog.master-lightbox img,dialog.master-lightbox iframe{max-height:58vh}dialog.master-lightbox .close-row{position:sticky;top:0;z-index:4;padding-bottom:6px}.close-row button{min-width:42px;min-height:42px}}';document.head.appendChild(style);document.addEventListener('click',event=>{const menu=document.getElementById('menuPreview');if(menu?.open&&event.target!==menu&&!menu.contains(event.target))menu.close();},true);document.addEventListener('click',event=>{const media=document.getElementById('masterLightbox');if(media?.open&&event.target===media)media.close();});document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.getElementById('menuPreview')?.open&&document.getElementById('menuPreview').close();document.getElementById('masterLightbox')?.open&&document.getElementById('masterLightbox').close();}});}
 if(document.title.includes('Admin'))window.addEventListener('DOMContentLoaded',installMenuPreviewUx,{once:true});else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installMenuPreviewUx,{once:true});else installMenuPreviewUx();
