@@ -256,6 +256,7 @@ const broadcastAdminEvent=(event)=>{
 const broadcastCustomerEvent=(customerId,event)=>{
   const streams=customerStreams.get(Number(customerId));
   if(!streams?.size)return;
+  console.log('[CUSTOMER-SSE] broadcast customer='+Number(customerId)+' type='+String(event?.type||'')+' id='+String(event?.id||'')+' clients='+streams.size);
   const payload='data: '+JSON.stringify(event)+'\n\n';
   for(const stream of streams){
     try{stream.write(payload);if(typeof stream.flush==='function')stream.flush()}catch(e){streams.delete(stream)}
@@ -958,6 +959,7 @@ app.get('/api/customer/events',(q,r)=>{
   let streams=customerStreams.get(customerId);
   if(!streams){streams=new Set();customerStreams.set(customerId,streams)}
   streams.add(r);
+  console.log('[CUSTOMER-SSE] connected customer='+customerId+' clients='+streams.size);
 
   const hasCursor=q.query.orders!==undefined||q.query.messages!==undefined;
   if(hasCursor){
@@ -979,6 +981,7 @@ app.get('/api/customer/events',(q,r)=>{
     clearInterval(heartbeat);
     streams.delete(r);
     if(!streams.size)customerStreams.delete(customerId);
+    console.log('[CUSTOMER-SSE] disconnected customer='+customerId);
   };
   q.on('close',close);
   r.on('close',close);
