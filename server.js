@@ -310,6 +310,8 @@ const broadcastAdminOrder=order=>broadcastAdminEvent({
 const broadcastAdminInquiry=inquiry=>broadcastAdminEvent({
   type:'inquiry',
   id:Number(inquiry.id),
+  customer_id:Number(inquiry.customer_id||0),
+  order_id:Number(inquiry.order_id||0),
   name:String(inquiry.name||'customer'),
   created:String(inquiry.created||'')
 });
