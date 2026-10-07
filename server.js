@@ -93,7 +93,8 @@ const ingredientDefaults={
 'Bibimbap':'Rice, beef, spinach, carrot, bean sprouts, zucchini, egg, gochujang, sesame oil',
 'Pad Thai':'Rice noodles, shrimp, tofu, bean sprouts, egg, peanuts, tamarind, fish sauce, sugar, lime',
 'Green Curry':'Chicken, green curry paste, coconut milk, Thai basil, eggplant, fish sauce, sugar, rice',
-'Pho Bo':'Beef, rice noodles, onion, ginger, star anise, cinnamon, herbs, fish sauce, beef broth',
+'Pho Bo':'Beef, rice noodles, onion, ginger, star anise, cinnamon, herbs, fish sauce, beef broth'
+};
 for(const [name,ingredients] of Object.entries(ingredientDefaults)) db.prepare("UPDATE items SET ingredients=? WHERE name=? AND COALESCE(ingredients,'')=''").run(ingredients,name);
 db.exec(`CREATE TABLE IF NOT EXISTS inquiry_messages(
   id INTEGER PRIMARY KEY,
