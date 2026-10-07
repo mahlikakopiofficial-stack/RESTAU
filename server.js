@@ -1445,6 +1445,23 @@ app.post('/api/admin/heritage',admin,w((q,r)=>{need(q.body,'title');const type=[
 app.put('/api/admin/heritage/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','caption','media_type','img','media_url','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE heritage SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='media_type'?(['image','video'].includes(q.body[k])?q.body[k]:'image'):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
 app.delete('/api/admin/heritage/:id',admin,w((q,r)=>{const row=one('SELECT img FROM heritage WHERE id=?',q.params.id);if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});db.prepare('DELETE FROM heritage WHERE id=?').run(q.params.id);r.json({ok:1});}));
 app.get('/api/admin/whatsapp/status',admin,(q,r)=>r.json({...whatsappStatus(),adminRecipientConfigured:Boolean(adminWhatsAppRecipient())}));
+app.post('/api/admin/email/test',admin,async(q,r)=>{
+  const to=String(q.body?.to||process.env.GMAIL_ADMIN_NOTIFY_TO||process.env.GMAIL_USER||'').trim();
+  if(!to)return r.status(400).json({ok:false,error:'No test email recipient configured'});
+  try{
+    const result=await sendMail({
+      to,
+      subject:restaurantName()+': Email notification test',
+      text:'This is a live email delivery test from '+restaurantName()+'. If you received this message, the Gmail notification route is working.',
+      html:'<div style="font-family:Arial,sans-serif;line-height:1.5"><h2>Email notification test</h2><p>This is a live email delivery test from <b>'+escHtml(restaurantName())+'</b>.</p><p>If you received this message, the Gmail notification route is working.</p></div>'
+    });
+    console.log('EMAIL_TEST_SENT',to,result?.id||'');
+    r.json({ok:true,to,messageId:result?.id||null});
+  }catch(error){
+    console.error('EMAIL_TEST_FAILED',to,error.message);
+    r.status(503).json({ok:false,to,error:error.message});
+  }
+});
 app.get('/api/admin/notification-status',admin,(q,r)=>r.json({
   emailConfigured:Boolean(E.GMAIL_USER&&E.GMAIL_CLIENT_ID&&E.GMAIL_CLIENT_SECRET&&E.GMAIL_REFRESH_TOKEN),
   adminEmailConfigured:Boolean(E.GMAIL_ADMIN_NOTIFY_TO||E.GMAIL_USER),
