@@ -25,10 +25,9 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
 },{once:true});
 
 (function startCustomerLiveNotifications(){
-  if(document.title.includes('Admin')||window.__customerLiveStarted)return;
+  if(document.title.includes('Admin')||window.__customerLiveController)return;
+
   const token=()=>tk('ct');
-  if(!token())return;
-  window.__customerLiveStarted=true;
   let controller=null,reconnectTimer=null,reconnectDelay=1000;
   const seen={orders:0,messages:0};
 
@@ -39,6 +38,7 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
       seen.messages=Math.max(seen.messages,Number(ev.messages)||0);
       return;
     }
+
     if(ev.type==='order'||ev.type==='order_status'){
       if((Number(ev.id)||0)<=seen.orders)return;
       seen.orders=Number(ev.id)||seen.orders;
@@ -52,6 +52,7 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
       window.dispatchEvent(new CustomEvent('customer-live-event',{detail:ev}));
       return;
     }
+
     if(ev.type==='message'){
       if((Number(ev.id)||0)<=seen.messages)return;
       seen.messages=Number(ev.id)||seen.messages;
@@ -63,16 +64,26 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
     }
   };
 
+  const stop=()=>{
+    try{controller?.abort()}catch(e){}
+    controller=null;
+    if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}
+    window.__customerLiveController=null;
+  };
+
   const connect=()=>{
+    if(!token())return;
     if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}
     try{controller?.abort()}catch(e){}
     controller=new AbortController();
+    window.__customerLiveController={stop};
 
     const qs=new URLSearchParams();
     if(seen.orders||seen.messages){
       qs.set('orders',String(seen.orders));
       qs.set('messages',String(seen.messages));
     }
+
     const base=(window.PINOY_RUNTIME?.apiOrigin||'')+'/api/customer/events';
     const url=qs.toString()?base+'?'+qs.toString():base;
 
@@ -85,12 +96,14 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
       reconnectDelay=1000;
       const reader=response.body?.getReader();
       if(!reader)throw new Error('Customer live stream unavailable');
-      const decoder=new TextDecoder();let buffer='';
+      const decoder=new TextDecoder();
+      let buffer='';
       while(true){
         const part=await reader.read();
         if(part.done)break;
         buffer+=decoder.decode(part.value,{stream:true});
-        const frames=buffer.split('\n\n');buffer=frames.pop()||'';
+        const frames=buffer.split('\n\n');
+        buffer=frames.pop()||'';
         for(const frame of frames){
           const data=frame.split('\n').filter(x=>x.startsWith('data:')).map(x=>x.slice(5).trim()).join('');
           if(data)try{handleEvent(JSON.parse(data));}catch(e){}
@@ -98,16 +111,25 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
       }
       throw new Error('Customer live stream closed');
     }).catch(()=>{
+      window.__customerLiveController={stop};
       if(!token())return;
       reconnectTimer=setTimeout(connect,reconnectDelay);
       reconnectDelay=Math.min(reconnectDelay*2,10000);
     });
   };
 
+  window.startCustomerLiveNotifications=()=>{
+    if(!document.title.includes('Admin')&&!window.__customerLiveController&&token()){
+      connect();
+    }
+  };
+  window.addEventListener('customer-auth-ready',window.startCustomerLiveNotifications);
+  window.addEventListener('beforeunload',stop);
+
   if(typeof Notification!=='undefined'&&Notification.permission==='default')
     Notification.requestPermission().catch(()=>{});
 
-  connect();
+  if(token())connect();
 })();
 
 function installMenuPreviewUx(){if(window.__menuPreviewUxInstalled)return;window.__menuPreviewUxInstalled=true;const style=document.createElement('style');style.id='menu-preview-responsive-fix';style.textContent='dialog.master-lightbox{box-sizing:border-box;width:min(900px,94vw);max-width:94vw;max-height:92vh;margin:auto;overflow:auto}dialog.master-lightbox #menuPreviewBody,dialog.master-lightbox #masterLightboxBody{min-width:0}dialog.master-lightbox img,dialog.master-lightbox iframe{width:100%;max-width:100%;height:auto;max-height:70vh;min-height:0;object-fit:contain}dialog.master-lightbox #menuPreviewBody img{display:block;border-radius:10px}@media(max-width:600px){dialog.master-lightbox{width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:94vh;padding:10px;border-radius:12px}dialog.master-lightbox img,dialog.master-lightbox iframe{max-height:58vh}dialog.master-lightbox .close-row{position:sticky;top:0;z-index:4;padding-bottom:6px}.close-row button{min-width:42px;min-height:42px}}';document.head.appendChild(style);document.addEventListener('click',event=>{const menu=document.getElementById('menuPreview');if(menu?.open&&event.target!==menu&&!menu.contains(event.target))menu.close();},true);document.addEventListener('click',event=>{const media=document.getElementById('masterLightbox');if(media?.open&&event.target===media)media.close();});document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.getElementById('menuPreview')?.open&&document.getElementById('menuPreview').close();document.getElementById('masterLightbox')?.open&&document.getElementById('masterLightbox').close();}});}
