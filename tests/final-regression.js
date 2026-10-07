@@ -204,7 +204,7 @@ t('WhatsApp registration and admin notifications',()=>{
   assert(whatsapp.includes('WHATSAPP_TEMPLATE_NAME'));
   assert(server.includes("WHATSAPP_ADMIN_TO"));
   assert(server.includes("notifyAdminWhatsApp"));
-  assert(server.includes("VALUES('whatsapp',?,?,?)").includes);
+  assert(server.includes("VALUES('whatsapp',?,?,?)"));
   assert(server.includes(").run(eventKey,recipient,'Pending')"));
   assert(server.includes("app.get('/api/admin/notifications"));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
