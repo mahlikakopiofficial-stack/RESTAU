@@ -48,6 +48,7 @@
           "Newsletter",
           "Testimonials",
           "Plans",
+          "Website Content",
           "Settings",
         ],
         CATS = ["Regular", "Budget", "Drinks", "Sweets", "Catering", "Other Asian"];
@@ -101,6 +102,7 @@
           "Newsletter":"◎",
           "Testimonials":"★",
           "Plans":"◇",
+          "Website Content":"✎",
           "Settings":"⚙"
         };
         side.innerHTML =
@@ -553,6 +555,19 @@
               ["Active", (r) => `<input type="checkbox" style="width:auto" ${r.active ? "checked" : ""} onchange="up2('plans','${r.id}','active',this.checked?1:0).then(()=>toast(this.checked?'Plan activated — offer restored':'Plan deactivated — Subscribe button removed from customer offer')).catch(e=>toast(e.message))">`],
             ])
           );
+        },
+        async WebsiteContent() {
+          const s = await A("/settings"),
+            f = (k, l, multi) => multi
+              ? '<label>'+l+'</label><textarea name="'+k+'" rows="3">'+esc(s[k]||"")+'</textarea>'
+              : '<label>'+l+'</label><input name="'+k+'" value="'+esc(s[k]||"")+'">';
+          return '<form onsubmit="ss(event)" class="card" style="padding:16px;max-width:760px">'+
+            '<p class="small">Edit website wording and buttons here. These are content-only settings and do not change application logic.</p>'+
+            '<h3>Homepage</h3>'+f("hero_title","Homepage headline")+f("hero_text","Homepage text",true)+f("content_order_button","Order button")+f("content_subscription_button","Subscription button")+
+            '<h3 style="margin-top:20px">Services & Menu</h3>'+f("content_services_title","Services heading")+f("content_services_subtitle","Services subtitle")+f("content_menu_title","Menu heading")+f("content_menu_subtitle","Menu subtitle",true)+f("content_menu_search_label","Search label")+f("content_menu_search_placeholder","Search placeholder")+
+            '<h3 style="margin-top:20px">Subscription</h3>'+f("content_subscription_title","Subscription heading")+f("content_subscription_subtitle","Subscription subtitle",true)+f("content_subscribe_button","Subscribe button")+f("content_subscribe_confirm_button","Confirm button")+
+            '<h3 style="margin-top:20px">Other Sections</h3>'+f("content_gallery_title","Gallery heading")+f("content_reviews_title","Reviews heading")+f("content_newsletter_title","Newsletter heading")+f("content_newsletter_subtitle","Newsletter subtitle",true)+f("content_newsletter_button","Newsletter button")+f("content_contact_title","Contact heading")+f("content_contact_subtitle","Contact subtitle",true)+f("content_contact_button","Contact button")+f("content_cart_title","Cart heading")+f("content_checkout_button","Checkout button")+f("content_footer_thanks","Footer message")+
+            '<button class="btn">Save website content</button></form>';
         },
         async Settings() {
           const s = await A("/settings"),
