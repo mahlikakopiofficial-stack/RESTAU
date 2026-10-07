@@ -888,8 +888,7 @@ ${f("hero_title", "Homepage headline")}
         if(input)input.disabled=false;
         if(send)send.disabled=false;
         await refreshCustomerChat();
-        if(activeCustomerChatTimer)clearInterval(activeCustomerChatTimer);
-        activeCustomerChatTimer=setInterval(refreshCustomerChat,5000);
+        activeCustomerChatTimer=null;
       }
       async function refreshCustomerChat(){
         if(!activeCustomerChatId)return;
@@ -903,6 +902,12 @@ ${f("hero_title", "Homepage headline")}
           $("#admin-chat-messages").scrollTop=$("#admin-chat-messages").scrollHeight;
         }catch(e){toast("Chat could not load: "+e.message)}
       }
+      window.addEventListener("admin-live-event",(event)=>{
+        const ev=event.detail||{};
+        if(ev.type==="message"&&activeCustomerInquiryId&&Number(ev.inquiry_id)===Number(activeCustomerInquiryId)){
+          refreshCustomerChat().catch(()=>{});
+        }
+      });
       async function sendCustomerChat(e){
         e.preventDefault();
         if(!activeCustomerChatId)return;
