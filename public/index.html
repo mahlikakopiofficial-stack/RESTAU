@@ -132,8 +132,8 @@
     <section id="plans">
       <div class="wrap">
         <div class="t">
-          <h2>Subscription Meal</h2>
-          <p>
+          <h2 id="content-subscription-title">Subscription Meal</h2>
+          <p id="content-subscription-subtitle">
             Daily delivery for 26 days — payment status confirmed with the
             restaurant
           </p>
@@ -143,13 +143,13 @@
     </section>
     <section id="gallery" class="alt">
       <div class="wrap">
-        <div class="t"><h2>Gallery</h2></div>
+        <div class="t"><h2 id="content-gallery-title">Gallery</h2></div>
         <div class="grid" id="gal"></div>
       </div>
     </section>
     <section id="reviews">
       <div class="wrap">
-        <div class="t"><h2>What Our Customers Say</h2></div>
+        <div class="t"><h2 id="content-reviews-title">What Our Customers Say</h2></div>
         <div class="grid" id="rev"></div>
         <details style="max-width: 480px; margin: 24px auto 0">
           <summary class="btn s o" style="display: inline-block">
@@ -174,8 +174,8 @@
     <section id="newsletter" class="alt">
       <div class="wrap" style="max-width: 520px; text-align: center">
         <div class="t">
-          <h2>Newsletter</h2>
-          <p>Get promos and new dishes in your inbox</p>
+          <h2 id="content-newsletter-title">Newsletter</h2>
+          <p id="content-newsletter-subtitle">Get promos and new dishes in your inbox</p>
         </div>
         <form onsubmit="nl(event)">
           <input
@@ -183,15 +183,15 @@
             type="email"
             placeholder="you@email.com"
             required
-          /><button class="btn b">Subscribe</button>
+          /><button id="content-newsletter-button" class="btn b">Subscribe</button>
         </form>
       </div>
     </section>
     <section id="contact">
       <div class="wrap" style="max-width: 640px">
         <div class="t">
-          <h2>Inquiry / Contact</h2>
-          <p>Catering, party orders, questions — we reply fast</p>
+          <h2 id="content-contact-title">Inquiry / Contact</h2>
+          <p id="content-contact-subtitle">Catering, party orders, questions — we reply fast</p>
         </div>
         <form onsubmit="inq(event)">
           <div class="f2">
@@ -208,7 +208,7 @@
             <option>Feedback</option></select
           ><label>Message *</label
           ><textarea name="msg" rows="4" required></textarea
-          ><button class="btn">Send inquiry</button>
+          ><button id="content-contact-button" class="btn">Send inquiry</button>
         </form>
       </div>
     </section>
@@ -219,7 +219,7 @@
             <img src="/icons/pinoyambula.svg?v=universal-20261005" alt="PinoyAmbula" width="48" height="48" class="brand-mark">
             <span id="ft">PinoyAmbula</span>
           </a>
-          <p class="footer-thanks">Maraming Salamat po!</p>
+          <p id="content-footer-thanks" class="footer-thanks">Maraming Salamat po!</p>
         </div>
         <div id="contact-links" class="footer-links"></div>
         <div id="social-links" class="footer-links"></div>
@@ -238,7 +238,7 @@
           align-items: center;
         "
       >
-        <h3>Your Order</h3>
+        <h3 id="content-cart-title">Your Order</h3>
         <button class="btn s o" onclick="cartT()">✕</button>
       </div>
       <div id="lines"></div>
@@ -289,9 +289,7 @@
         />
         <p id="promo-help" style="font-size: 0.8rem; opacity: 0.7"></p>
         <p id="checkout-hint" class="checkout-hint" aria-live="polite"></p>
-        <button id="checkout-submit" class="btn" style="width: 100%">
-          Place Order
-        </button>
+        <button id="checkout-submit" class="btn" style="width: 100%"><span id="content-checkout-button">Place Order</span></button>
       </form>
     </aside>
     <dialog id="subd">
@@ -313,7 +311,7 @@
         <p id="sub-pay-note" style="font-size: 0.85rem; margin-bottom: 8px">
           The restaurant will manage your subscription schedule.
         </p>
-        <button class="btn">Confirm</button>
+        <button id="content-subscribe-confirm-button" class="btn">Confirm</button>
         <button type="button" class="btn o" onclick="$('#subd').close()">
           Close
         </button>
@@ -706,6 +704,33 @@
         document.title = c.name + " — Filipino Kitchen";
         $("#hh").textContent = c.hero_title;
         $("#hp").textContent = c.hero_text;
+        const contentText = {
+          "#content-order-button": c.content_order_button,
+          "#content-subscription-button": c.content_subscription_button,
+          "#content-services-title": c.content_services_title,
+          "#content-services-subtitle": c.content_services_subtitle,
+          "#content-menu-title": c.content_menu_title,
+          "#content-menu-subtitle": c.content_menu_subtitle,
+          "#content-menu-search-label": c.content_menu_search_label,
+          "#content-subscription-title": c.content_subscription_title,
+          "#content-subscription-subtitle": c.content_subscription_subtitle,
+          "#content-gallery-title": c.content_gallery_title,
+          "#content-reviews-title": c.content_reviews_title,
+          "#content-newsletter-title": c.content_newsletter_title,
+          "#content-newsletter-subtitle": c.content_newsletter_subtitle,
+          "#content-contact-title": c.content_contact_title,
+          "#content-contact-subtitle": c.content_contact_subtitle,
+          "#content-contact-button": c.content_contact_button,
+          "#content-cart-title": c.content_cart_title,
+          "#content-checkout-button": c.content_checkout_button,
+          "#content-footer-thanks": c.content_footer_thanks,
+          "#content-subscribe-confirm-button": c.content_subscribe_confirm_button
+        };
+        Object.entries(contentText).forEach(([selector,value])=>{const el=$(selector);if(el&&value!==undefined)el.textContent=value;});
+        const searchInput=$("#menu-search");
+        if(searchInput&&c.content_menu_search_placeholder!==undefined)searchInput.placeholder=c.content_menu_search_placeholder;
+        const newsletterButton=$("#content-newsletter-button");
+        if(newsletterButton&&c.content_newsletter_button!==undefined)newsletterButton.textContent=c.content_newsletter_button;
         if (c.hero_img) {
           const h = $("#home");
           h.style.backgroundImage = `linear-gradient(135deg,#0038a8cc,#ce1126bb),url('${c.hero_img}')`;
@@ -801,7 +826,7 @@
           $("#plan-list").innerHTML = plans
             .map(
               (p) =>
-                `<div class="card">${p.img ? `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" style="width:100%;height:180px;object-fit:cover;border-radius:12px 12px 0 0">` : ""}<div class="p"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p>${p.duration_days || 30} days</p><p class="pr" style="font-size:1.4rem">${money(p.price)}</p><button class="btn" onclick="subOpen('${p.id}')">Subscribe</button></div></div>`,
+                `<div class="card">${p.img ? `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" style="width:100%;height:180px;object-fit:cover;border-radius:12px 12px 0 0">` : ""}<div class="p"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p>${p.duration_days || 30} days</p><p class="pr" style="font-size:1.4rem">${money(p.price)}</p><button class="btn" onclick="subOpen('${p.id}')">${esc(config.content_subscribe_button||"Subscribe")}</button></div></div>`,
             )
             .join("");
           $("#gal").innerHTML = (await api("/gallery"))
