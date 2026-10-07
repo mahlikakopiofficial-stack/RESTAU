@@ -53,17 +53,26 @@ t('universal logo upload and branding',()=>{assert(server.includes("fileFilter:(
 t('admin order live delivery',()=>{
   assert(server.includes("app.get('/api/admin/events"));
   assert(server.includes("app.get('/api/admin/notifications"));
-  assert(server.includes("SELECT id,'order' type,name,created FROM orders WHERE id>?"));
-  assert(server.includes('broadcastAdminOrder(savedOrder)'));
+  assert(server.includes("broadcastAdminOrder(savedOrder)"));
+  assert(server.includes('const adminCursorSnapshot='));
+  assert(server.includes('const adminEventsAfter='));
   assert(server.includes("broadcast type='+String(event?.type||'')"));
-  assert(admin.includes('admin-notify.js?v=20261007-live3'));
+  assert(admin.includes('admin-notify.js?v=20261007-live5'));
   assert(app.includes('window.api=api'));
   assert(notify.includes('/api/admin/events'));
-  assert(notify.includes('/api/admin/notifications'));
-  assert(notify.includes('primeCursors'));
-  assert(notify.includes('startFallback'));
-  assert(notify.includes('setInterval(poll,1000)'));
-  assert(notify.includes("go('Orders')"));
+  assert(notify.includes('Authorization:'Bearer '+adminToken()'));
+  assert(notify.includes('const connect=()=>'));
+  assert(notify.includes('reconnectTimer=setTimeout(connect,reconnectDelay)'));
+  assert(notify.includes("if(ev.type==='ready')"));
+  assert(notify.includes('id<=seen[key]'));
+  assert(!notify.includes('setInterval(poll,1000)'));
+  assert(!notify.includes('fallbackTimer'));
+  assert(!notify.includes('primeCursors'));
+  assert(!notify.includes('startFallback'));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v32'"));
+  assert(sw.includes('/admin-notify.js?v=20261007-live5'));
+  assert(server.includes('broadcastAdminMessage(inquiry,message,messageId)'));
+  assert(server.includes('broadcastAdminMessage(inquiry,message,Number(id))'));
 });
 t('customer and admin order chatbox stays available',()=>{
   assert(!server.includes("Order chat is closed"));
