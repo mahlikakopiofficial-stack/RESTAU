@@ -699,6 +699,7 @@ ${f("hero_title", "Homepage headline")}
 
           const items = JSON.parse(r.items || "[]");
           const currency = String(st.currency || CUR || "KWD");
+          const receiptLogo = String(st.receipt_logo_url || st.logo_url || "");
           const fmt = (v) => Number(v || 0).toFixed(3) + " " + currency;
           const delivery = Math.max(
             0,
@@ -743,7 +744,9 @@ ${f("hero_title", "Homepage headline")}
               ".notes{white-space:pre-wrap}.footer{margin-top:22px;border-top:1px solid #ddd8cc;padding-top:12px;font-size:11px;color:#66736c}" +
               ".print{margin-bottom:16px;padding:9px 14px;border:0;border-radius:7px;background:#b63a2b;color:#fff;font-weight:700;cursor:pointer}@media print{body{padding:0}.print{display:none}.box{break-inside:avoid}}" +
               '</style></head><body><div class="receipt"><button class="print" onclick="print()">Print receipt</button>' +
-              '<div style="text-align:center"><h1>' +
+              '<div style="text-align:center">' +
+              (receiptLogo ? '<img src="' + esc(receiptLogo) + '" alt="" style="max-width:120px;max-height:80px;object-fit:contain;margin-bottom:8px">' : "") +
+              '<h1>' +
               esc(st.name || "PinoyAmbula") +
               "</h1>" +
               (st.location ? "<div>" + esc(st.location) + "</div>" : "") +
@@ -755,7 +758,9 @@ ${f("hero_title", "Homepage headline")}
                 ? '<div class="muted">Hours: ' + esc(st.hours) + "</div>"
                 : "") +
               '</div><hr style="border:0;border-top:2px solid #202b25;margin:16px 0">' +
-              '<div class="row"><b>Delivery Receipt</b><b>#' +
+              '<div class="row"><b>' +
+              esc(st.receipt_title || "Delivery Receipt") +
+              '</b><b>#' +
               esc(r.id) +
               "</b></div>" +
               '<div class="row muted"><span>Order date</span><span>' +
@@ -764,12 +769,16 @@ ${f("hero_title", "Homepage headline")}
               '<div class="row"><span>Status</span><span class="status">' +
               esc(r.status || "New") +
               "</span></div>" +
-              '<div class="row"><span>Payment</span><span>' +
+              '<div class="row"><span>' +
+              esc(st.receipt_payment_label || "Payment") +
+              '</span><span>' +
               esc(r.pay || "COD") +
               " · " +
               esc(r.payment_status || "Pending") +
               "</span></div>" +
-              '<div class="grid"><div class="box"><h2>Customer</h2><div><b>' +
+              '<div class="grid"><div class="box"><h2>' +
+              esc(st.receipt_customer_label || "Customer") +
+              '</h2><div><b>' +
               esc(r.name || "") +
               "</b></div>" +
               "<div>Phone: " +
@@ -779,9 +788,13 @@ ${f("hero_title", "Homepage headline")}
               "</div><div>PACI: " +
               esc(r.paci || "—") +
               "</div></div>" +
-              '<div class="box"><h2>Delivery</h2><div>' +
+              '<div class="box"><h2>' +
+              esc(st.receipt_delivery_label || "Delivery") +
+              '</h2><div>' +
               esc(r.address || "—") +
-              "</div><div>Delivery fee: " +
+              "</div><div>" +
+              esc(st.receipt_delivery_fee_label || "Delivery fee") +
+              ": " +
               fmt(delivery) +
               "</div>" +
               (r.lat != null && r.lng != null
@@ -795,17 +808,23 @@ ${f("hero_title", "Homepage headline")}
                 ? '<div style="margin-top:8px">' + mapLink + "</div>"
                 : "") +
               "</div></div>" +
-              '<div class="box"><h2>Order items</h2><table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Line total</th></tr></thead><tbody>' +
+              '<div class="box"><h2>' +
+              esc(st.receipt_items_label || "Order items") +
+              '</h2><table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Line total</th></tr></thead><tbody>' +
               itemRows +
               '</tbody></table><div class="row"><span>Subtotal</span><span>' +
               fmt(r.subtotal || r.total) +
               "</span></div>" +
               '<div class="row"><span>Discount</span><span>-' +
               fmt(r.discount || 0) +
-              '</span></div><div class="row"><span>Delivery</span><span>' +
+              '</span></div><div class="row"><span>' +
+              esc(st.receipt_delivery_fee_label || "Delivery") +
+              '</span><span>' +
               fmt(delivery) +
               "</span></div>" +
-              '<div class="row total"><span>Total</span><span>' +
+              '<div class="row total"><span>' +
+              esc(st.receipt_total_label || "Total") +
+              '</span><span>' +
               fmt(r.total) +
               "</span></div></div>" +
               (r.notes
@@ -838,9 +857,14 @@ ${f("hero_title", "Homepage headline")}
                     : "") +
                   "</div>"
                 : "") +
-              '<div class="footer">Thank you for ordering from ' +
-              esc(st.name || "PinoyAmbula") +
-              ". Keep this receipt for your records." +
+              (st.receipt_no_refund || st.receipt_exchange_policy
+                ? '<div class="box"><h2>Policies</h2>' +
+                  (st.receipt_no_refund ? '<div><b>No-refund:</b> ' + esc(st.receipt_no_refund) + '</div>' : '') +
+                  (st.receipt_exchange_policy ? '<div style="margin-top:6px"><b>Exchange:</b> ' + esc(st.receipt_exchange_policy) + '</div>' : '') +
+                  '</div>'
+                : '') +
+              '<div class="footer">' +
+              esc(st.receipt_footer || ("Thank you for ordering from " + (st.name || "PinoyAmbula") + ". Keep this receipt for your records.")) +
               (st.facebook ? "<br>Facebook: " + esc(st.facebook) : "") +
               (st.instagram ? "<br>Instagram: " + esc(st.instagram) : "") +
               "</div></div></body></html>",
