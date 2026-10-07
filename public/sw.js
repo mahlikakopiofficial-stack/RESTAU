@@ -1,17 +1,17 @@
-const CACHE_NAME='pinoyambula-shell-v32';
-const CACHE_VERSION='v32';
+const CACHE_NAME='pinoyambula-shell-v33';
+const CACHE_VERSION='v33';
 const SHELL=[
   '/index.html',
   '/account.html',
   '/admin.html',
   '/reset-password.html',
   '/style.css',
-  '/app.js?v=20261006-tz4',
+  '/app.js?v=20261007-live6',
   '/enhancements.js',
   '/final-fixes.js',
   '/master-enhancements.js',
   '/admin-fixes.js?v=20261007-live4',
-  '/admin-notify.js?v=20261007-live5',
+  '/admin-notify.js?v=20261007-live6',
   '/media-runtime-fix.js?v=20261003-android1',
   '/pwa.js?v=20261006-v28',
   '/runtime-config.js',
