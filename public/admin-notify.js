@@ -1,6 +1,6 @@
 (function(){
-  if(!document.title.includes('Admin')||window.__adminLiveStarted)return;
-  window.__adminLiveStarted=true;
+  if(!document.title.includes('Admin'))return;
+  if(window.__adminLiveController)return;
 
   const adminToken=()=>tk('at');
   const seen={orders:0,inquiries:0,messages:0};
@@ -15,14 +15,12 @@
 
   const handleEvent=ev=>{
     if(!ev?.type)return;
-
     if(ev.type==='ready'){
       seen.orders=Math.max(seen.orders,Number(ev.orders)||0);
       seen.inquiries=Math.max(seen.inquiries,Number(ev.inquiries)||0);
       seen.messages=Math.max(seen.messages,Number(ev.messages)||0);
       return;
     }
-
     const key=cursorKey(ev.type);
     const id=Number(ev.id)||0;
     if(key&&id&&id<=seen[key])return;
@@ -51,11 +49,19 @@
     }
   };
 
+  const stop=()=>{
+    try{controller?.abort()}catch(e){}
+    controller=null;
+    if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}
+    window.__adminLiveController=null;
+  };
+
   const connect=()=>{
+    if(!adminToken())return;
     if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}
     try{controller?.abort()}catch(e){}
-
     controller=new AbortController();
+    window.__adminLiveController={stop};
 
     const params=new URLSearchParams();
     if(seen.orders||seen.inquiries||seen.messages){
@@ -69,52 +75,45 @@
 
     fetch(url,{
       method:'GET',
-      headers:{
-        Authorization:'Bearer '+adminToken(),
-        Accept:'text/event-stream'
-      },
+      headers:{Authorization:'Bearer '+adminToken(),Accept:'text/event-stream'},
       cache:'no-store',
       signal:controller.signal
     }).then(async response=>{
       if(!response.ok)throw new Error('Live admin stream '+response.status);
-
       reconnectDelay=1000;
       const reader=response.body?.getReader();
       if(!reader)throw new Error('Live admin stream unavailable');
-
       const decoder=new TextDecoder();
       let buffer='';
-
       while(true){
         const part=await reader.read();
         if(part.done)break;
-
         buffer+=decoder.decode(part.value,{stream:true});
         const frames=buffer.split('\n\n');
         buffer=frames.pop()||'';
-
         for(const frame of frames){
-          const data=frame
-            .split('\n')
-            .filter(x=>x.startsWith('data:'))
-            .map(x=>x.slice(5).trim())
-            .join('');
-
-          if(!data)continue;
-          try{handleEvent(JSON.parse(data));}catch(e){}
+          const data=frame.split('\n').filter(x=>x.startsWith('data:')).map(x=>x.slice(5).trim()).join('');
+          if(data)try{handleEvent(JSON.parse(data));}catch(e){}
         }
       }
-
       throw new Error('Live admin stream closed');
     }).catch(()=>{
+      window.__adminLiveController={stop};
       if(!adminToken())return;
       reconnectTimer=setTimeout(connect,reconnectDelay);
       reconnectDelay=Math.min(reconnectDelay*2,10000);
     });
   };
 
+  window.startAdminLiveNotifications=()=>{
+    if(!window.__adminLiveController&&adminToken())connect();
+  };
+  window.stopAdminLiveNotifications=stop;
+  window.addEventListener('admin-auth-ready',window.startAdminLiveNotifications);
+  window.addEventListener('beforeunload',stop);
+
   if(typeof Notification!=='undefined'&&Notification.permission==='default')
     Notification.requestPermission().catch(()=>{});
 
-  connect();
-})();
+  if(adminToken())connect();
+})();;
