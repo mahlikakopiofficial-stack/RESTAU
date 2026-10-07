@@ -157,6 +157,7 @@ t('admin chat buttons render after fixes load',()=>{
   assert(adminFixes.includes("btn('💬 Reply'"));
   assert(adminFixes.includes('if(!d.open)d.showModal()'));
 });
+t('admin customer chat uses safe named inquiry binding',()=>{assert(server.includes("VALUES(@customer_id,@order_id,@name,@email,@phone,@type,@msg,@status)"));assert(server.includes("['inquiries','status',\"TEXT DEFAULT 'New'\"]"));assert(server.includes('ADMIN_ORDER_REPLY_EMAIL_FAILED'));});
 t('admin customer chat and inquiry reply',()=>{
   assert(server.includes("app.get('/api/admin/orders/:id/chat"));
   assert(server.includes("app.post('/api/admin/orders/:id/chat"));
