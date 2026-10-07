@@ -243,6 +243,8 @@ const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
 // Live admin order stream. Orders are pushed to connected admin dashboards
 // immediately after the database transaction commits; polling is not required.
 const adminOrderStreams=new Set();
+const customerStreams=new Map();
+
 const broadcastAdminEvent=(event)=>{
   console.log('[ADMIN-SSE] broadcast type='+String(event?.type||'')+' id='+String(event?.id||'')+' clients='+adminOrderStreams.size);
   const payload='data: '+JSON.stringify(event)+'\n\n';
@@ -250,6 +252,44 @@ const broadcastAdminEvent=(event)=>{
     try{stream.write(payload);if(typeof stream.flush==='function')stream.flush()}catch(e){adminOrderStreams.delete(stream)}
   }
 };
+
+const broadcastCustomerEvent=(customerId,event)=>{
+  const streams=customerStreams.get(Number(customerId));
+  if(!streams?.size)return;
+  const payload='data: '+JSON.stringify(event)+'\n\n';
+  for(const stream of streams){
+    try{stream.write(payload);if(typeof stream.flush==='function')stream.flush()}catch(e){streams.delete(stream)}
+  }
+  if(!streams.size)customerStreams.delete(Number(customerId));
+};
+
+const broadcastCustomerOrder=order=>broadcastCustomerEvent(order.customer_id,{
+  type:'order',
+  id:Number(order.id),
+  status:String(order.status||''),
+  total:Number(order.total||0),
+  created:String(order.created||'')
+});
+
+const broadcastCustomerOrderStatus=order=>broadcastCustomerEvent(order.customer_id,{
+  type:'order_status',
+  id:Number(order.id),
+  status:String(order.status||''),
+  status_message:String(order.status_message||''),
+  eta:String(order.eta||''),
+  driver_name:String(order.driver_name||''),
+  driver_phone:String(order.driver_phone||''),
+  created:String(order.created||'')
+});
+
+const broadcastCustomerMessage=(customerId,message)=>broadcastCustomerEvent(customerId,{
+  type:'message',
+  id:Number(message.id||0),
+  inquiry_id:Number(message.inquiry_id||0),
+  message:String(message.message||''),
+  created:String(message.created||'')
+});
+
 const broadcastAdminOrder=order=>broadcastAdminEvent({
   type:'order',
   id:Number(order.id),
@@ -263,6 +303,18 @@ const broadcastAdminInquiry=inquiry=>broadcastAdminEvent({
   name:String(inquiry.name||'customer'),
   created:String(inquiry.created||'')
 });
+const customerCursorSnapshot=customerId=>({
+  orders:Number(db.prepare('SELECT COALESCE(MAX(id),0) id FROM orders WHERE customer_id=?').get(customerId).id||0),
+  messages:Number(db.prepare("SELECT COALESCE(MAX(m.id),0) id FROM inquiry_messages m JOIN inquiries i ON i.id=m.inquiry_id WHERE i.customer_id=? AND m.author='admin'").get(customerId).id||0)
+});
+const customerEventsAfter=(customerId,cursor={})=>{
+  const events=[
+    ...db.prepare("SELECT id,'order' type,status,total,created FROM orders WHERE customer_id=? AND id>? ORDER BY id LIMIT 500").all(customerId,Math.max(0,+cursor.orders||0)),
+    ...db.prepare("SELECT m.id,'message' type,m.message,m.created,i.id inquiry_id FROM inquiry_messages m JOIN inquiries i ON i.id=m.inquiry_id WHERE i.customer_id=? AND m.author='admin' AND m.id>? ORDER BY m.id LIMIT 500").all(customerId,Math.max(0,+cursor.messages||0))
+  ];
+  events.sort((a,b)=>String(a.created).localeCompare(String(b.created))||a.id-b.id);
+  return events;
+};
 const adminCursorSnapshot=()=>({
   orders:Number(db.prepare('SELECT COALESCE(MAX(id),0) id FROM orders').get().id||0),
   inquiries:Number(db.prepare('SELECT COALESCE(MAX(id),0) id FROM inquiries').get().id||0),
@@ -675,6 +727,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   // Push immediately after the committed SQLite write. Email/WhatsApp notifications
   // must never delay the dashboard's live order delivery.
   broadcastAdminOrder(savedOrder);
+  broadcastCustomerOrder(savedOrder);
   notifyOrderReceived(savedOrder);
   if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
   notifyAdminOrder(savedOrder);
@@ -781,10 +834,11 @@ app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
     inquiry=one('SELECT id,order_id,name,email,phone,type,msg,status,created FROM inquiries WHERE id=?',id);
     db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(id,'admin',message);
   }else{
-    const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid;
+    const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid);
     db.prepare("UPDATE inquiries SET status='Replied',msg=? WHERE id=?").run(message,inquiry.id);
+    broadcastCustomerMessage(order.customer_id,{id,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
     if(inquiry.email)notifyInquiryReply(inquiry,message);
-    return r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(id),emailQueued:!!inquiry.email});
+    return r.json({ok:1,inquiryId:Number(inquiry.id),id,emailQueued:!!inquiry.email});
   }
   if(inquiry.email)notifyInquiryReply(inquiry,message);
   r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?',inquiry.id).get().id),emailQueued:!!inquiry.email});
@@ -795,11 +849,11 @@ app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   need(q.body,'message');
   const message=String(q.body.message).trim();
   if(message.length>4000)throw new Error('Reply must be 4000 characters or fewer');
-  const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)')
-    .run(q.params.id,'admin',message).lastInsertRowid;
+  const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(q.params.id,'admin',message).lastInsertRowid);
   db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(q.params.id);
+  broadcastCustomerMessage(inquiry.customer_id,{id,inquiry_id:Number(q.params.id),message,created:new Date().toISOString()});
   notifyInquiryReply(inquiry,message);
-  r.json({ok:1,id:Number(id),emailQueued:!!inquiry.email});
+  r.json({ok:1,id,emailQueued:!!inquiry.email});
 }));
 app.post('/api/admin/customers/:id/messages',admin,w((q,r)=>{
   need(q.body,'message');
@@ -815,9 +869,10 @@ app.post('/api/admin/customers/:id/messages',admin,w((q,r)=>{
   }else{
     db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(inquiry.id);
   }
-  const id=db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid;
+  const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid);
+  broadcastCustomerMessage(customer.id,{id,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
   if(inquiry.email)notifyInquiryReply(inquiry,message);
-  r.json({ok:1,inquiryId:Number(inquiry.id),id:Number(id),emailQueued:!!inquiry.email});
+  r.json({ok:1,inquiryId:Number(inquiry.id),id,emailQueued:!!inquiry.email});
 }));
 app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
   const subject=String(q.body.subject||'').trim();
@@ -879,6 +934,49 @@ app.get('/api/admin/events',(q,r)=>{
     clearInterval(heartbeat);
     adminOrderStreams.delete(r);
     console.log('[ADMIN-SSE] disconnected clients='+adminOrderStreams.size);
+  };
+  q.on('close',close);
+  r.on('close',close);
+  r.on('error',close);
+});
+
+app.get('/api/customer/events',(q,r)=>{
+  const t=customerToken(q);
+  if(!t)return r.status(401).json({error:'Login required'});
+  const customerId=Number(t.id);
+  r.status(200).set({
+    'Content-Type':'text/event-stream; charset=utf-8',
+    'Cache-Control':'no-cache, no-transform',
+    'Connection':'keep-alive',
+    'X-Accel-Buffering':'no'
+  });
+  if(typeof r.flushHeaders==='function')r.flushHeaders();
+  r.write('retry: 3000\n\n');
+
+  let streams=customerStreams.get(customerId);
+  if(!streams){streams=new Set();customerStreams.set(customerId,streams)}
+  streams.add(r);
+
+  const hasCursor=q.query.orders!==undefined||q.query.messages!==undefined;
+  if(hasCursor){
+    const replay=customerEventsAfter(customerId,{orders:q.query.orders,messages:q.query.messages});
+    for(const event of replay){
+      try{r.write('data: '+JSON.stringify(event)+'\n\n')}catch(e){break}
+    }
+    if(typeof r.flush==='function')r.flush();
+  }else{
+    const cursor=customerCursorSnapshot(customerId);
+    try{
+      r.write('data: '+JSON.stringify({type:'ready',...cursor})+'\n\n');
+      if(typeof r.flush==='function')r.flush();
+    }catch(e){}
+  }
+
+  const heartbeat=setInterval(()=>{try{r.write(': heartbeat\n\n');if(typeof r.flush==='function')r.flush()}catch(e){}},15000);
+  const close=()=>{
+    clearInterval(heartbeat);
+    streams.delete(r);
+    if(!streams.size)customerStreams.delete(customerId);
   };
   q.on('close',close);
   r.on('close',close);
@@ -956,6 +1054,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     vals.push(q.params.id);
     db.prepare('UPDATE orders SET '+sets.join(',')+' WHERE id=?').run(...vals);
     const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
+    broadcastCustomerOrderStatus(after);
     notifyOrderStatus(after,before.status);
     if(after.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+after.id+':'+after.status,after.phone,orderWhatsAppText(after,after.status))).catch(()=>{});
     return r.json({ok:1,status});
