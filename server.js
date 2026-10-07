@@ -205,7 +205,7 @@ const notificationOnce=async(eventKey,recipient,text)=>{
   if(existing){
     db.prepare("UPDATE notification_log SET recipient=?,status='Pending',error='' WHERE event_key=?").run(recipient,eventKey);
   }else{
-    db.prepare("INSERT INTO notification_log(channel,event_key,recipient,status) VALUES('whatsapp',?,?,?)").run('whatsapp',eventKey,recipient,'Pending');
+    db.prepare("INSERT INTO notification_log(channel,event_key,recipient,status) VALUES('whatsapp',?,?,?)").run(eventKey,recipient,'Pending');
   }
   try{
     const result=await sendWhatsAppText(recipient,text);
