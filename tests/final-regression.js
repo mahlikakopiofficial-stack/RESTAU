@@ -102,10 +102,10 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v34'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v35'"));
   assert(sw.includes("const CACHE_VERSION='v35'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes('/admin-notify.js?v=20261007-live6'));
+  assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
   assert(pwa.includes("updateViaCache:'none'"));
   assert(index.includes('/pwa.js?v=20261006-v28'));
@@ -121,7 +121,7 @@ t('customer and admin order chatbox stays available',()=>{
   assert(!admin.includes('setInterval(refreshCustomerChat,5000)'));
 });
 t('admin chat buttons render after fixes load',()=>{
-  assert(admin.includes('admin-fixes.js?v=20261007-live3'));
+  assert(admin.includes('admin-fixes.js?v=20261007-live8'));
   assert(admin.includes('onload="if(tk(&quot;at&quot;))go(cur)"'));
   assert(adminFixes.includes("btn('💬 Chat'"));
   assert(adminFixes.includes("btn('💬 Reply'"));
@@ -133,7 +133,7 @@ t('admin customer chat and inquiry reply',()=>{
   assert(server.includes("app.get('/api/admin/inquiries/:id/messages"));
   assert(server.includes("app.post('/api/admin/inquiries/:id/messages"));
   assert(server.includes('broadcastAdminMessage(inquiry,message,messageId)'));
-  assert(server.includes('broadcastAdminInquiry(inquiry)'));
+  assert(server.includes('broadcastAdminInquiry(inquiry)'));assert(server.includes('customer_id:Number(inquiry.customer_id||0)'));
   assert(server.includes("customer_id:Number(inquiry.customer_id||0)"));
   assert(admin.includes('id="admin-fixes-script" src="admin-fixes.js?v=20261007-live8"'));
   assert(admin.includes('admin-live-event'));
