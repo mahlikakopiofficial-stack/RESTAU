@@ -273,4 +273,5 @@ t('Kuwait timezone',()=>{
   assert(server.includes("date(datetime(created,'+3 hours'))"));
 });
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
+t('settings checkbox persistence isolation',()=>{assert(admin.includes('const control = e.target.elements.namedItem(k);'));assert(admin.includes('if (!control) return;'));assert(admin.includes('b[k] = control.checked ? "1" : "0";'));});
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');

@@ -928,7 +928,9 @@ ${f("hero_title", "Homepage headline")}
         const b = Object.fromEntries(fd);
 
         ["payment_cod", "payment_card", "promo_enabled", "subscriptions_enabled", "exchange_rate_enabled"].forEach((k) => {
-          b[k] = fd.has(k) ? "1" : "0";
+          const control = e.target.elements.namedItem(k);
+          if (!control) return;
+          b[k] = control.checked ? "1" : "0";
         });
 
         try {
