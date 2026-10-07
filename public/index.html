@@ -82,31 +82,31 @@
           <p id="content-services-subtitle">Tap a service to see its menu</p>
         </div>
         <div class="grid">
-          <a class="card" href="#menu" onclick="setCat('Regular')"
-            ><div class="e">🍛</div>
-            <h3>Regular Meals</h3>
-            <p>Classic Filipino ulam &amp; rice</p></a
-          >
-          <a class="card" href="#menu" onclick="setCat('Budget')"
-            ><div class="e">🍳</div>
-            <h3>Budget Meals</h3>
-            <p>Filling silog meals, easy on the wallet</p></a
-          >
-          <a class="card" href="#menu" onclick="setCat('Drinks')"
-            ><div class="e">🧋</div>
-            <h3>Drinks</h3>
-            <p>Sago't gulaman, buko, halo-halo etc.</p></a
-          >
-          <a class="card" href="#menu" onclick="setCat('Sweets')"
-            ><div class="e">🍮</div>
-            <h3>Sweets</h3>
-            <p>Filipino desserts and merienda favorites</p></a
-          >
-          <a class="card" href="#menu" onclick="setCat('Catering')"
-            ><div class="e">🍽️</div>
-            <h3>Catering for Events</h3>
-            <p>Party trays &amp; Full Meals for any handaan</p></a
-          >
+          <a class="card" href="#menu" onclick="setCat('Regular')">
+            <div class="e service-image" data-service-image="regular">🍛</div>
+            <h3 data-service-name="regular">Regular Meals</h3>
+            <p data-service-description="regular">Classic Filipino ulam &amp; rice</p>
+          </a>
+          <a class="card" href="#menu" onclick="setCat('Budget')">
+            <div class="e service-image" data-service-image="budget">🍳</div>
+            <h3 data-service-name="budget">Budget Meals</h3>
+            <p data-service-description="budget">Filling silog meals, easy on the wallet</p>
+          </a>
+          <a class="card" href="#menu" onclick="setCat('Drinks')">
+            <div class="e service-image" data-service-image="drinks">🧋</div>
+            <h3 data-service-name="drinks">Drinks</h3>
+            <p data-service-description="drinks">Sago't gulaman, buko, halo-halo etc.</p>
+          </a>
+          <a class="card" href="#menu" onclick="setCat('Sweets')">
+            <div class="e service-image" data-service-image="sweets">🍮</div>
+            <h3 data-service-name="sweets">Sweets</h3>
+            <p data-service-description="sweets">Filipino desserts and merienda favorites</p>
+          </a>
+          <a class="card" href="#menu" onclick="setCat('Catering')">
+            <div class="e service-image" data-service-image="catering">🍽️</div>
+            <h3 data-service-name="catering">Catering for Events</h3>
+            <p data-service-description="catering">Party trays &amp; Full Meals for any handaan</p>
+          </a>
         </div>
       </div>
     </section>
@@ -727,6 +727,32 @@
           "#content-subscribe-confirm-button": c.content_subscribe_confirm_button
         };
         Object.entries(contentText).forEach(([selector,value])=>{const el=$(selector);if(el&&value!==undefined)el.textContent=value;});
+        const serviceCfg = {
+          regular: ["content_service_regular_name","content_service_regular_description","content_service_regular_image"],
+          budget: ["content_service_budget_name","content_service_budget_description","content_service_budget_image"],
+          drinks: ["content_service_drinks_name","content_service_drinks_description","content_service_drinks_image"],
+          sweets: ["content_service_sweets_name","content_service_sweets_description","content_service_sweets_image"],
+          catering: ["content_service_catering_name","content_service_catering_description","content_service_catering_image"]
+        };
+        Object.entries(serviceCfg).forEach(([slot,[nameKey,descKey,imgKey]])=>{
+          const nameEl=document.querySelector('[data-service-name="'+slot+'"]');
+          const descEl=document.querySelector('[data-service-description="'+slot+'"]');
+          const imgEl=document.querySelector('[data-service-image="'+slot+'"]');
+          if(nameEl&&c[nameKey]!==undefined)nameEl.textContent=c[nameKey];
+          if(descEl&&c[descKey]!==undefined)descEl.textContent=c[descKey];
+          if(imgEl&&c[imgKey]){
+            imgEl.textContent="";
+            const img=document.createElement("img");
+            img.src=c[imgKey];
+            img.alt="";
+            img.loading="lazy";
+            img.style.width="100%";
+            img.style.height="100%";
+            img.style.objectFit="cover";
+            imgEl.appendChild(img);
+          }
+        });
+
         const searchInput=$("#menu-search");
         if(searchInput&&c.content_menu_search_placeholder!==undefined)searchInput.placeholder=c.content_menu_search_placeholder;
         const newsletterButton=$("#content-newsletter-button");
