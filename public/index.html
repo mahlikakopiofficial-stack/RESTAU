@@ -332,7 +332,7 @@
           : i.price;
       const card = (
         i,
-      ) => `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
+      ) => `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
   ${
     i.discount_price > 0 && i.discount_price < i.price
       ? '<del style="opacity:.6">' +
@@ -872,8 +872,8 @@
         }
       })();
     </script>
-    <script src="enhancements.js"></script>
+    <script src="enhancements.js?v=20261007-category2"></script>
     <script src="final-fixes.js"></script>
-    <script src="master-enhancements.js?v=20261007-category1"></script>
+    <script src="master-enhancements.js?v=20261007-category2"></script>
   </body>
 </html>
