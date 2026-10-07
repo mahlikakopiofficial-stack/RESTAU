@@ -40,8 +40,10 @@ if(document.title.includes('Admin'))window.addEventListener('load',()=>{
     }
 
     if(ev.type==='order'||ev.type==='order_status'){
-      if((Number(ev.id)||0)<=seen.orders)return;
-      seen.orders=Number(ev.id)||seen.orders;
+      if(ev.type==='order'){
+        if((Number(ev.id)||0)<=seen.orders)return;
+        seen.orders=Number(ev.id)||seen.orders;
+      }
       const label=ev.type==='order'
         ? 'Order #'+ev.id+' received'
         : 'Order #'+ev.id+' is now '+(ev.status||'updated');
