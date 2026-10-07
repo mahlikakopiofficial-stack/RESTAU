@@ -67,6 +67,8 @@
             ).token,
           );
           show();
+          window.dispatchEvent(new Event("admin-auth-ready"));
+          window.startAdminLiveNotifications?.();
         } catch (x) {
           toast(x.message);
         }
