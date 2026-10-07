@@ -1018,7 +1018,7 @@ app.get('/api/admin/notifications',admin,w((q,r)=>{
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
 const buildAdminReport=(fromInput,toInput)=>{
   const kwToday=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-  const validDate=v=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v||''));
+  const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''));
   const from=validDate(fromInput)?String(fromInput):kwToday;
   const to=validDate(toInput)?String(toInput):from;
   if(from>to)throw new Error('Report From date cannot be after To date');
@@ -1043,7 +1043,7 @@ const buildAdminReport=(fromInput,toInput)=>{
     paidRevenue:paid.reduce((sum,x)=>sum+(+x.total||0),0),
     paidOrders:paid.length,
     averageOrder:active.length?active.reduce((sum,x)=>sum+(+x.total||0),0)/active.length:0,
-    activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,
+    activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE start<=? AND end>=? AND status!='Cancelled'",to,from).n,
     newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
     inquiries:one("SELECT COUNT(*) n FROM inquiries WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
     newsletter:one("SELECT COUNT(*) n FROM newsletter WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
