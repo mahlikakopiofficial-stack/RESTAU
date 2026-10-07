@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
-const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
+const {notifyRegistration,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
@@ -462,6 +462,8 @@ app.post('/api/register',lim(8),w((q,r)=>{
   }else{
     id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
+  const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
+  if(registeredCustomer?.email)Promise.resolve(notifyRegistration(registeredCustomer)).catch(error=>console.error('REGISTRATION_EMAIL_FAILED',error.message));
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
@@ -507,11 +509,8 @@ app.post('/api/password-reset',lim(5),async(q,r)=>{
     const base=String(E.PUBLIC_BASE_URL||'').replace(/\/$/,'');
     if(!base)throw new Error('PUBLIC_BASE_URL is not configured');
     const resetUrl=base+'/reset-password.html?token='+encodeURIComponent(raw);
-    const safeName=String(customer.name||'Customer').replace(/[<>]/g,'');
-    const text='Hello '+safeName+',\\n\\nWe received a request to reset your PinoyAmbula account password. Use this link within 30 minutes:\\n\\n'+resetUrl+'\\n\\nIf you did not request this, you can ignore this email.';
-    const html='<p>Hello '+safeName+',</p><p>We received a request to reset your PinoyAmbula account password.</p><p><a href="'+resetUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">Reset your password</a></p><p>This link expires in 30 minutes and can only be used once.</p><p>If you did not request this, you can ignore this email.</p>';
     try{
-      await sendMail({to:customer.email,subject:'Reset your PinoyAmbula password',text,html});
+      await sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl});
     }catch(mailError){
       db.prepare('DELETE FROM password_reset_tokens WHERE token_hash=?').run(tokenHash);
       console.error('PASSWORD_RESET_EMAIL_FAILED',mailError.message);
@@ -1019,7 +1018,7 @@ app.get('/api/admin/notifications',admin,w((q,r)=>{
 app.get('/api/admin/stats',admin,(q,r)=>{const n=s=>one(s).n;r.json({orders:n('SELECT COUNT(*) n FROM orders'),newOrders:n("SELECT COUNT(*) n FROM orders WHERE status='New'"),revenue:n("SELECT COALESCE(SUM(total),0) n FROM orders WHERE status!='Cancelled'"),customers:n('SELECT COUNT(*) n FROM customers'),activeSubs:n("SELECT COUNT(*) n FROM subs WHERE status='Active'"),inquiries:n('SELECT COUNT(*) n FROM inquiries'),subscribers:n('SELECT COUNT(*) n FROM newsletter')})});
 const buildAdminReport=(fromInput,toInput)=>{
   const kwToday=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-  const validDate=v=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v||''));
+  const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''));
   const from=validDate(fromInput)?String(fromInput):kwToday;
   const to=validDate(toInput)?String(toInput):from;
   if(from>to)throw new Error('Report From date cannot be after To date');
@@ -1044,7 +1043,7 @@ const buildAdminReport=(fromInput,toInput)=>{
     paidRevenue:paid.reduce((sum,x)=>sum+(+x.total||0),0),
     paidOrders:paid.length,
     averageOrder:active.length?active.reduce((sum,x)=>sum+(+x.total||0),0)/active.length:0,
-    activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE status='Active'").n,
+    activeSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE start<=? AND end>=? AND status!='Cancelled'",to,from).n,
     newSubscriptions:one("SELECT COUNT(*) n FROM subs WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
     inquiries:one("SELECT COUNT(*) n FROM inquiries WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
     newsletter:one("SELECT COUNT(*) n FROM newsletter WHERE date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?",from,to).n,
@@ -1446,6 +1445,23 @@ app.post('/api/admin/heritage',admin,w((q,r)=>{need(q.body,'title');const type=[
 app.put('/api/admin/heritage/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','caption','media_type','img','media_url','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE heritage SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='media_type'?(['image','video'].includes(q.body[k])?q.body[k]:'image'):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
 app.delete('/api/admin/heritage/:id',admin,w((q,r)=>{const row=one('SELECT img FROM heritage WHERE id=?',q.params.id);if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});db.prepare('DELETE FROM heritage WHERE id=?').run(q.params.id);r.json({ok:1});}));
 app.get('/api/admin/whatsapp/status',admin,(q,r)=>r.json({...whatsappStatus(),adminRecipientConfigured:Boolean(adminWhatsAppRecipient())}));
+app.post('/api/admin/email/test',admin,async(q,r)=>{
+  const to=String(q.body?.to||process.env.GMAIL_ADMIN_NOTIFY_TO||process.env.GMAIL_USER||'').trim();
+  if(!to)return r.status(400).json({ok:false,error:'No test email recipient configured'});
+  try{
+    const result=await sendMail({
+      to,
+      subject:restaurantName()+': Email notification test',
+      text:'This is a live email delivery test from '+restaurantName()+'. If you received this message, the Gmail notification route is working.',
+      html:'<div style="font-family:Arial,sans-serif;line-height:1.5"><h2>Email notification test</h2><p>This is a live email delivery test from <b>'+escHtml(restaurantName())+'</b>.</p><p>If you received this message, the Gmail notification route is working.</p></div>'
+    });
+    console.log('EMAIL_TEST_SENT',to,result?.id||'');
+    r.json({ok:true,to,messageId:result?.id||null});
+  }catch(error){
+    console.error('EMAIL_TEST_FAILED',to,error.message);
+    r.status(503).json({ok:false,to,error:error.message});
+  }
+});
 app.get('/api/admin/notification-status',admin,(q,r)=>r.json({
   emailConfigured:Boolean(E.GMAIL_USER&&E.GMAIL_CLIENT_ID&&E.GMAIL_CLIENT_SECRET&&E.GMAIL_REFRESH_TOKEN),
   adminEmailConfigured:Boolean(E.GMAIL_ADMIN_NOTIFY_TO||E.GMAIL_USER),

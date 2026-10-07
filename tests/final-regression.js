@@ -45,7 +45,37 @@ t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.inclu
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("https://pinoyambulakw.duckdns.org"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
-t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('notifyAdminCustomerMessage'));assert(notifications.includes('sendPasswordResetEmail'));assert(/notifyAdminCustomerMessage,/.test(notifications));assert(server.includes("SELECT status FROM notification_log WHERE event_key=?"));assert(server.includes("['Sent','Pending']"))});
+t('customer email delivery hardening',()=>{
+  assert(gmail.includes("required('GMAIL_REFRESH_TOKEN')"));
+  assert(gmail.includes('attempt<=3'));
+  assert(gmail.includes('GMAIL_SEND_ATTEMPT_FAILED'));
+  assert(server.includes("app.post('/api/admin/email/test'"));
+  assert(server.includes("EMAIL_TEST_SENT"));
+  assert(server.includes("EMAIL_TEST_FAILED"));
+});
+
+t('registration, password reset and order email wiring',()=>{
+  assert(notifications.includes('notifyRegistration'));
+  assert(server.includes('notifyRegistration(registeredCustomer)'));
+  assert(server.includes('sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl})'));
+  assert(server.includes("app.post('/api/password-reset'"));
+  assert(server.includes("app.post('/api/password-reset/confirm'"));
+  assert(server.includes('notifyOrderReceived(savedOrder)'));
+  assert(server.includes('notifyOrderStatus(after,before.status)'));
+  assert(server.includes('notifyAdminOrder(savedOrder)'));
+  assert(server.includes('GMAIL_REFRESH_TOKEN'));
+  assert(server.includes("app.get('/api/admin/notification-status'"));
+});
+
+t('admin report selected date/range',()=>{
+  assert(server.includes("app.get('/api/admin/report-range'"));
+  assert(server.includes("const validDate=v=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v||''));"));
+  assert(server.includes("date(datetime(created,'+3 hours'))>=? AND date(datetime(created,'+3 hours'))<=?"));
+  assert(server.includes("activeSubscriptions:one(\"SELECT COUNT(*) n FROM subs WHERE start<=? AND end>=? AND status!='Cancelled'\",to,from).n"));
+  assert(admin.includes('window._reportFrom'));
+  assert(admin.includes('window._reportTo'));
+  assert(admin.includes('/report-range?from='));
+});t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('notifyAdminCustomerMessage'));assert(notifications.includes('sendPasswordResetEmail'));assert(/notifyAdminCustomerMessage,/.test(notifications));assert(server.includes("SELECT status FROM notification_log WHERE event_key=?"));assert(server.includes("['Sent','Pending']"))});
 t('regional cart + floating cart',()=>{assert(index.includes('window.addRegionalToCart'));assert(index.includes('regionalKey'));assert(master.includes('addRegionalToCart'));assert(server.includes("SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1"));assert(index.includes('id="cart-fab"'));assert(style.includes('#cart-fab{'));assert(style.includes('input[type="checkbox"]'));assert(style.includes('#cart-fab'));assert(style.includes('#menu{padding:34px 0}'));});
 t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261006-tz4'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
 t('admin responsive navigation',()=>{assert(admin.includes('admin-nav-toggle'));assert(admin.includes('admin-nav-menu'));assert(admin.includes('toggleAdminNav'));assert(fs.existsSync(path.join(root,'public','admin-nav.css')));});
