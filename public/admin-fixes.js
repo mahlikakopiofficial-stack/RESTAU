@@ -42,10 +42,7 @@
     if(!d.open)d.showModal();
     await refresh();
     if(window.__adminOrderChatId!==id||!d.open)return;
-    window.__adminOrderChatTimer=setInterval(()=>{
-      if(!d.open||window.__adminOrderChatId!==id)return;
-      refresh();
-    },5000);
+    window.__adminOrderChatTimer=null;
   };
 window.adminOrderChatClose=function(){if(window.__adminOrderChatTimer)clearInterval(window.__adminOrderChatTimer);window.__adminOrderChatTimer=null;window.__adminOrderChatRefresh=null;window.__adminOrderChatId=null;const d=document.getElementById('adminOrderChat');if(d?.open)d.close()};
   window.sendAdminOrderChat=async function(e){
@@ -58,6 +55,21 @@ window.adminOrderChatClose=function(){if(window.__adminOrderChatTimer)clearInter
       await (window.__adminOrderChatRefresh?.()||Promise.resolve());
     }catch(x){toast(x.message)}
   };
+  window.__adminLiveChatSync=window.__adminLiveChatSync||false;
+  if(!window.__adminLiveChatSync){
+    window.__adminLiveChatSync=true;
+    window.addEventListener('admin-live-event',event=>{
+      const ev=event.detail||{};
+      if((ev.type==='message'||ev.type==='inquiry')&&window.__adminInquiryId){
+        loadInquiry(window.__adminInquiryId).catch(()=>{});
+      }
+      if((ev.type==='message'||ev.type==='order')&&window.__adminOrderChatId){
+        window.__adminOrderChatRefresh?.();
+      }
+      if(ev.type==='order'&&typeof window.go==='function')window.go('Orders');
+    });
+  }
+
   R.Orders=async function(){const all=await A('/list/orders'),f=window._of||'All',rows=f==='All'?all:all.filter(x=>x.status===f),filters=['All','Pending','New','Confirmed','Preparing','Out for delivery','Delivered','Cancelled','Completed'];window._ol=all;return `<div class="admin-fix-toolbar"><select style="width:auto" onchange="window._of=this.value;go('Orders')">${filters.map(x=>`<option${x===f?' selected':''}>${x}</option>`).join('')}</select>${btn('↻ Refresh',`go('Orders')`,'btn s o')}${btn('⬇ CSV',`exp('orders')`,'btn s o')}<span class="admin-live">● Live order monitor</span></div><div class="admin-alert-note">New orders are delivered to this dashboard by the live server stream. Pending/New orders have a direct Confirm button.</div><div class="tw"><table><thead><tr><th>#</th><th>Date</th><th>Customer</th><th>Drop location</th><th>Items</th><th>Payment</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>${orderRows(rows)||'<tr><td colspan="9">No orders found.</td></tr>'}</tbody></table></div>`};
   async function loadInquiry(id){const data=await A('/inquiries/'+id+'/messages'),box=document.getElementById('adminInquiryMessages');if(!box)return;box.innerHTML=data.map(m=>`<article class="message ${m.author==='admin'?'staff':''}"><b>${m.author==='admin'?'Restaurant':'Customer'}</b><time>${esc0(typeof kuwaitDateTime==='function'?kuwaitDateTime(m.created):m.created)}</time><p>${esc0(m.message)}</p></article>`).join('');box.scrollTop=box.scrollHeight}
   window.openAdminInquiry=async function(id){
@@ -86,10 +98,7 @@ window.adminOrderChatClose=function(){if(window.__adminOrderChatTimer)clearInter
       if(!d.open)d.showModal();
       await loadInquiry(id);
       if(window.__adminInquiryId!==id||!d.open)return;
-      window.__adminInquiryTimer=setInterval(()=>{
-        if(!d.open||window.__adminInquiryId!==id)return;
-        loadInquiry(id).catch(()=>{});
-      },5000);
+      window.__adminInquiryTimer=null;
     }catch(e){toast(e.message)}
   };
   window.adminInquiryClose=function(){if(window.__adminInquiryTimer)clearInterval(window.__adminInquiryTimer);window.__adminInquiryTimer=null;window.__adminInquiryId=null;const d=document.getElementById('adminInquiryChat');if(d?.open)d.close()};
