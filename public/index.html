@@ -342,7 +342,7 @@
         "</span>"
       : '<span class="pr">' + money(i.price) + "</span>"
   }
-  <button class="btn s" style="float:right" onclick="add(${i.id})">Add</button>
+  <button class="btn s menu-add" onclick="add(${i.id})" aria-label="Add ${esc(i.name)} to cart">Add</button>
 </p></div></div>`;
       function setCat(c) {
         cat = c;
