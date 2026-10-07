@@ -102,10 +102,10 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live3'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v31'"));
-  assert(sw.includes("const CACHE_VERSION='v31'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v34'"));
+  assert(sw.includes("const CACHE_VERSION='v34'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live4'));
-  assert(sw.includes('/admin-notify.js?v=20261007-live4'));
+  assert(sw.includes('/admin-notify.js?v=20261007-live6'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
   assert(pwa.includes("updateViaCache:'none'"));
   assert(index.includes('/pwa.js?v=20261006-v28'));
@@ -117,6 +117,8 @@ t('customer and admin order chatbox stays available',()=>{
     assert(fs.existsSync(path.join(root,'public',localPath)), 'missing service-worker shell asset: '+asset);
   }
   assert(sw.includes('/icons/pinoyambula.svg'));
+  assert(!account.includes('setInterval(refresh, 5000)'));
+  assert(!admin.includes('setInterval(refreshCustomerChat,5000)'));
 });
 t('admin chat buttons render after fixes load',()=>{
   assert(admin.includes('admin-fixes.js?v=20261007-live3'));
