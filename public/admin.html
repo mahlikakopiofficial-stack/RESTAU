@@ -556,7 +556,7 @@
             ])
           );
         },
-        async WebsiteContent() {
+        async ["Website Content"]() {
           const s = await A("/settings"),
             f = (k, l, multi) => multi
               ? '<label>'+l+'</label><textarea name="'+k+'" rows="3">'+esc(s[k]||"")+'</textarea>'
@@ -859,8 +859,8 @@ ${f("hero_title", "Homepage headline")}
 
         try {
           await A("/settings", "PUT", b);
-          toast("Settings saved");
-          go("Settings");
+          toast(cur === "Website Content" ? "Website content saved" : "Settings saved");
+          go(cur);
         } catch (x) {
           toast(x.message);
         }
