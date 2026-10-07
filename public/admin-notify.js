@@ -3,7 +3,7 @@
   window.__adminLiveStarted=true;
   const adminToken=()=>tk('at');
   const seen={orders:0,inquiries:0,messages:0};
-  let fallbackTimer=null,reconnectTimer=null,reconnectDelay=1000,controller=null;
+  let initialized=false,fallbackTimer=null,reconnectTimer=null,reconnectDelay=1000,controller=null;
   const advance=ev=>{
     if(ev.type==='order')seen.orders=Math.max(seen.orders,Number(ev.id)||0);
     else if(ev.type==='inquiry')seen.inquiries=Math.max(seen.inquiries,Number(ev.id)||0);
@@ -44,6 +44,18 @@
     poll();
     fallbackTimer=setInterval(poll,1000);
   };
+  const primeCursors=async()=>{
+    if(initialized||!adminToken())return;
+    try{
+      const response=await fetch((window.PINOY_RUNTIME?.apiOrigin||'')+'/api/admin/notifications',{headers:{Authorization:'Bearer '+adminToken(),Accept:'application/json'},cache:'no-store'});
+      if(!response.ok)throw new Error('notification cursor '+response.status);
+      const data=await response.json();
+      seen.orders=Number(data.orders)||0;
+      seen.inquiries=Number(data.inquiries)||0;
+      seen.messages=Number(data.messages)||0;
+      initialized=true;
+    }catch(e){}
+  };
   const stopFallback=()=>{if(fallbackTimer){clearInterval(fallbackTimer);fallbackTimer=null;}};
   const connect=()=>{
     if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}
@@ -77,6 +89,9 @@
       });
   };
   if(typeof Notification!=='undefined'&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});
-  startFallback();
-  connect();
+  primeCursors().finally(()=>{
+    if(!adminToken())return;
+    startFallback();
+    connect();
+  });
 })();
