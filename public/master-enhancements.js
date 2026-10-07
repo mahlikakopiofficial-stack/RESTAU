@@ -364,29 +364,7 @@ function masterSettingsFields(base,s){
 
 function adminBoot(){
   if(typeof R==='undefined'||typeof A==='undefined')return;
-  let notificationCursor=null,notificationBusy=false;
-  const pollAdminNotifications=async()=>{
-    if(notificationBusy||!localStorage.getItem('at'))return;
-    notificationBusy=true;
-    try{
-      const path=notificationCursor
-        ?'/notifications?orders='+notificationCursor.orders+'&inquiries='+notificationCursor.inquiries+'&messages='+notificationCursor.messages
-        :'/notifications';
-      const data=await A(path);
-      if(notificationCursor&&data.events.length){
-        const orders=data.events.filter(event=>event.type==='order').length;
-        const inquiries=data.events.filter(event=>event.type==='inquiry'||event.type==='message').length;
-        if(orders){if(typeof beep==='function')beep();toast('🔔 '+orders+' new order'+(orders===1?'':'s')+' received.');}
-        if(inquiries)toast('New customer inquiry or chat message received.');
-      }
-      notificationCursor={orders:data.orders,inquiries:data.inquiries,messages:data.messages};
-    }catch(error){console.error('ADMIN_NOTIFICATION_POLL_FAILED',error.message)}
-    finally{notificationBusy=false}
-  };
-  if(!window.__adminNotificationPoll){
-    window.__adminNotificationPoll=setInterval(pollAdminNotifications,12000);
-    pollAdminNotifications();
-  }
+  // Notifications are delivered by the single persistent Admin SSE stream in admin-notify.js.
   const baseSettings=R.Settings;
   const announcementToApiDateTime=value=>{
     const raw=String(value||'').trim();
