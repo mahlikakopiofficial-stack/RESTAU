@@ -904,11 +904,20 @@ ${f("hero_title", "Homepage headline")}
           $("#admin-chat-messages").scrollTop=$("#admin-chat-messages").scrollHeight;
         }catch(e){toast("Chat could not load: "+e.message)}
       }
-      window.addEventListener("admin-live-event",(event)=>{
+      window.addEventListener("admin-live-event",async(event)=>{
         const ev=event.detail||{};
-        if(ev.type==="message"&&activeCustomerInquiryId&&Number(ev.inquiry_id)===Number(activeCustomerInquiryId)){
-          refreshCustomerChat().catch(()=>{});
-        }
+        if(ev.type!=="message"&&ev.type!=="inquiry")return;
+        try{
+          const inquiries=await A("/list/inquiries");
+          if(window._customerChatData)window._customerChatData.inquiries=inquiries;
+          if(ev.customer_id&&activeCustomerChatId&&Number(ev.customer_id)===Number(activeCustomerChatId)){
+            const latest=customerInquiriesFor(activeCustomerChatId)[0];
+            if(latest)activeCustomerInquiryId=latest.id;
+            await refreshCustomerChat();
+          }else if(ev.inquiry_id&&activeCustomerInquiryId&&Number(ev.inquiry_id)===Number(activeCustomerInquiryId)){
+            await refreshCustomerChat();
+          }
+        }catch(e){console.error("ADMIN_CUSTOMER_CHAT_LIVE_REFRESH_FAILED",e)}
       });
       async function sendCustomerChat(e){
         e.preventDefault();
@@ -976,7 +985,7 @@ ${f("hero_title", "Homepage headline")}
     <script src="enhancements.js"></script>
     <script src="final-fixes.js"></script>
     <script src="master-enhancements.js"></script>
-    <script id="admin-fixes-script" src="admin-fixes.js?v=20261007-live3" onload="if(tk(&quot;at&quot;))go(cur)"></script>
-    <script id="admin-notify-script" src="admin-notify.js?v=20261007-live6"></script>
+    <script id="admin-fixes-script" src="admin-fixes.js?v=20261007-live8" onload="if(tk(&quot;at&quot;))go(cur)"></script>
+    <script id="admin-notify-script" src="admin-notify.js?v=20261007-live7"></script>
   </body>
 </html>
