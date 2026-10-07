@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
-const {notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
+const {notifyRegistration,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 if(E.NODE_ENV==='production'&&(SECRET.length<16||SECRET.startsWith('put-a')||SECRET==='change-me'||ADMIN_PW==='admin123'||ADMIN_PW==='change-this-now')){console.error('STOP: set a strong SECRET (16+ chars) and a real ADMIN_PASSWORD in .env');process.exit(1)}
@@ -462,6 +462,8 @@ app.post('/api/register',lim(8),w((q,r)=>{
   }else{
     id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
+  const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
+  if(registeredCustomer?.email)Promise.resolve(notifyRegistration(registeredCustomer)).catch(error=>console.error('REGISTRATION_EMAIL_FAILED',error.message));
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
@@ -507,11 +509,8 @@ app.post('/api/password-reset',lim(5),async(q,r)=>{
     const base=String(E.PUBLIC_BASE_URL||'').replace(/\/$/,'');
     if(!base)throw new Error('PUBLIC_BASE_URL is not configured');
     const resetUrl=base+'/reset-password.html?token='+encodeURIComponent(raw);
-    const safeName=String(customer.name||'Customer').replace(/[<>]/g,'');
-    const text='Hello '+safeName+',\\n\\nWe received a request to reset your PinoyAmbula account password. Use this link within 30 minutes:\\n\\n'+resetUrl+'\\n\\nIf you did not request this, you can ignore this email.';
-    const html='<p>Hello '+safeName+',</p><p>We received a request to reset your PinoyAmbula account password.</p><p><a href="'+resetUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">Reset your password</a></p><p>This link expires in 30 minutes and can only be used once.</p><p>If you did not request this, you can ignore this email.</p>';
     try{
-      await sendMail({to:customer.email,subject:'Reset your PinoyAmbula password',text,html});
+      await sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl});
     }catch(mailError){
       db.prepare('DELETE FROM password_reset_tokens WHERE token_hash=?').run(tokenHash);
       console.error('PASSWORD_RESET_EMAIL_FAILED',mailError.message);
