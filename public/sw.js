@@ -1,12 +1,12 @@
-const CACHE_NAME='pinoyambula-shell-v33';
-const CACHE_VERSION='v33';
+const CACHE_NAME='pinoyambula-shell-v34';
+const CACHE_VERSION='v34';
 const SHELL=[
   '/index.html',
   '/account.html',
   '/admin.html',
   '/reset-password.html',
   '/style.css',
-  '/app.js?v=20261007-live6',
+  '/app.js?v=20261007-live7',
   '/enhancements.js',
   '/final-fixes.js',
   '/master-enhancements.js',
