@@ -204,6 +204,8 @@
           if (!r.token)
             throw new Error("Login failed: no session token returned.");
           localStorage.setItem("ct", r.token);
+          window.dispatchEvent(new Event("customer-auth-ready"));
+          window.startCustomerLiveNotifications?.();
           await load();
           if (!$("#auth").hidden)
             throw new Error(
@@ -305,10 +307,7 @@
         if (!d.open) d.showModal();
         await refreshOrderChat(orderId);
         if (activeOrderChatId !== orderId || !d.open) return;
-        orderChatTimer = setInterval(() => {
-          if (!d.open || activeOrderChatId !== orderId) return;
-          refreshOrderChat(orderId).catch(() => {});
-        }, 5000);
+        window.__customerOrderChatRefresh = () => refreshOrderChat(orderId);
       }
       async function sendOrderChat(e) {
         e.preventDefault();
@@ -325,6 +324,25 @@
           toast(error.message);
         }
       }
+      window.addEventListener("customer-live-event", (event) => {
+        const ev = event.detail || {};
+        if (ev.type === "order" || ev.type === "order_status") {
+          load().catch(() => {});
+          if (activeOrderChatId && Number(ev.id) === Number(activeOrderChatId)) {
+            window.__customerOrderChatRefresh?.();
+          }
+        }
+        if (ev.type === "message") {
+          loadChats().catch(() => {});
+          if (activeChatId && Number(ev.inquiry_id) === Number(activeChatId)) {
+            window.__customerChatRefresh?.();
+          }
+          if (activeOrderChatId) {
+            window.__customerOrderChatRefresh?.();
+          }
+        }
+      });
+
       async function loadChats() {
         if (!tk("ct")) return;
         try {
@@ -380,7 +398,7 @@
           }
         };
         await refresh();
-        chatTimer = setInterval(refresh, 5000);
+        window.__customerChatRefresh = refresh;
       }
       async function newChat(e) {
         e.preventDefault();
