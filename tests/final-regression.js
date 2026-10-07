@@ -45,6 +45,15 @@ t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.inclu
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("https://pinoyambulakw.duckdns.org"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
+t('customer email delivery hardening',()=>{
+  assert(gmail.includes("required('GMAIL_REFRESH_TOKEN')"));
+  assert(gmail.includes('attempt<=3'));
+  assert(gmail.includes('GMAIL_SEND_ATTEMPT_FAILED'));
+  assert(server.includes("app.post('/api/admin/email/test'"));
+  assert(server.includes("EMAIL_TEST_SENT"));
+  assert(server.includes("EMAIL_TEST_FAILED"));
+});
+
 t('registration, password reset and order email wiring',()=>{
   assert(notifications.includes('notifyRegistration'));
   assert(server.includes('notifyRegistration(registeredCustomer)'));
