@@ -140,7 +140,7 @@ t('customer and admin order chatbox stays available',()=>{
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
   assert(pwa.includes("updateViaCache:'none'"));
-  assert(index.includes('/pwa.js?v=20261006-v28'));
+  assert(index.includes('/pwa.js?v=20261006-v29'));
   assert(admin.includes('/pwa.js?v=20261006-v28'));
   const shellMatch=sw.match(/const SHELL=\[(.*?)\];/s);
   assert(shellMatch);
