@@ -1,15 +1,15 @@
 (() => {
   'use strict';
 
-  // Single-source PinoyAmbula brand mark: the same SVG is used by the
-  // customer header, admin favicon, browser favicon, and PWA manifest.
+  // PinoyAmbula menu/header uses the exact same PNG asset as the Android launcher.
   const BRAND_ICON='/icons/pinoyambula.svg';
+  const MENU_BRAND_ICON='/icons/pinoyambula.png';
   const BRAND_NAME='PinoyAmbula';
   const applyBrandMark=()=>{
     document.querySelectorAll('link[rel="icon"]').forEach(link=>link.href=BRAND_ICON);
     const logo=document.querySelector('nav .logo');
     if(logo){
-      logo.innerHTML='<img src="'+BRAND_ICON+'" alt="" class="brand-mark"> <span>'+BRAND_NAME+'</span>';
+      logo.innerHTML='<img src="'+MENU_BRAND_ICON+'" alt="" class="brand-mark"> <span>'+BRAND_NAME+'</span>';
       logo.setAttribute('aria-label',BRAND_NAME+' home');
       logo.style.display='inline-flex';
       logo.style.alignItems='center';

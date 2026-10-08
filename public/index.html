@@ -28,7 +28,7 @@
     </div>
     <nav class="site-nav">
       <div class="wrap">
-        <a class="logo brand-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home"><img src="/icons/pinoyambula.svg?v=universal-20261005" alt="PinoyAmbula" width="40" height="40" class="brand-mark"><span>PinoyAmbula</span></a>
+        <a class="logo brand-logo" data-brand-logo href="#home" aria-label="PinoyAmbula home"><img src="/icons/pinoyambula.png?v=launcher-brand" alt="PinoyAmbula" width="40" height="40" class="brand-mark"><span>PinoyAmbula</span></a>
         <a class="home-nav-link" href="#home" aria-label="Home">Home</a>
         <button id="burger" type="button" onclick="togglePublicNav(this)" aria-label="Open navigation menu" aria-controls="nl" aria-expanded="false">☰</button>
         <ul id="nl">
@@ -750,7 +750,7 @@
           const img = logo.querySelector("img");
           const text = logo.querySelector("span");
           const configured = String(c.logo_url || "").trim();
-          const src = resolveMediaUrl(configured || "/icons/pinoyambula.svg");
+          const src = resolveMediaUrl(configured || "/icons/pinoyambula.png");
           const version = encodeURIComponent(configured || "fallback");
           const brandedSrc = src + (src.includes("?") ? "&" : "?") + "brand=" + version;
           if (img) {
@@ -761,7 +761,7 @@
           logo.setAttribute("aria-label", (c.name || "PinoyAmbula") + " home");
         });
         window.PINOY_BRANDING = {
-          logoUrl: resolveMediaUrl(String(c.logo_url || "").trim() || "/icons/pinoyambula.svg"),
+          logoUrl: resolveMediaUrl(String(c.logo_url || "").trim() || "/icons/pinoyambula.png"),
           name: c.name || "PinoyAmbula"
         };
         window.enforceUniversalBranding?.();
