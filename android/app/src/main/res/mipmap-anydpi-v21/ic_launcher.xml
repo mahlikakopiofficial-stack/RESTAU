@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="512" android:viewportHeight="512">
-    <path android:fillColor="#fffaf0" android:pathData="M92,0 H420 A92,92 0 0 1 512,92 V420 A92,92 0 0 1 420,512 H92 A92,92 0 0 1 0,420 V92 A92,92 0 0 1 92,0 Z" />
-    <path android:fillColor="#f2c94c" android:pathData="M399.36,230.4 A143.36,143.36 0,1 1 112.64,230.4 A143.36,143.36 0,1 1 399.36,230.4 Z" />
-    <path android:fillColor="#7b2d26" android:pathData="M 250.317,226.74 Q 250.317,232.85 247.532,237.656 Q 244.747,242.463 239.559,245.091 Q 234.37,247.719 227.228,247.719 H 211.505 V 270 H 198.253 V 206.705 H 226.688 Q 238.054,206.705 244.186,211.938 Q 250.317,217.172 250.317,226.74 Z M 236.976,226.965 Q 236.976,216.992 225.206,216.992 H 211.505 V 237.521 H 225.565 Q 231.046,237.521 234.011,234.804 Q 236.976,232.086 236.976,226.965 Z" />
-    <path android:fillColor="#7b2d26" android:pathData="M 304.358,270 L 298.743,253.828 H 274.62 L 269.005,270 H 255.753 L 278.843,206.705 H 294.476 L 317.476,270 Z M 295.778,243.855 L 289.534,225.662 L 286.659,216.453 Q 285.94,219.059 285.312,221.125 Q 284.683,223.191 277.585,243.855 Z" />
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_brand"
+    android:gravity="fill" />
