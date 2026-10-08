@@ -27,24 +27,7 @@
     style.textContent = `
       /* Navigation layout is owned by style.css + master-enhancements.js. */
       /* Admin navigation layout is owned by admin-nav.css. */
-      .site-footer{background:var(--b)!important;color:#fff!important;border-top:3px solid var(--y)!important;padding:0!important;text-align:left!important;overflow:hidden!important}
-      .site-footer-inner{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;max-width:1320px!important;min-height:58px!important;white-space:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important}
-      .site-footer-inner::-webkit-scrollbar{display:none!important}
-      .footer-brand{display:flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important}
-      .footer-brand .footer-logo img{width:34px!important;height:34px!important}
-      .footer-brand .brand-logo{color:#fff!important;font-size:.92rem!important;font-weight:800!important}
-      .footer-brand .footer-thanks{margin:0!important;opacity:.7!important;font-size:.76rem!important}
-      .footer-links,.footer-nav{display:flex!important;align-items:center!important;gap:12px!important;flex:0 0 auto!important;margin:0!important;padding:0!important;border:0!important;min-width:0!important}
-      .footer-links:empty{display:none!important}
-      .site-footer a{color:#fff!important;text-decoration:none!important;opacity:.88!important;font-size:.78rem!important;white-space:nowrap!important}
-      .site-footer a:hover,.site-footer a:focus-visible{color:var(--y)!important;opacity:1!important}
-      @media(max-width:600px){
-        .site-footer-inner{min-height:52px!important;gap:10px!important;padding-inline:10px!important}
-        .footer-brand .footer-logo img{width:30px!important;height:30px!important}
-        .footer-brand .footer-thanks{display:none!important}
-        .footer-links,.footer-nav{gap:10px!important}
-        .site-footer a{font-size:.74rem!important}
-      }
+      /* Footer styling lives in public/style.css as the single responsive authority. */
     `;
     document.head.appendChild(style);
   };

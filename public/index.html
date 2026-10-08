@@ -697,14 +697,22 @@
         document.querySelectorAll("[data-brand-logo]").forEach((logo) => {
           const img = logo.querySelector("img");
           const text = logo.querySelector("span");
-          const src = c.logo_url || "/icons/pinoyambula.svg";
+          const configured = String(c.logo_url || "").trim();
+          const src = resolveMediaUrl(configured || "/icons/pinoyambula.svg");
+          const version = encodeURIComponent(configured || "fallback");
+          const brandedSrc = src + (src.includes("?") ? "&" : "?") + "brand=" + version;
           if (img) {
-            img.src = src;
+            img.src = brandedSrc;
             img.alt = c.name || "PinoyAmbula";
           }
           if (text) text.textContent = c.name || "PinoyAmbula";
           logo.setAttribute("aria-label", (c.name || "PinoyAmbula") + " home");
         });
+        window.PINOY_BRANDING = {
+          logoUrl: resolveMediaUrl(String(c.logo_url || "").trim() || "/icons/pinoyambula.svg"),
+          name: c.name || "PinoyAmbula"
+        };
+        window.enforceUniversalBranding?.();
 
         document.title = c.name + " — Filipino Kitchen";
         $("#hh").textContent = c.hero_title;
