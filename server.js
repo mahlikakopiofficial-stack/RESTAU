@@ -680,14 +680,14 @@ app.post('/api/order',lim(30),w((q,r)=>{
     promoCode='';
   }
 
+  const rewardKind=rewardThreshold%10||10;
   let rewardDiscount=0;
-  if(rewardThreshold===5)rewardDiscount=sub*.2;
-  if(rewardThreshold===10){
+  if(rewardKind===5)rewardDiscount=sub*.2;
+  if(rewardKind===10){
     const meal=its.filter(item=>['Regular','Budget'].includes(item.cat)).sort((a,b)=>a.price-b.price)[0];
     if(!meal)throw new Error('Add a regular or budget meal to redeem your free meal.');
     rewardDiscount=meal.price;
   }
-  const rewardKind=rewardThreshold%10||10;
    const delivery=rewardKind===8?0:+(st.fee||0);
   discount=Math.min(sub,discount+rewardDiscount);
   const total=Math.max(0,sub-discount+delivery);
