@@ -276,7 +276,7 @@
         ><select
           name="loyalty_reward"
           id="loyalty_reward"
-          onchange="renderCart()"
+          onchange="setLoyaltyReward(this.value)"
         >
           <option value="0">No reward</option>
         </select>
@@ -325,6 +325,7 @@
         cat = "Regular",
         FEE = 0,
         config = {};
+      let selectedLoyaltyReward = "0";
       const CATS = ["Regular", "Budget", "Drinks", "Sweets", "Catering", "Other Asian"];
       const itemPrice = (i) =>
         i.discount_price > 0 && i.discount_price < i.price
@@ -463,14 +464,22 @@
             const field = $(`#cart [name="${name}"]`);
             if (field && !field.value && value) field.value = value;
           });
+          const previousReward = String(selectedLoyaltyReward || "0");
+          const rewards = Array.isArray(profile.rewards) ? profile.rewards : [];
           $("#loyalty_reward").innerHTML =
             '<option value="0">No reward</option>' +
-            profile.rewards
+            rewards
               .map(
                 (reward) =>
                   `<option value="${reward.threshold}">${esc(reward.label)}</option>`,
               )
               .join("");
+          $("#loyalty_reward").value = rewards.some(
+            (reward) => String(reward.threshold) === previousReward,
+          )
+            ? previousReward
+            : "0";
+          selectedLoyaltyReward = String($("#loyalty_reward").value || "0");
           renderCart();
         } catch (error) {
           loadedCustomerToken = "";
@@ -493,7 +502,6 @@
             ? regionalItems.find((i) => Number(i.id) === Number(String(key).slice(2)))
             : items.find((i) => i.id == key);
         const ids = Object.keys(cart).filter((id) => findCartItem(id));
-        let sub = 0;
         const count = ids.reduce((s, id) => s + cart[id], 0);
         $("#cc").textContent = count;
         $("#cart-count-fab").textContent = count;
@@ -502,11 +510,37 @@
               .map((id) => {
                 const i = findCartItem(id),
                   price = String(id).startsWith("r:") ? Number(i.price || 0) : itemPrice(i);
-                sub += price * cart[id];
                 return `<div class="line"><span>${esc(i.name)}${String(id).startsWith("r:") ? " · " + esc(i.region || "Regional") : ""}</span><span><button class="btn s o" onclick='chg(${JSON.stringify(id)},-1)'>−</button> ${cart[id]} <button class="btn s o" onclick='chg(${JSON.stringify(id)},1)'>+</button></span><b>${money(price * cart[id])}</b></div>`;
               })
               .join("")
           : '<p style="padding:14px 0;opacity:.7">Your cart is empty.</p>';
+        updateCartTotals();
+      }
+
+      function setLoyaltyReward(value) {
+        selectedLoyaltyReward = String(value || "0");
+        try {
+          updateCartTotals();
+        } catch (error) {
+          console.error("LOYALTY_SELECTION_FAILED", error);
+          toast("Loyalty reward could not be applied.");
+        }
+      }
+
+      function updateCartTotals() {
+        const findCartItem = (key) =>
+          String(key).startsWith("r:")
+            ? regionalItems.find((i) => Number(i.id) === Number(String(key).slice(2)))
+            : items.find((i) => i.id == key);
+        const ids = Object.keys(cart).filter((id) => findCartItem(id));
+        let sub = 0;
+        ids.forEach((id) => {
+          const i = findCartItem(id);
+          if (!i) return;
+          const price = String(id).startsWith("r:") ? Number(i.price || 0) : itemPrice(i);
+          sub += price * cart[id];
+        });
+
         const code = String($("#promo-code")?.value || "")
             .trim()
             .toUpperCase(),
@@ -519,6 +553,7 @@
             expected &&
             code === expected
           );
+
         let discount = 0;
         if (validPromo) {
           const value = Math.max(0, +config.promo_value || 0);
@@ -527,18 +562,25 @@
               ? Math.min(sub, (sub * value) / 100)
               : Math.min(sub, value);
         }
-        const reward = +($("#loyalty_reward")?.value || 0);
+
+        const selected = String(
+          selectedLoyaltyReward || $("#loyalty_reward")?.value || "0",
+        );
+        const rewardThreshold = +selected || 0;
+        const rewardKind = rewardThreshold % 10 || 10;
         let rewardDiscount = 0;
-        if (reward === 5) rewardDiscount = sub * 0.2;
-        if (reward === 10) {
+
+        if (rewardKind === 5) rewardDiscount = sub * 0.2;
+        if (rewardKind === 10) {
           const meal = ids
             .map((id) => items.find((item) => item.id == id))
             .filter((item) => item && ["Regular", "Budget"].includes(item.cat))
             .sort((a, b) => itemPrice(a) - itemPrice(b))[0];
           if (meal) rewardDiscount = itemPrice(meal);
         }
+
         discount = Math.min(sub, discount + rewardDiscount);
-        const delivery = reward === 8 ? 0 : FEE;
+        const delivery = rewardKind === 8 ? 0 : FEE;
         $("#promo-help").textContent = code
           ? validPromo
             ? "Promo code applied."
@@ -546,10 +588,12 @@
           : config.promo_enabled && expected
             ? "Promo code available."
             : "";
+
         const total = sub - discount + delivery,
           minOrder = +config.min_order || 0,
           ready =
             ids.length > 0 && config.accepting !== false && total >= minOrder;
+
         $("#totals").innerHTML = ids.length
           ? `<p>Subtotal: ${money(sub)}${discount ? `<br>Discounts: −${money(discount)}` : ""}<br>Delivery: ${money(delivery)}<br><b>Total: ${money(total)}</b></p>`
           : "";
@@ -563,6 +607,7 @@
                 ? "Ready for checkout."
                 : "";
       }
+
       async function place(e) {
         e.preventDefault();
         const f = Object.fromEntries(new FormData(e.target));
@@ -570,7 +615,7 @@
         // form serialization. Read the loyalty selection directly so the
         // server always receives the reward the customer selected.
         f.loyalty_reward = String(
-          document.getElementById("loyalty_reward")?.value || "0",
+          selectedLoyaltyReward || document.getElementById("loyalty_reward")?.value || "0",
         );
         f.items = Object.entries(cart).map(([id, qty]) => ({
           id: String(id).startsWith("r:") ? String(id) : +id,
@@ -587,6 +632,7 @@
         try {
           const r = await api("/order", "POST", f);
           cart = {};
+          selectedLoyaltyReward = "0";
           sv();
           e.target.reset();
           $("#lines").innerHTML =
