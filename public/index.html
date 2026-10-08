@@ -566,6 +566,12 @@
       async function place(e) {
         e.preventDefault();
         const f = Object.fromEntries(new FormData(e.target));
+        // Android/WebView checkout can lose the native select value during
+        // form serialization. Read the loyalty selection directly so the
+        // server always receives the reward the customer selected.
+        f.loyalty_reward = String(
+          document.getElementById("loyalty_reward")?.value || "0",
+        );
         f.items = Object.entries(cart).map(([id, qty]) => ({
           id: String(id).startsWith("r:") ? String(id) : +id,
           qty,
