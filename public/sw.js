@@ -1,5 +1,5 @@
-const CACHE_NAME='pinoyambula-shell-v35';
-const CACHE_VERSION='v35';
+const CACHE_NAME='pinoyambula-shell-v36';
+const CACHE_VERSION='v36';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -7,6 +7,7 @@ const SHELL=[
   '/reset-password.html',
   '/style.css',
   '/app.js?v=20261007-live7',
+  '/loyalty.js?v=20261009-loyalty1',
   '/enhancements.js',
   '/final-fixes.js',
   '/master-enhancements.js',
