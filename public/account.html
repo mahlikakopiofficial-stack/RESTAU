@@ -9,6 +9,7 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#7b2d26" />
     <script src="/runtime-config.js"></script>
+    <script src="/loyalty.js?v=20261009-loyalty1"></script>
     <script src="/pwa.js?v=20261006-auth2"></script>
   </head>
   <body>
@@ -441,8 +442,12 @@
           $("#auth").hidden = true;
           $("#me").hidden = false;
           $("#hi").textContent = "Mabuhay, " + m.name + "!";
+          const cycleProgress = window.PINOY_LOYALTY
+            ? window.PINOY_LOYALTY.cycleProgress(m.delivered)
+            : (m.delivered % 10 || (m.delivered ? 10 : 0));
+          const cycleNumber = m.delivered ? Math.floor((m.delivered - 1) / 10) + 1 : 1;
           $("#loyalty-progress").textContent =
-            `${m.delivered} completed deliveries. Rewards unlock at 5 (20% off), 8 (free delivery), and 10 (one free meal).`;
+            `${m.delivered} completed deliveries. Loyalty cycle ${cycleNumber}: ${cycleProgress}/10. Rewards unlock on cycle orders 5 (20% off), 8 (free delivery), and 10 (one free meal).`;
           $("#loyalty-rewards").textContent = m.rewards.length
             ? `Available: ${m.rewards.map((reward) => reward.label).join(" · ")}`
             : "Keep ordering to unlock your next reward.";
