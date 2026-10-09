@@ -20,6 +20,7 @@ const style=read('public/style.css');
 const enhancements=read('public/enhancements.js');
 const whatsapp=read('lib/whatsapp.js');
 const loyalty=require('../public/loyalty.js');
+const loyaltySource=read('public/loyalty.js');
 const envExample=read('.env.example');
 const runtime=read('public/runtime-config.js');
 const pwa=read('public/pwa.js');
@@ -38,7 +39,7 @@ t('admin website navigation',()=>{assert(server.includes("q.path==='/website'"))
 t('customer profile + nationality',()=>{assert(server.includes("'customers','nationality'"));assert(account.includes('name="nationality"'));assert(fixes.includes('Select nationality'))});
 t('delivery map pin',()=>{assert(server.includes("'orders','lat'"));assert(server.includes("'orders','lng'"));assert(server.includes("'orders','map_url'"));assert(fixes.includes('Use my current map location'));assert(fixes.includes('well-known nearby building'))});
 t('driver + order chat',()=>{assert(server.includes("'orders','driver_name'"));assert(server.includes("'orders','driver_phone'"));assert(server.includes("'orders','cod_cash_collected'"));assert(server.includes("app.get('/api/customer/orders/:id/chat'"));assert(server.includes("app.post('/api/customer/orders/:id/chat'"));assert(!account.includes('Driver name:'));assert(!account.includes('Driver number:'));assert(account.includes('Chat about this order'))});
-t('loyalty repeats by 10-order cycle',()=>{assert(server.includes("Math.floor((delivered-1)/10)*10"));assert(server.includes('rewardThreshold%10||10'));assert(server.includes('cycleBase+10'));assert(server.includes('loyalty_redemptions'));assert(index.includes('id="loyalty_reward"'));assert(fixes.includes('Current loyalty cycle'));assert(fixes.includes('A new reward cycle starts after every 10 completed orders.'))});
+t('loyalty repeats by 10-order cycle',()=>{assert(loyaltySource.includes('Math.floor((total - 1) / 10) * 10'));assert(loyaltySource.includes('base + 10'));assert(server.includes('loyalty.rewardKind'));assert(server.includes('loyalty.availableRewards'));assert(server.includes('loyalty_redemptions'));assert(index.includes('id="loyalty_reward"'));assert(fixes.includes('Current loyalty cycle'));assert(fixes.includes('A new reward cycle starts after every 10 completed orders.'))});
 
 t('loyalty rewards apply correctly across repeat 10-order cycles',()=>{
   assert.deepStrictEqual(loyalty.availableRewards(4,[]).map(r=>r.threshold),[]);
