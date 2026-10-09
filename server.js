@@ -1,6 +1,7 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
+const loyalty=require('./public/loyalty.js');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
 const {notifyRegistration,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifyAdminSubscription,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
@@ -600,14 +601,13 @@ app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
 app.get('/api/me',cust,w((q,r)=>{
   const c=one('SELECT id,name,phone,email,address,paci,birthday,nationality FROM customers WHERE id=?',q.cid);
   const delivered=one("SELECT COUNT(*) n FROM orders WHERE customer_id=? AND status IN ('Delivered','Completed')",q.cid).n;
-  const redeemed=new Set(db.prepare('SELECT threshold FROM loyalty_redemptions WHERE customer_id=?').all(q.cid).map(x=>x.threshold));
-  const cycleBase=delivered>0?Math.floor((delivered-1)/10)*10:0;
-  const rewards=[{threshold:cycleBase+5,label:'20% off your order'},{threshold:cycleBase+8,label:'Free delivery'},{threshold:cycleBase+10,label:'One free meal'}].filter(reward=>delivered>=reward.threshold&&!redeemed.has(reward.threshold));
+  const redeemed=db.prepare('SELECT threshold FROM loyalty_redemptions WHERE customer_id=?').all(q.cid).map(x=>x.threshold);
+  const rewards=loyalty.availableRewards(delivered,redeemed);
   const orders=db.prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(q.cid).map(o=>{
     if(o.status!=='Out for delivery')return {...o,eta:'',driver_name:'',driver_phone:'',status_message:''};
     return {...o,eta:'',status_message:''};
   });
-  r.json({...c,delivered,rewards,orders,subs:db.prepare('SELECT * FROM subs WHERE customer_id=? ORDER BY id DESC').all(q.cid)});
+  r.json({...c,delivered,cycleProgress:loyalty.cycleProgress(delivered),rewards,orders,subs:db.prepare('SELECT * FROM subs WHERE customer_id=? ORDER BY id DESC').all(q.cid)});
 }));
 app.post('/api/order',lim(30),w((q,r)=>{
   const b=q.body;
@@ -653,10 +653,8 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const rewardThreshold=+(b.loyalty_reward||0);
   if(rewardThreshold){
     if(!customerToken(q))throw new Error('Log in to redeem a loyalty reward.');
-    const rewardKind=rewardThreshold%10||10;
-     const cycleBase=delivered>0?Math.floor((delivered-1)/10)*10:0;
-     const validMilestones=[cycleBase+5,cycleBase+8,cycleBase+10];
-     if(![5,8,10].includes(rewardKind)||!validMilestones.includes(rewardThreshold)||delivered<rewardThreshold||one('SELECT 1 FROM loyalty_redemptions WHERE customer_id=? AND threshold=?',customerId,rewardThreshold))throw new Error('That loyalty reward is not available.');
+    const redeemedThresholds=db.prepare('SELECT threshold FROM loyalty_redemptions WHERE customer_id=?').all(customerId).map(x=>x.threshold);
+    if(!loyalty.availableRewards(delivered,redeemedThresholds).some(reward=>reward.threshold===rewardThreshold))throw new Error('That loyalty reward is not available.');
   }
 
   const sub=its.reduce((n,i)=>n+i.price*i.qty,0);
@@ -680,15 +678,11 @@ app.post('/api/order',lim(30),w((q,r)=>{
     promoCode='';
   }
 
-  let rewardDiscount=0;
-  if(rewardThreshold===5)rewardDiscount=sub*.2;
-  if(rewardThreshold===10){
-    const meal=its.filter(item=>['Regular','Budget'].includes(item.cat)).sort((a,b)=>a.price-b.price)[0];
-    if(!meal)throw new Error('Add a regular or budget meal to redeem your free meal.');
-    rewardDiscount=meal.price;
-  }
-  const rewardKind=rewardThreshold%10||10;
-   const delivery=rewardKind===8?0:+(st.fee||0);
+  const rewardKind=loyalty.rewardKind(rewardThreshold);
+  const eligibleMealPrices=its.filter(item=>['Regular','Budget'].includes(item.cat)).map(item=>item.price);
+  if(rewardThreshold&&rewardKind===10&&!eligibleMealPrices.some(price=>Number(price)>0))throw new Error('Add a regular or budget meal to redeem your free meal.');
+  const rewardDiscount=loyalty.calculateRewardDiscount(rewardThreshold,sub,eligibleMealPrices);
+  const delivery=loyalty.deliveryFee(st.fee||0,rewardThreshold);
   discount=Math.min(sub,discount+rewardDiscount);
   const total=Math.max(0,sub-discount+delivery);
   const approval=String(st.approval_mode||'AUTO').toUpperCase();
