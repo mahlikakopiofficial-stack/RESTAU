@@ -166,7 +166,7 @@
       if(!el)return;
       const m=(el.textContent||'').match(/(\d+) completed deliveries/);
       if(!m)return;
-      const total=Number(m[1])||0,cycle=total%10;
+      const total=Number(m[1])||0,cycle=total%10||(total?10:0);
       const next=`${total} completed deliveries. Current loyalty cycle: ${cycle}/10. A new reward cycle starts after every 10 completed orders.`;
       if(el.textContent===next)return;
       if(loyaltyObs)loyaltyObs.disconnect();
