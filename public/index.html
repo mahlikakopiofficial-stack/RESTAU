@@ -13,6 +13,7 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#7b2d26" />
     <script src="/runtime-config.js"></script>
+    <script src="/loyalty.js?v=20261009-loyalty1"></script>
     <script src="/pwa.js?v=20261006-v29"></script>
   </head>
   <body>
@@ -432,6 +433,7 @@
       function cartT() {
         const cart = $("#cart");
         const isOpen = cart.classList.toggle("open");
+        if (isOpen) fillCustomerDetails(true);
         document.documentElement.classList.toggle("cart-open", isOpen);
         document.body.classList.toggle("cart-open", isOpen);
         const navLogo = document.querySelector("nav .brand-logo");
@@ -441,13 +443,15 @@
         }
       }
       let loadedCustomerToken = "";
-      async function fillCustomerDetails() {
+      async function fillCustomerDetails(force = false) {
         const token = tk("ct");
         if (!token) {
           loadedCustomerToken = "";
+          const rewardSelect = $("#loyalty_reward");
+          if (rewardSelect) rewardSelect.innerHTML = '<option value="0">No reward</option>';
           return;
         }
-        if (token === loadedCustomerToken) return;
+        if (token === loadedCustomerToken && !force) return;
         loadedCustomerToken = token;
         try {
           const profile = await api("/me");
@@ -463,14 +467,21 @@
             const field = $(`#cart [name="${name}"]`);
             if (field && !field.value && value) field.value = value;
           });
-          $("#loyalty_reward").innerHTML =
-            '<option value="0">No reward</option>' +
-            profile.rewards
-              .map(
-                (reward) =>
-                  `<option value="${reward.threshold}">${esc(reward.label)}</option>`,
-              )
-              .join("");
+          const rewardSelect = $("#loyalty_reward");
+          const previousReward = rewardSelect?.value || "0";
+          if (rewardSelect) {
+            rewardSelect.innerHTML =
+              '<option value="0">No reward</option>' +
+              profile.rewards
+                .map(
+                  (reward) =>
+                    `<option value="${reward.threshold}">${esc(reward.label)}</option>`,
+                )
+                .join("");
+            if (profile.rewards.some((reward) => String(reward.threshold) === previousReward)) {
+              rewardSelect.value = previousReward;
+            }
+          }
           renderCart();
         } catch (error) {
           loadedCustomerToken = "";
@@ -483,9 +494,9 @@
         }
       }
       window.addEventListener("storage", (event) => {
-        if (event.key === "ct") fillCustomerDetails();
+        if (event.key === "ct") fillCustomerDetails(true);
       });
-      window.addEventListener("focus", fillCustomerDetails);
+      window.addEventListener("focus", () => fillCustomerDetails(true));
       fillCustomerDetails();
       function renderCart() {
         const findCartItem = (key) =>
@@ -528,17 +539,23 @@
               : Math.min(sub, value);
         }
         const reward = +($("#loyalty_reward")?.value || 0);
-        let rewardDiscount = 0;
-        if (reward === 5) rewardDiscount = sub * 0.2;
-        if (reward === 10) {
-          const meal = ids
-            .map((id) => items.find((item) => item.id == id))
-            .filter((item) => item && ["Regular", "Budget"].includes(item.cat))
-            .sort((a, b) => itemPrice(a) - itemPrice(b))[0];
-          if (meal) rewardDiscount = itemPrice(meal);
-        }
+        const rewardKind = window.PINOY_LOYALTY?.rewardKind(reward) ?? (reward ? reward % 10 || 10 : 0);
+        const eligibleMealPrices = ids
+          .map((id) => items.find((item) => item.id == id))
+          .filter((item) => item && ["Regular", "Budget"].includes(item.cat))
+          .map((item) => itemPrice(item));
+        const freeMealMissing = rewardKind === 10 && eligibleMealPrices.length === 0;
+        const rewardDiscount = window.PINOY_LOYALTY
+          ? window.PINOY_LOYALTY.calculateRewardDiscount(reward, sub, eligibleMealPrices)
+          : rewardKind === 5
+            ? sub * 0.2
+            : rewardKind === 10 && eligibleMealPrices.length
+              ? Math.min(...eligibleMealPrices)
+              : 0;
         discount = Math.min(sub, discount + rewardDiscount);
-        const delivery = reward === 8 ? 0 : FEE;
+        const delivery = window.PINOY_LOYALTY
+          ? window.PINOY_LOYALTY.deliveryFee(FEE, reward)
+          : rewardKind === 8 ? 0 : FEE;
         $("#promo-help").textContent = code
           ? validPromo
             ? "Promo code applied."
@@ -549,7 +566,7 @@
         const total = sub - discount + delivery,
           minOrder = +config.min_order || 0,
           ready =
-            ids.length > 0 && config.accepting !== false && total >= minOrder;
+            ids.length > 0 && config.accepting !== false && total >= minOrder && !freeMealMissing;
         $("#totals").innerHTML = ids.length
           ? `<p>Subtotal: ${money(sub)}${discount ? `<br>Discounts: −${money(discount)}` : ""}<br>Delivery: ${money(delivery)}<br><b>Total: ${money(total)}</b></p>`
           : "";
@@ -557,8 +574,10 @@
         $("#checkout-hint").textContent =
           config.accepting === false
             ? "The restaurant is closed and cannot accept orders right now."
-            : ids.length && total < minOrder
-              ? `Add ${money(minOrder - total)} more to reach the ${money(minOrder)} minimum.`
+            : ids.length && freeMealMissing
+              ? "Add a regular or budget meal to redeem your free meal."
+              : ids.length && total < minOrder
+                ? `Add ${money(minOrder - total)} more to reach the ${money(minOrder)} minimum.`
               : ids.length
                 ? "Ready for checkout."
                 : "";
