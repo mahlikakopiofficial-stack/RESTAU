@@ -645,12 +645,12 @@ app.post('/api/order',lim(30),w((q,r)=>{
       const rid=Number(rawId.slice(2));
       const x=one('SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1',rid);
       if(!x)return null;
-      return {id:'r:'+x.id,name:x.name,cat:'Regional',region:x.region,price:+x.price||0,regular_price:+x.price||0,qty:Math.max(1,Math.min(99,+i.qty||1))};
+      return {id:'r:'+x.id,name:x.name,cat:'Regional',region:x.region,price:+x.price||0,regular_price:+x.price||0,qty:Math.max(1,Math.min(99,Math.trunc(+i.qty||1)))};
     }
     const x=one('SELECT id,name,cat,price,discount_price FROM items WHERE id=? AND active=1',rawId);
     if(!x)return null;
     const regular=+x.price||0,dp=+x.discount_price||0,unit=(dp>0&&dp<regular)?dp:regular;
-    return {id:x.id,name:x.name,cat:x.cat,price:unit,regular_price:regular,qty:Math.max(1,Math.min(99,+i.qty||1))};
+    return {id:x.id,name:x.name,cat:x.cat,price:unit,regular_price:regular,qty:Math.max(1,Math.min(99,Math.trunc(+i.qty||1)))};
   }).filter(Boolean);
 
   if(!its.length)
