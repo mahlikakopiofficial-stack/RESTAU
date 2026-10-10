@@ -5,9 +5,17 @@ const path=require('path');
 const {execFileSync}=require('child_process');
 const Database=require('better-sqlite3');
 const inventory=require('../lib/inventory');
+const adminPush=require('../lib/admin-push');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const server=read('server.js');
+const adminPushSource=read('lib/admin-push.js');
+const adminPushClient=read('public/admin-push.js');
+const adminAndroidBuild=read('admin-android/app/build.gradle');
+const adminAndroidManifest=read('admin-android/app/src/main/AndroidManifest.xml');
+const adminAndroidActivity=read('admin-android/app/src/main/java/kw/pinoyambula/admin/AdminActivity.java');
+const adminAndroidMessaging=read('admin-android/app/src/main/java/kw/pinoyambula/admin/AdminFirebaseMessagingService.java');
+const adminAndroidApplication=read('admin-android/app/src/main/java/kw/pinoyambula/admin/AdminApplication.java');
 const inventorySource=read('lib/inventory.js');
 const index=read('public/index.html');
 const account=read('public/account.html');
@@ -31,7 +39,7 @@ const notify=read('public/admin-notify.js');
 const sw=read('public/sw.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
-for(const f of ['server.js','lib/inventory.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/admin-fixes.js','public/admin-notify.js','public/sw.js','public/loyalty.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+for(const f of ['server.js','lib/admin-push.js','lib/inventory.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/admin-fixes.js','public/admin-notify.js','public/admin-push.js','public/sw.js','public/loyalty.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
 t('admin inline script syntax',()=>{const scripts=[...admin.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`admin-inline-${index+1}.js`}))});
 t('account inline script syntax',()=>{const scripts=[...account.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`account-inline-${index+1}.js`}))});
 t('customer site inline script syntax',()=>{const scripts=[...index.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`index-inline-${index+1}.js`}))});
@@ -397,6 +405,52 @@ t('inventory availability is enforced by order API and displayed on customer and
   assert(!index.includes('"Only " + available + " available today"'));
   assert(sw.includes('/master-enhancements.js?v=20261010-stock3'));
   assert(inventorySource.includes('stock_available=stock_available-?'));
+});
+
+
+t('admin push payload routes orders, inquiries, messages and subscriptions',()=>{
+  const order=adminPush.buildMessage('fcm-token',{type:'order',id:27});
+  assert.strictEqual(order.message.notification.title,'PinoyAmbula Admin: New order');
+  assert.strictEqual(order.message.notification.body,'Order #27 received. Tap to review.');
+  assert.strictEqual(order.message.data.adminRoute,'Orders');
+  assert.strictEqual(order.message.data.recordId,'27');
+  assert.strictEqual(order.message.android.priority,'HIGH');
+  assert.strictEqual(adminPush.buildMessage('token',{type:'inquiry',id:9}).message.data.adminRoute,'Inquiries');
+  assert.strictEqual(adminPush.buildMessage('token',{type:'message',id:10}).message.data.adminRoute,'Inquiries');
+  assert.strictEqual(adminPush.buildMessage('token',{type:'subscription',id:11}).message.data.adminRoute,'Subscriptions');
+  assert(!JSON.stringify(order).includes('phone'));
+});
+t('admin push remains disabled until an external service account file is configured',()=>{
+  assert.strictEqual(adminPush.isConfigured({}),false);
+  assert(adminPushSource.includes('FCM_SERVICE_ACCOUNT_PATH'));
+  assert(adminPushSource.includes('if (!account)'));
+  assert(adminPushSource.includes("return { skipped: true, reason: 'not_configured' }"));
+});
+t('admin push API requires the authenticated admin and stores FCM tokens separately',()=>{
+  assert(server.includes("CREATE TABLE IF NOT EXISTS admin_push_tokens"));
+  assert(server.includes("app.post('/api/admin/push/register',admin"));
+  assert(server.includes("app.post('/api/admin/push/unregister',admin"));
+  assert(server.includes("app.get('/api/admin/push/status',admin"));
+  assert(server.includes("queueAdminPush({key:'order:'+Number(order.id),type:'order'"));
+  assert(server.includes("queueAdminPush({key:'inquiry:'+Number(inquiry.id),type:'inquiry'"));
+  assert(server.includes("queueAdminPush({key:'message:'+Number(messageId||0),type:'message'"));
+  assert(server.includes("queueAdminPush({key:'subscription:'+Number(id),type:'subscription'"));
+  assert(adminPushSource.includes('notificationLogKey'));
+  assert(adminPushSource.includes("DELETE FROM admin_push_tokens WHERE token=?"));
+});
+t('separate admin Android app is configured for background Firebase notifications',()=>{
+  assert(adminAndroidBuild.includes("applicationId \"kw.pinoyambula.admin\""));
+  assert(adminAndroidBuild.includes("com.google.firebase:firebase-messaging"));
+  assert(adminAndroidManifest.includes('.AdminApplication'));
+  assert(adminAndroidManifest.includes('.AdminFirebaseMessagingService'));
+  assert(adminAndroidManifest.includes('android.permission.POST_NOTIFICATIONS'));
+  assert(adminAndroidActivity.includes('setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)'));
+  assert(adminAndroidActivity.includes('admin-pinoy-ambula.duckdns.org'));
+  assert(adminAndroidMessaging.includes('onMessageReceived'));
+  assert(adminAndroidApplication.includes('FirebaseApp.initializeApp'));
+  assert(admin.includes('admin-push.js?v=20261010-adminpush1'));
+  assert(adminPushClient.includes('/api/admin/push/register'));
+  assert(envExample.includes('FCM_SERVICE_ACCOUNT_PATH='));
 });
 
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');
