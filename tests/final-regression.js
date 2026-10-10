@@ -325,7 +325,9 @@ t('daily inventory resets from each dish restock target and preserves manual sto
   const d=makeInventoryTestDb();
   d.prepare('INSERT INTO items(id,name,stock_available,daily_restock_quantity,stock_date) VALUES(1,\'Adobo\',0,4,\'2026-10-09\')').run();
   inventory.refreshDailyInventory(d,'items','2026-10-10');
-  assert.deepStrictEqual(d.prepare('SELECT stock_available,stock_date FROM items WHERE id=1').get(),{stock_available:4,stock_date:'2026-10-10'});
+  const resetRow=d.prepare('SELECT stock_available,stock_date FROM items WHERE id=1').get();
+  assert.strictEqual(resetRow.stock_available,4);
+  assert.strictEqual(resetRow.stock_date,'2026-10-10');
   d.prepare('UPDATE items SET stock_available=2 WHERE id=1').run();
   inventory.refreshDailyInventory(d,'items','2026-10-10');
   assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,2);
