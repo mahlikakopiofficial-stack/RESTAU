@@ -802,6 +802,27 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
 
 /* ---------- admin ---------- */
 app.post('/api/admin/login',lim(8),(q,r)=>safeEq(q.body.password,ADMIN_PW)?r.json({token:mk({r:'admin'})}):r.status(401).json({error:'Wrong password'}));
+app.post('/api/admin/push/register',admin,w((q,r)=>{
+  const token=String(q.body.token||'').trim();
+  if(token.length<20||token.length>4096||/\\s/.test(token))throw new Error('Invalid push registration token');
+  const deviceName=String(q.body.device||'PinoyAmbula Admin Android').trim().slice(0,80)||'PinoyAmbula Admin Android';
+  db.prepare(`INSERT INTO admin_push_tokens(token,device_name,active,updated_at,last_seen)
+    VALUES(?,?,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+    ON CONFLICT(token) DO UPDATE SET device_name=excluded.device_name,active=1,updated_at=CURRENT_TIMESTAMP,last_seen=CURRENT_TIMESTAMP`
+  ).run(token,deviceName);
+  r.json({ok:1,pushConfigured:adminPush.isConfigured(),registeredDevices:one('SELECT COUNT(*) n FROM admin_push_tokens WHERE active=1').n});
+}));
+app.post('/api/admin/push/unregister',admin,w((q,r)=>{
+  const token=String(q.body.token||'').trim();
+  if(token)db.prepare('DELETE FROM admin_push_tokens WHERE token=?').run(token);
+  r.json({ok:1});
+}));
+app.get('/api/admin/push/status',admin,w((q,r)=>{
+  r.json({
+    configured:adminPush.isConfigured(),
+    registeredDevices:one('SELECT COUNT(*) n FROM admin_push_tokens WHERE active=1').n
+  });
+}));
 app.post('/api/admin/customers/:id/reset-password',admin,async(q,r)=>{
   try{
     const customer=one('SELECT id,name,email FROM customers WHERE id=?',q.params.id);
