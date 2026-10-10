@@ -334,7 +334,7 @@
       const card = (i) => {
         const stock = Math.max(0, Number(i.stock_available ?? 3));
         const soldOut = stock <= 0;
-        return `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p>${soldOut ? '<p class="menu-stock-status" style="margin:.25rem 0;font-size:.8rem;color:#b91c1c">Sold Out</p>' : ""}<p>
+        return `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p>${soldOut ? '<p class="menu-stock-status" style="margin:.25rem 0;font-size:.8rem;color:#b91c1c">Sold Out</p>' : '<p class="menu-stock-status" style="margin:.25rem 0;font-size:.8rem;color:#18794e">Available</p>'}<p>
   ${
     i.discount_price > 0 && i.discount_price < i.price
       ? '<del style="opacity:.6">' + money(i.price) + '</del> <span class="pr">' + money(i.discount_price) + "</span>"
@@ -629,6 +629,10 @@
           $("#lines").innerHTML =
             `<p style="padding:10px 0"><b>✅ Order received</b><br>Confirmation: ${esc(r.status)}<br>Total ${money(r.total)} · Payment: ${r.pay === "COD" ? "Cash on Delivery" : "Card"} (${esc(r.payment_status || "Pending")}).<br><a href="account.html">Track status and delivery in My Account</a></p>`;
         } catch (x) {
+          if (/sold out|left for|stock|available/i.test(String(x.message||''))) {
+            try { await window.refreshInventoryStatus?.(); } catch (_) {}
+            renderCart();
+          }
           toast(x.message);
         }
       }
@@ -929,6 +933,6 @@
     </script>
     <script src="enhancements.js?v=20261007-cart1"></script>
     <script src="final-fixes.js"></script>
-    <script src="master-enhancements.js?v=20261010-stock2"></script>
+    <script src="master-enhancements.js?v=20261010-stock3"></script>
   </body>
 </html>

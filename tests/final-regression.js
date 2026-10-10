@@ -109,8 +109,8 @@ t('admin report selected date/range',()=>{
 t('regional cart + floating cart',()=>{assert(index.includes('window.addRegionalToCart'));assert(index.includes('regionalKey'));assert(master.includes('addRegionalToCart'));assert(server.includes("SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1"));assert(index.includes('id="cart-fab"'));assert(style.includes('#cart-fab{'));assert(style.includes('input[type="checkbox"]'));assert(style.includes('#cart-fab'));assert(style.includes('#menu{padding:34px 0}'));});
 t('website service images render from saved content',()=>{assert(index.includes('content_service_regular_image'));assert(index.includes('resolveMediaUrl(raw)'));assert(index.includes('service-image-filled'));assert(style.includes('.service-image{'));assert(server.includes("websiteServiceImageKeys={regular:'content_service_regular_image'"));assert(server.includes("target==='service'"));});
 t('menu add button uses shared app alignment',()=>{assert(master.includes('menu-add'));assert(enhancements.includes('menu-add'));assert(index.includes('menu-add'));assert(style.includes('.menu-card-actions .menu-add'));assert(style.includes('.menu-card .menu-add'));assert(index.includes('window.addMenuToCart'));assert(master.includes('window.addMenuToCart'));assert(enhancements.includes('window.addMenuToCart'));assert(index.includes('Add to cart'));assert(master.includes('Add to cart'));});
-t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261010-stock2'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
-t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261010-stock2'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
+t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261010-stock3'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
+t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261010-stock3'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
 t('admin responsive navigation',()=>{assert(admin.includes('admin-nav-toggle'));assert(admin.includes('admin-nav-menu'));assert(admin.includes('toggleAdminNav'));assert(fs.existsSync(path.join(root,'public','admin-nav.css')));});
 t('universal logo upload and branding',()=>{assert(server.includes("fileFilter:(q,f,cb)=>/^image\\/(jpe?g|png|webp|gif|svg\\+xml)$/"));assert(admin.includes('id="logo-file"'));assert(admin.includes('image/svg+xml'));assert(admin.includes('saveUniversalLogo'));assert(app.includes("api('/admin/upload?target=logo'"));assert(app.includes('const configured=String(c.logo_url||\'\').trim()'));assert(app.includes('resolveMediaUrl(configured)'));assert(app.includes('applyUniversalBranding'));assert(app.includes('window.PINOY_BRANDING'));assert(server.includes("r.set('Cache-Control','no-store')"));});
 t('admin order live delivery',()=>{
@@ -136,7 +136,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v37'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v38'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -165,8 +165,8 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v37'"));
-  assert(sw.includes("const CACHE_VERSION='v37'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v38'"));
+  assert(sw.includes("const CACHE_VERSION='v38'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
@@ -384,13 +384,18 @@ t('inventory availability is enforced by order API and displayed on customer and
   assert(admin.includes("'stock_available'"));
   assert(admin.includes("'daily_restock_quantity'"));
   assert(index.includes('Sold Out'));
+  assert(index.includes('Available'));
   assert(index.includes('stock_available'));
   assert(master.includes('refreshInventoryStatus'));
   assert(master.includes('Sold Out'));
+  assert(master.includes("soldOut?'Sold Out':'Available'"));
+  assert(master.includes("label.textContent=soldOut?'Sold Out':'Available'"));
   assert(!master.includes("stock+' available'"));
+  assert(inventorySource.includes('Not enough stock remains for '));
+  assert(!inventorySource.includes("'Only ' + available"));
   assert(!index.includes('stock + " available"'));
   assert(!index.includes('"Only " + available + " available today"'));
-  assert(sw.includes('/master-enhancements.js?v=20261010-stock2'));
+  assert(sw.includes('/master-enhancements.js?v=20261010-stock3'));
   assert(inventorySource.includes('stock_available=stock_available-?'));
 });
 
