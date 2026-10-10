@@ -10,7 +10,7 @@ const SHELL=[
   '/loyalty.js?v=20261009-loyalty1',
   '/enhancements.js',
   '/final-fixes.js',
-  '/master-enhancements.js?v=20261010-stock1',
+  '/master-enhancements.js?v=20261010-stock2',
   '/admin-fixes.js?v=20261007-live8',
   '/admin-notify.js?v=20261007-live7',
   '/media-runtime-fix.js?v=20261003-android1',
