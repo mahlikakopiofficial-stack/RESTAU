@@ -334,7 +334,7 @@
       const card = (i) => {
         const stock = Math.max(0, Number(i.stock_available ?? 3));
         const soldOut = stock <= 0;
-        return `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p class="menu-stock-status" style="margin:.25rem 0;font-size:.8rem;color:${soldOut ? "#b91c1c" : "#667085"}">${soldOut ? "Sold Out" : stock + " available"}</p><p>
+        return `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p>${soldOut ? '<p class="menu-stock-status" style="margin:.25rem 0;font-size:.8rem;color:#b91c1c">Sold Out</p>' : ""}<p>
   ${
     i.discount_price > 0 && i.discount_price < i.price
       ? '<del style="opacity:.6">' + money(i.price) + '</del> <span class="pr">' + money(i.discount_price) + "</span>"
@@ -401,7 +401,7 @@
         const latest = regionalItems.find((x) => Number(x.id) === Number(dish.id));
         const available = Math.max(0, Number(latest?.stock_available ?? dish.stock_available ?? 3));
         if (available <= 0 || Number(cart[key] || 0) >= available) {
-          toast(available <= 0 ? "Sold Out" : "Only " + available + " available today");
+          toast(available <= 0 ? "Sold Out" : "No more portions available to add.");
           return;
         }
         if (!regionalItems.some((x) => Number(x.id) === Number(dish.id))) {
@@ -428,7 +428,7 @@
         if (!dish) return;
         const available = Math.max(0, Number(dish.stock_available ?? 3));
         if (available <= 0 || Number(cart[dish.id] || 0) >= available) {
-          toast(available <= 0 ? "Sold Out" : "Only " + available + " available today");
+          toast(available <= 0 ? "Sold Out" : "No more portions available to add.");
           return;
         }
         cart[dish.id] = (cart[dish.id] || 0) + 1;
@@ -446,7 +446,7 @@
             : items.find((x) => String(x.id) === String(id));
           const available = Math.max(0, Number(dish?.stock_available ?? 3));
           if (!dish || available <= 0 || Number(cart[id] || 0) >= available) {
-            toast(!dish || available <= 0 ? "Sold Out" : "Only " + available + " available today");
+            toast(!dish || available <= 0 ? "Sold Out" : "No more portions available to add.");
             return;
           }
         }
