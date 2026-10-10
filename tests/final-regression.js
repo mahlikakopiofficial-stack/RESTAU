@@ -3,9 +3,12 @@ const fs=require('fs');
 const vm=require('vm');
 const path=require('path');
 const {execFileSync}=require('child_process');
+const Database=require('better-sqlite3');
+const inventory=require('../lib/inventory');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const server=read('server.js');
+const inventorySource=read('lib/inventory.js');
 const index=read('public/index.html');
 const account=read('public/account.html');
 const admin=read('public/admin.html');
@@ -28,7 +31,7 @@ const notify=read('public/admin-notify.js');
 const sw=read('public/sw.js');
 const tests=[];
 function t(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name);console.error('   ',e.message);tests.push(name)}}
-for(const f of ['server.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/admin-fixes.js','public/admin-notify.js','public/sw.js','public/loyalty.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
+for(const f of ['server.js','lib/inventory.js','lib/gmail.js','lib/notifications.js','lib/whatsapp.js','public/app.js','public/final-fixes.js','public/master-enhancements.js','public/admin-fixes.js','public/admin-notify.js','public/sw.js','public/loyalty.js'])t('syntax '+f,()=>execFileSync(process.execPath,['--check',path.join(root,f)],{stdio:'pipe'}));
 t('admin inline script syntax',()=>{const scripts=[...admin.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`admin-inline-${index+1}.js`}))});
 t('account inline script syntax',()=>{const scripts=[...account.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`account-inline-${index+1}.js`}))});
 t('customer site inline script syntax',()=>{const scripts=[...index.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].filter(match=>! /\bsrc\s*=/.test(match[1]));scripts.forEach((script,index)=>new vm.Script(script[2],{filename:`index-inline-${index+1}.js`}))});
@@ -106,8 +109,8 @@ t('admin report selected date/range',()=>{
 t('regional cart + floating cart',()=>{assert(index.includes('window.addRegionalToCart'));assert(index.includes('regionalKey'));assert(master.includes('addRegionalToCart'));assert(server.includes("SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1"));assert(index.includes('id="cart-fab"'));assert(style.includes('#cart-fab{'));assert(style.includes('input[type="checkbox"]'));assert(style.includes('#cart-fab'));assert(style.includes('#menu{padding:34px 0}'));});
 t('website service images render from saved content',()=>{assert(index.includes('content_service_regular_image'));assert(index.includes('resolveMediaUrl(raw)'));assert(index.includes('service-image-filled'));assert(style.includes('.service-image{'));assert(server.includes("websiteServiceImageKeys={regular:'content_service_regular_image'"));assert(server.includes("target==='service'"));});
 t('menu add button uses shared app alignment',()=>{assert(master.includes('menu-add'));assert(enhancements.includes('menu-add'));assert(index.includes('menu-add'));assert(style.includes('.menu-card-actions .menu-add'));assert(style.includes('.menu-card .menu-add'));assert(index.includes('window.addMenuToCart'));assert(master.includes('window.addMenuToCart'));assert(enhancements.includes('window.addMenuToCart'));assert(index.includes('Add to cart'));assert(master.includes('Add to cart'));});
-t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261007-cart1'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
-t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261007-cart1'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
+t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261010-stock2'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
+t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261010-stock2'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
 t('admin responsive navigation',()=>{assert(admin.includes('admin-nav-toggle'));assert(admin.includes('admin-nav-menu'));assert(admin.includes('toggleAdminNav'));assert(fs.existsSync(path.join(root,'public','admin-nav.css')));});
 t('universal logo upload and branding',()=>{assert(server.includes("fileFilter:(q,f,cb)=>/^image\\/(jpe?g|png|webp|gif|svg\\+xml)$/"));assert(admin.includes('id="logo-file"'));assert(admin.includes('image/svg+xml'));assert(admin.includes('saveUniversalLogo'));assert(app.includes("api('/admin/upload?target=logo'"));assert(app.includes('const configured=String(c.logo_url||\'\').trim()'));assert(app.includes('resolveMediaUrl(configured)'));assert(app.includes('applyUniversalBranding'));assert(app.includes('window.PINOY_BRANDING'));assert(server.includes("r.set('Cache-Control','no-store')"));});
 t('admin order live delivery',()=>{
@@ -133,7 +136,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v36'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v37'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -162,8 +165,8 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v36'"));
-  assert(sw.includes("const CACHE_VERSION='v36'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v37'"));
+  assert(sw.includes("const CACHE_VERSION='v37'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
@@ -301,4 +304,94 @@ t('Kuwait timezone',()=>{
 });
 t('no pork generic catering icon',()=>{assert(!index.includes('<div class="e">🐖</div></a>'));});
 t('settings checkbox persistence isolation',()=>{assert(admin.includes('const control = e.target.elements.namedItem(k);'));assert(admin.includes('if (!control) return;'));assert(admin.includes('b[k] = control.checked ? "1" : "0";'));});
+
+t('inventory quantity validation defaults to three and rejects invalid amounts',()=>{
+  assert.strictEqual(inventory.quantity(undefined),3);
+  assert.strictEqual(inventory.quantity('0'),0);
+  assert.strictEqual(inventory.quantity('12'),12);
+  assert.throws(()=>inventory.quantity('1.5'),/whole number/);
+  assert.throws(()=>inventory.quantity('-1'),/whole number/);
+});
+const makeInventoryTestDb=()=>{
+  const d=new Database(':memory:');
+  d.exec(`
+    CREATE TABLE items(id INTEGER PRIMARY KEY,name TEXT,active INTEGER DEFAULT 1,stock_available INTEGER DEFAULT 3,daily_restock_quantity INTEGER DEFAULT 3,stock_date TEXT DEFAULT '');
+    CREATE TABLE regional_dishes(id INTEGER PRIMARY KEY,name TEXT,active INTEGER DEFAULT 1,stock_available INTEGER DEFAULT 3,daily_restock_quantity INTEGER DEFAULT 3,stock_date TEXT DEFAULT '');
+    CREATE TABLE orders(id INTEGER PRIMARY KEY,items TEXT,inventory_deducted INTEGER DEFAULT 0,inventory_restored INTEGER DEFAULT 0);
+  `);
+  return d;
+};
+t('daily inventory resets from each dish restock target and preserves manual stock edits for the same Kuwait date',()=>{
+  const d=makeInventoryTestDb();
+  d.prepare('INSERT INTO items(id,name,stock_available,daily_restock_quantity,stock_date) VALUES(1,\'Adobo\',0,4,\'2026-10-09\')').run();
+  inventory.refreshDailyInventory(d,'items','2026-10-10');
+  const resetRow=d.prepare('SELECT stock_available,stock_date FROM items WHERE id=1').get();
+  assert.strictEqual(resetRow.stock_available,4);
+  assert.strictEqual(resetRow.stock_date,'2026-10-10');
+  d.prepare('UPDATE items SET stock_available=2 WHERE id=1').run();
+  inventory.refreshDailyInventory(d,'items','2026-10-10');
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,2);
+  d.prepare('UPDATE items SET daily_restock_quantity=7 WHERE id=1').run();
+  inventory.refreshDailyInventory(d,'items','2026-10-10');
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,2);
+  inventory.refreshDailyInventory(d,'items','2026-10-11');
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,7);
+  d.close();
+});
+t('order reservation is atomic and prevents two orders from overselling the same stock',()=>{
+  const d=makeInventoryTestDb(),today='2026-10-10';
+  d.prepare('INSERT INTO items(id,name,stock_available,daily_restock_quantity,stock_date) VALUES(1,\'Adobo\',1,3,?)').run(today);
+  d.prepare('INSERT INTO regional_dishes(id,name,stock_available,daily_restock_quantity,stock_date) VALUES(7,\'Inasal\',0,3,?)').run(today);
+  const attempt=d.transaction(()=>inventory.reserveOrderInventory(d,[{id:1,name:'Adobo',qty:1},{id:'r:7',name:'Inasal',qty:1}],today));
+  assert.throws(()=>attempt(),/sold out/);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,1,'earlier deduction must roll back with failed order');
+  assert.strictEqual(d.prepare('SELECT stock_available FROM regional_dishes WHERE id=7').get().stock_available,0);
+  const buyOne=d.transaction(()=>inventory.reserveOrderInventory(d,[{id:1,name:'Adobo',qty:1}],today));
+  assert.strictEqual(buyOne(),true);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,0);
+  const competingOrder=d.transaction(()=>inventory.reserveOrderInventory(d,[{id:1,name:'Adobo',qty:1}],today));
+  assert.throws(()=>competingOrder(),/sold out/);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,0,'stock must never become negative');
+  d.close();
+});
+t('cancellation restores same-day stock once and never adds yesterday’s stock to today',()=>{
+  const d=makeInventoryTestDb(),today='2026-10-10';
+  d.prepare('INSERT INTO items(id,name,stock_available,daily_restock_quantity,stock_date) VALUES(1,\'Adobo\',0,3,?)').run(today);
+  d.prepare('INSERT INTO regional_dishes(id,name,stock_available,daily_restock_quantity,stock_date) VALUES(7,\'Inasal\',0,3,?)').run(today);
+  const orderItems=JSON.stringify([{id:1,name:'Adobo',qty:2},{id:'r:7',name:'Inasal',qty:1}]);
+  const id=Number(d.prepare('INSERT INTO orders(items,inventory_deducted) VALUES(?,1)').run(orderItems).lastInsertRowid);
+  const sameDay=d.prepare('SELECT * FROM orders WHERE id=?').get(id);
+  const restore=d.transaction(()=>inventory.restoreCancelledOrderInventory(d,sameDay,today,today));
+  assert.strictEqual(restore(),true);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,2);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM regional_dishes WHERE id=7').get().stock_available,1);
+  const repeated=d.transaction(()=>inventory.restoreCancelledOrderInventory(d,d.prepare('SELECT * FROM orders WHERE id=?').get(id),today,today));
+  assert.strictEqual(repeated(),false);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,2,'duplicate cancellation must not restore twice');
+  const oldId=Number(d.prepare('INSERT INTO orders(items,inventory_deducted) VALUES(?,1)').run(JSON.stringify([{id:1,name:'Adobo',qty:2}])).lastInsertRowid);
+  const oldOrder=d.prepare('SELECT * FROM orders WHERE id=?').get(oldId);
+  const restoreYesterday=d.transaction(()=>inventory.restoreCancelledOrderInventory(d,oldOrder,today,'2026-10-09'));
+  assert.strictEqual(restoreYesterday(),false);
+  assert.strictEqual(d.prepare('SELECT inventory_restored FROM orders WHERE id=?').get(oldId).inventory_restored,1);
+  assert.strictEqual(d.prepare('SELECT stock_available FROM items WHERE id=1').get().stock_available,2,'yesterday cancellation must not inflate today stock');
+  d.close();
+});
+t('inventory availability is enforced by order API and displayed on customer and admin menus',()=>{
+  assert(server.includes('inventory.reserveOrderInventory(db,its,kuwaitToday())'));
+  assert(server.includes('inventory.restoreCancelledOrderInventory(db,before,kuwaitToday(),createdDay)'));
+  assert(server.includes("['items','stock_available','INTEGER DEFAULT 3']"));
+  assert(server.includes("['regional_dishes','daily_restock_quantity','INTEGER DEFAULT 3']"));
+  assert(admin.includes("'stock_available'"));
+  assert(admin.includes("'daily_restock_quantity'"));
+  assert(index.includes('Sold Out'));
+  assert(index.includes('stock_available'));
+  assert(master.includes('refreshInventoryStatus'));
+  assert(master.includes('Sold Out'));
+  assert(!master.includes("stock+' available'"));
+  assert(!index.includes('stock + " available"'));
+  assert(!index.includes('"Only " + available + " available today"'));
+  assert(sw.includes('/master-enhancements.js?v=20261010-stock2'));
+  assert(inventorySource.includes('stock_available=stock_available-?'));
+});
+
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');

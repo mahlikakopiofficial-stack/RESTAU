@@ -385,14 +385,14 @@
             );
             filterAdminMenu();
           };
-          return `<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmit="ai(event)"><b>Add dish</b><div class="f2"><input name="name" placeholder="Name" required><input name="price" type="number" step="0.001" placeholder="Price" required><select name="cat">${CATS.map((c) => `<option>${c}</option>`).join("")}</select><input name="region" placeholder="Country (Filipino / Japan / Korea…)"><input name="emoji" placeholder="Legacy icon (not used as default)"><input name="descr" placeholder="Description"><textarea name="ingredients" rows="2" placeholder="Full ingredients, comma-separated"></textarea></div><button class="btn s">Add</button></form>
+          return `<form class="card p mini" style="padding:14px;margin-bottom:16px" onsubmit="ai(event)"><b>Add dish</b><div class="f2"><input name="name" placeholder="Name" required><input name="price" type="number" step="0.001" placeholder="Price" required><select name="cat">${CATS.map((c) => `<option>${c}</option>`).join("")}</select><input name="region" placeholder="Country (Filipino / Japan / Korea…)"><input name="emoji" placeholder="Legacy icon (not used as default)"><input name="descr" placeholder="Description"><input name="stock_available" type="number" min="0" step="1" value="3" placeholder="Available today"><input name="daily_restock_quantity" type="number" min="0" step="1" value="3" placeholder="Daily restock quantity"><textarea name="ingredients" rows="2" placeholder="Full ingredients, comma-separated"></textarea></div><button class="btn s">Add</button></form>
 <div class="admin-menu-tools"><label for="admin-menu-category">Category</label><select id="admin-menu-category" onchange="filterAdminMenu()"><option>All</option>${CATS.map((c)=>`<option>${c}</option>`).join("")}</select><label for="admin-menu-search">Search menu</label><input id="admin-menu-search" type="search" placeholder="Search name, category, region or ingredients" oninput="filterAdminMenu()" autocomplete="off"><span id="admin-menu-count" aria-live="polite"></span></div>
 <p style="margin-bottom:10px">Manage each dish photo with its image controls.</p><div class="grid" id="admin-menu-list">${it
             .map(
               (i) => {
                 const search=esc([i.name,i.cat,i.region,i.descr,i.ingredients||""].filter(Boolean).join(" "));
                 return `<div class="card admin-menu-item" data-cat="${esc(i.cat)}" data-search="${search}"><div class="ph idz" data-id="${i.id}" style="position:relative;cursor:pointer;${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji)}<span class="menu-photo-actions"><button type="button" title="Add or replace menu image" aria-label="Add or replace menu image" onclick="pickItemImage(${i.id},event)">▣</button><button type="button" title="Remove menu image" aria-label="Remove menu image" onclick="event.stopPropagation();clearImage('item',${i.id})" ${i.img ? "" : "disabled"}>×</button></span></div><div class="p mini"><input value="${esc(i.name)}" onchange="ui(${i.id},'name',this.value)"><input type="number" step="0.001" value="${i.price}" onchange="ui(${i.id},'price',+this.value)" placeholder="Regular price">
-<input type="number" step="0.001" value="${i.discount_price || ""}" onchange="ui(${i.id},'discount_price',this.value)" placeholder="Discount price"><select onchange="ui(${i.id},'cat',this.value)">${CATS.map((c) => `<option${c == i.cat ? " selected" : ""}>${c}</option>`).join("")}</select><input value="${esc(i.region)}" onchange="ui(${i.id},'region',this.value)" placeholder="Country"><input value="${esc(i.descr)}" onchange="ui(${i.id},'descr',this.value)" placeholder="Description"><textarea rows="2" onchange="ui(${i.id},'ingredients',this.value)" placeholder="Full ingredients">${esc(i.ingredients || "")}</textarea><input value="${esc(i.emoji)}" onchange="ui(${i.id},'emoji',this.value)" style="width:80px"><label><input type="checkbox" ${i.active ? "checked" : ""} onchange="ui(${i.id},'active',this.checked?1:0)"> Available</label> ${del("items", i.id)}</div></div>`;
+<input type="number" step="0.001" value="${i.discount_price || ""}" onchange="ui(${i.id},'discount_price',this.value)" placeholder="Discount price"><select onchange="ui(${i.id},'cat',this.value)">${CATS.map((c) => `<option${c == i.cat ? " selected" : ""}>${c}</option>`).join("")}</select><input value="${esc(i.region)}" onchange="ui(${i.id},'region',this.value)" placeholder="Country"><input value="${esc(i.descr)}" onchange="ui(${i.id},'descr',this.value)" placeholder="Description"><input type="number" min="0" step="1" value="${Number(i.stock_available ?? 3)}" onchange="ui(${i.id},'stock_available',this.value)" placeholder="Available today"><input type="number" min="0" step="1" value="${Number(i.daily_restock_quantity ?? 3)}" onchange="ui(${i.id},'daily_restock_quantity',this.value)" placeholder="Daily restock quantity"><small id="stock-status-${i.id}">Stock: ${Number(i.stock_available ?? 3) > 0 ? Number(i.stock_available ?? 3) + " available" : "Sold Out"}</small><textarea rows="2" onchange="ui(${i.id},'ingredients',this.value)" placeholder="Full ingredients">${esc(i.ingredients || "")}</textarea><input value="${esc(i.emoji)}" onchange="ui(${i.id},'emoji',this.value)" style="width:80px"><label><input type="checkbox" ${i.active ? "checked" : ""} onchange="ui(${i.id},'active',this.checked?1:0)"> Available</label> ${del("items", i.id)}</div></div>`;
               },
             )
             .join("")}</div>`;
@@ -1053,6 +1053,11 @@ ${f("hero_title", "Homepage headline")}
       async function ui(id, k, v) {
         try {
           await A("/items/" + id, "PUT", { [k]: v });
+          if (k === "stock_available") {
+            const status = document.getElementById("stock-status-" + id);
+            const available = Math.max(0, Number(v) || 0);
+            if (status) status.textContent = "Stock: " + (available > 0 ? available + " available" : "Sold Out");
+          }
           toast("Saved");
         } catch (x) {
           toast(x.message);
@@ -1075,7 +1080,7 @@ ${f("hero_title", "Homepage headline")}
     </script>
     <script src="enhancements.js"></script>
     <script src="final-fixes.js"></script>
-    <script src="master-enhancements.js"></script>
+    <script src="master-enhancements.js?v=20261010-stock2"></script>
     <script id="admin-fixes-script" src="admin-fixes.js?v=20261007-live8" onload="if(tk(&quot;at&quot;))go(cur)"></script>
     <script id="admin-notify-script" src="admin-notify.js?v=20261007-live7"></script>
   </body>

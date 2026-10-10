@@ -2,6 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch(e){}
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const loyalty=require('./public/loyalty.js');
+const inventory=require('./lib/inventory');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
 const {notifyRegistration,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifyAdminSubscription,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
@@ -36,6 +37,9 @@ const ensureColumn=(table,column,definition)=>{
 [
   ['items','discount_price','REAL DEFAULT 0'],
   ['items','ingredients',"TEXT DEFAULT ''"],
+  ['items','stock_available','INTEGER DEFAULT 3'],
+  ['items','daily_restock_quantity','INTEGER DEFAULT 3'],
+  ['items','stock_date',"TEXT DEFAULT ''"],
   ['customers','address',"TEXT DEFAULT ''"],
   ['customers','paci',"TEXT DEFAULT ''"],
   ['customers','birthday',"TEXT DEFAULT ''"],
@@ -61,6 +65,8 @@ const ensureColumn=(table,column,definition)=>{
   ['orders','lng','REAL'],
   ['orders','map_url',"TEXT DEFAULT ''"],
   ['orders','whatsapp_opt_in','INTEGER DEFAULT 0'],
+  ['orders','inventory_deducted','INTEGER DEFAULT 0'],
+  ['orders','inventory_restored','INTEGER DEFAULT 0'],
   ['gallery','media_type',"TEXT DEFAULT 'image'"],
   ['gallery','media_url',"TEXT DEFAULT ''"],
   ['subs','email',"TEXT DEFAULT ''"],
@@ -74,7 +80,10 @@ const ensureColumn=(table,column,definition)=>{
   ['inquiries','customer_id','INTEGER'],
   ['inquiries','order_id','INTEGER'],
   ['inquiries','status',"TEXT DEFAULT 'New'"],
-  ['announcements','updated_at','TEXT']
+  ['announcements','updated_at','TEXT'],
+  ['regional_dishes','stock_available','INTEGER DEFAULT 3'],
+  ['regional_dishes','daily_restock_quantity','INTEGER DEFAULT 3'],
+  ['regional_dishes','stock_date',"TEXT DEFAULT ''"]
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
@@ -384,7 +393,7 @@ app.get('/api/config',(q,r)=>{
     subscriptions_enabled:st.subscriptions_enabled!=='0'
   });
 });
-app.get('/api/menu',(q,r)=>r.json(db.prepare('SELECT * FROM items WHERE active=1 ORDER BY id').all()));
+app.get('/api/menu',(q,r)=>{inventory.refreshDailyInventory(db,'items',kuwaitToday());r.set('Cache-Control','no-store');r.json(db.prepare('SELECT * FROM items WHERE active=1 ORDER BY id').all())});
 app.get('/api/plans',(q,r)=>{
   if(S().subscriptions_enabled==='0')return r.json([]);
   r.json(db.prepare('SELECT id,name,price,descr AS "desc",includes,duration_days,img FROM plans WHERE active=1 ORDER BY rowid').all().map(p=>({...p,includes:(()=>{try{return JSON.parse(p.includes||'[]')}catch{return []}})()})));
@@ -636,12 +645,12 @@ app.post('/api/order',lim(30),w((q,r)=>{
       const rid=Number(rawId.slice(2));
       const x=one('SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1',rid);
       if(!x)return null;
-      return {id:'r:'+x.id,name:x.name,cat:'Regional',region:x.region,price:+x.price||0,regular_price:+x.price||0,qty:Math.max(1,Math.min(99,+i.qty||1))};
+      return {id:'r:'+x.id,name:x.name,cat:'Regional',region:x.region,price:+x.price||0,regular_price:+x.price||0,qty:Math.max(1,Math.min(99,Math.trunc(+i.qty||1)))};
     }
     const x=one('SELECT id,name,cat,price,discount_price FROM items WHERE id=? AND active=1',rawId);
     if(!x)return null;
     const regular=+x.price||0,dp=+x.discount_price||0,unit=(dp>0&&dp<regular)?dp:regular;
-    return {id:x.id,name:x.name,cat:x.cat,price:unit,regular_price:regular,qty:Math.max(1,Math.min(99,+i.qty||1))};
+    return {id:x.id,name:x.name,cat:x.cat,price:unit,regular_price:regular,qty:Math.max(1,Math.min(99,Math.trunc(+i.qty||1)))};
   }).filter(Boolean);
 
   if(!its.length)
@@ -689,6 +698,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const status=approval==='ADMIN'?'Pending':'Confirmed';
 
   const saveOrder=db.transaction(()=>{
+  inventory.reserveOrderInventory(db,its,kuwaitToday());
   const id=db.prepare(`
     INSERT INTO orders(
       customer_id,name,phone,email,address,paci,notes,items,
@@ -718,6 +728,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
     Number.isFinite(+b.lng)?+b.lng:null,
     String(b.map_url||'').slice(0,500)
   ).lastInsertRowid;
+  db.prepare('UPDATE orders SET inventory_deducted=1 WHERE id=?').run(id);
   if(rewardThreshold)db.prepare('INSERT INTO loyalty_redemptions(customer_id,threshold,order_id) VALUES(?,?,?)').run(customerId,rewardThreshold,id);
   return Number(id);
   });
@@ -1052,7 +1063,14 @@ app.get('/api/admin/report',admin,w((q,r)=>r.json(buildAdminReport(q.query.date,
 app.get('/api/admin/report-range',admin,w((q,r)=>r.json(buildAdminReport(q.query.from,q.query.to))));
 
 const T=['orders','customers','subs','inquiries','newsletter','testimonials','gallery','items','plans'],DEL=['items','gallery','testimonials','inquiries','newsletter','customers','plans'];
-app.get('/api/admin/list/:t',admin,w((q,r)=>{const t=q.params.t;if(!T.includes(t))throw new Error('bad table');r.json(t==='customers'?db.prepare('SELECT id,name,phone,email,created,(SELECT COUNT(*) FROM orders o WHERE o.customer_id=customers.id) orders,(SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.customer_id=customers.id) spent FROM customers ORDER BY id DESC').all():db.prepare(`SELECT * FROM ${t} ORDER BY id DESC`).all())}));
+app.get('/api/admin/list/:t',admin,w((q,r)=>{
+  const t=q.params.t;
+  if(!T.includes(t))throw new Error('bad table');
+  if(t==='items')inventory.refreshDailyInventory(db,'items',kuwaitToday());
+  r.json(t==='customers'
+    ?db.prepare('SELECT id,name,phone,email,created,(SELECT COUNT(*) FROM orders o WHERE o.customer_id=customers.id) orders,(SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.customer_id=customers.id) spent FROM customers ORDER BY id DESC').all()
+    :db.prepare(`SELECT * FROM ${t} ORDER BY id DESC`).all());
+}));
 app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
   if(!['orders','subs','inquiries'].includes(q.params.t))
     throw new Error('bad table');
@@ -1071,7 +1089,13 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     if(status==='Delivered'){sets.push('delivered_at=?');vals.push(new Date().toISOString());}
     if(status==='Cancelled'){sets.push('cancelled_at=?');vals.push(new Date().toISOString());}
     vals.push(q.params.id);
-    db.prepare('UPDATE orders SET '+sets.join(',')+' WHERE id=?').run(...vals);
+    db.transaction(()=>{
+      if(status==='Cancelled'&&before.status!=='Cancelled'&&Number(before.inventory_deducted)===1){
+        const createdDay=one("SELECT date(datetime(?,'+3 hours')) day",before.created)?.day;
+        inventory.restoreCancelledOrderInventory(db,before,kuwaitToday(),createdDay);
+      }
+      db.prepare('UPDATE orders SET '+sets.join(',')+' WHERE id=?').run(...vals);
+    })();
     const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
     broadcastCustomerOrderStatus(after);
     notifyOrderStatus(after,before.status);
@@ -1163,33 +1187,32 @@ const validDate=value=>{
   return Number.isNaN(date.valueOf())||date.toISOString().slice(0,10)!==value?null:value;
 };
 
-const F=['cat','region','name','descr','ingredients','price','discount_price','emoji','active'];
-app.put('/api/admin/items/:id',admin,w((q,r)=>{const k=Object.keys(q.body).filter(x=>F.includes(x));if('price' in q.body&&!(+q.body.price>=0))throw new Error('Invalid price');if(!k.length)throw new Error('nothing to update');db.prepare(`UPDATE items SET ${k.map(x=>x+'=?').join(',')} WHERE id=?`).run(...k.map(x=>q.body[x]),q.params.id);r.json({ok:1})}));
+const F=['cat','region','name','descr','ingredients','price','discount_price','emoji','active','stock_available','daily_restock_quantity'];
+app.put('/api/admin/items/:id',admin,w((q,r)=>{
+  const k=Object.keys(q.body).filter(x=>F.includes(x));
+  if('price' in q.body&&!(+q.body.price>=0))throw new Error('Invalid price');
+  for(const field of ['stock_available','daily_restock_quantity']){
+    if(field in q.body)q.body[field]=inventory.quantity(q.body[field]);
+  }
+  if('stock_available' in q.body){q.body.stock_date=kuwaitToday();k.push('stock_date');}
+  if(!k.length)throw new Error('nothing to update');
+  db.prepare(`UPDATE items SET ${k.map(x=>x+'=?').join(',')} WHERE id=?`).run(...k.map(x=>q.body[x]),q.params.id);
+  r.json({ok:1});
+}));
 app.post('/api/admin/items',admin,w((q,r)=>{
   const b=q.body;
   need(b,'name','price','cat');
-
-  if(!(+b.price>=0))
-    throw new Error('Invalid price');
-
-  if(b.discount_price!==undefined &&
-     b.discount_price!=='' &&
-     !(+b.discount_price>=0))
-    throw new Error('Invalid discount price');
-
+  if(!(+b.price>=0))throw new Error('Invalid price');
+  if(b.discount_price!==undefined && b.discount_price!=='' && !(+b.discount_price>=0))throw new Error('Invalid discount price');
+  const stockAvailable=inventory.quantity(b.stock_available);
+  const dailyRestock=inventory.quantity(b.daily_restock_quantity);
   db.prepare(
-    'INSERT INTO items(cat,region,name,descr,ingredients,price,discount_price,emoji) VALUES(?,?,?,?,?,?,?,?)'
+    'INSERT INTO items(cat,region,name,descr,ingredients,price,discount_price,emoji,stock_available,daily_restock_quantity,stock_date) VALUES(?,?,?,?,?,?,?,?,?,?,?)'
   ).run(
-    b.cat,
-    b.region||'Filipino',
-    b.name,
-    b.descr||'',
-    b.ingredients||'',
-    +b.price,
-    b.discount_price===''?null:+b.discount_price||0,
-    b.emoji||'🍽️'
+    b.cat,b.region||'Filipino',b.name,b.descr||'',b.ingredients||'',+b.price,
+    b.discount_price===''?null:+b.discount_price||0,b.emoji||'🍽️',
+    stockAvailable,dailyRestock,kuwaitToday()
   );
-
   r.json({ok:1});
 }));
 app.post('/api/admin/testimonials',admin,w((q,r)=>{need(q.body,'name','text');db.prepare('INSERT INTO testimonials(name,text,stars) VALUES(?,?,?)').run(q.body.name,q.body.text,Math.min(5,Math.max(1,+q.body.stars||5)));r.json({ok:1})}));
@@ -1420,7 +1443,7 @@ const announcementPayload=(body,current={})=>{
 app.get('/api/announcements',(q,r)=>{
   r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
 });
-app.get('/api/regional-dishes',(q,r)=>r.json(db.prepare("SELECT id,name,region,descr,price,img FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all()));
+app.get('/api/regional-dishes',(q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.set('Cache-Control','no-store');r.json(db.prepare("SELECT id,name,region,descr,price,img,stock_available,daily_restock_quantity FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all())});
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
 app.post('/api/admin/announcements',admin,w((q,r)=>{
@@ -1444,10 +1467,34 @@ app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
   db.prepare('DELETE FROM announcements WHERE id=?').run(q.params.id);
   r.json({ok:1});
 }));
-app.get('/api/admin/regional-dishes',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())));
-app.post('/api/admin/regional-dishes',admin,w((q,r)=>{need(q.body,'name','region');const id=Number(db.prepare('INSERT INTO regional_dishes(name,region,descr,price,img,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(String(q.body.name).slice(0,120),String(q.body.region).slice(0,120),String(q.body.descr||'').slice(0,600),Math.max(0,+q.body.price||0),String(q.body.img||''),q.body.active===0?0:1,Math.trunc(+q.body.sort_order||0)).lastInsertRowid);r.json({ok:1,id});}));
-app.put('/api/admin/regional-dishes/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['name','region','descr','price','img','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE regional_dishes SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='price'?Math.max(0,+q.body[k]||0):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));
-app.delete('/api/admin/regional-dishes/:id',admin,w((q,r)=>{const row=one('SELECT img FROM regional_dishes WHERE id=?',q.params.id);if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});db.prepare('DELETE FROM regional_dishes WHERE id=?').run(q.params.id);r.json({ok:1});}));
+app.get('/api/admin/regional-dishes',admin,w((q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())}));
+app.post('/api/admin/regional-dishes',admin,w((q,r)=>{
+  need(q.body,'name','region');
+  const b=q.body;
+  const stockAvailable=inventory.quantity(b.stock_available);
+  const dailyRestock=inventory.quantity(b.daily_restock_quantity);
+  const id=Number(db.prepare('INSERT INTO regional_dishes(name,region,descr,price,img,active,sort_order,stock_available,daily_restock_quantity,stock_date) VALUES(?,?,?,?,?,?,?,?,?,?)')
+    .run(String(b.name).slice(0,120),String(b.region).slice(0,120),String(b.descr||'').slice(0,600),Math.max(0,+b.price||0),String(b.img||''),b.active===0?0:1,Math.trunc(+b.sort_order||0),stockAvailable,dailyRestock,kuwaitToday()).lastInsertRowid);
+  r.json({ok:1,id});
+}));
+app.put('/api/admin/regional-dishes/:id',admin,w((q,r)=>{
+  const keys=Object.keys(q.body).filter(k=>['name','region','descr','price','img','active','sort_order','stock_available','daily_restock_quantity'].includes(k));
+  if(!keys.length)throw new Error('Nothing to update');
+  for(const field of ['stock_available','daily_restock_quantity']){
+    if(field in q.body)q.body[field]=inventory.quantity(q.body[field]);
+  }
+  if('stock_available' in q.body){q.body.stock_date=kuwaitToday();keys.push('stock_date');}
+  const result=db.prepare('UPDATE regional_dishes SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?')
+    .run(...keys.map(k=>k==='price'?Math.max(0,+q.body[k]||0):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);
+  if(!result.changes)throw new Error('Regional dish not found');
+  r.json({ok:1});
+}));
+app.delete('/api/admin/regional-dishes/:id',admin,w((q,r)=>{
+  const row=one('SELECT img FROM regional_dishes WHERE id=?',q.params.id);
+  if(row?.img?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.img)),()=>{});
+  db.prepare('DELETE FROM regional_dishes WHERE id=?').run(q.params.id);
+  r.json({ok:1});
+}));
 app.get('/api/admin/heritage',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM heritage ORDER BY sort_order,id').all())));
 app.post('/api/admin/heritage',admin,w((q,r)=>{need(q.body,'title');const type=['image','video'].includes(q.body.media_type)?q.body.media_type:'image';const id=Number(db.prepare('INSERT INTO heritage(title,caption,media_type,img,media_url,active,sort_order) VALUES(?,?,?,?,?,?,?)').run(String(q.body.title).slice(0,160),String(q.body.caption||'').slice(0,600),type,String(q.body.img||''),String(q.body.media_url||'').slice(0,500),q.body.active===0?0:1,Math.trunc(+q.body.sort_order||0)).lastInsertRowid);r.json({ok:1,id});}));
 app.put('/api/admin/heritage/:id',admin,w((q,r)=>{const keys=Object.keys(q.body).filter(k=>['title','caption','media_type','img','media_url','active','sort_order'].includes(k));if(!keys.length)throw new Error('Nothing to update');db.prepare('UPDATE heritage SET '+keys.map(k=>k+'=?').join(',')+' WHERE id=?').run(...keys.map(k=>k==='media_type'?(['image','video'].includes(q.body[k])?q.body[k]:'image'):k==='sort_order'?Math.trunc(+q.body[k]||0):q.body[k]),q.params.id);r.json({ok:1});}));

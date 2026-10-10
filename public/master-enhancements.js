@@ -184,7 +184,7 @@ async function addRegional(){
   const s=document.createElement('section');s.id='regional-favorites';s.className='master-section alt';
   s.innerHTML='<div class="wrap"><div class="t"><h2>Regional Filipino Favorites</h2><p>Famous dishes from different regions of the Philippines.</p></div><div class="master-grid" id="regional-grid"></div></div>';
   plans.insertAdjacentElement('beforebegin',s);
-  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'<button type="button" class="btn s" data-regional-id="'+escm(x.id)+'">Add to cart</button></div></article>').join('');
+  q('#regional-grid').innerHTML=rows.map(x=>{const stock=Math.max(0,Number(x.stock_available??3)),soldOut=stock<=0;return '<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+(soldOut?'<p class="menu-stock-status" data-regional-stock-id="'+escm(x.id)+'" style="margin:.25rem 0;font-size:.85rem;color:#b91c1c">Sold Out</p>':'')+'<button type="button" class="btn s" data-regional-id="'+escm(x.id)+'" '+(soldOut?'disabled':'')+'>'+(soldOut?'Sold Out':'Add to cart')+'</button></div></article>'}).join('');
   if(typeof window.setRegionalDishes==='function')window.setRegionalDishes(rows);
   q('#regional-grid').querySelectorAll('[data-regional-id]').forEach(btn=>btn.addEventListener('click',()=>{const dish=rows.find(x=>String(x.id)===String(btn.dataset.regionalId));if(dish&&typeof window.addRegionalToCart==='function')window.addRegionalToCart(dish);}));
 }
@@ -252,6 +252,7 @@ function patchMenu(){
   window.openMenuPreview=function(id){
     const i=items.find(x=>x.id==id);if(!i)return;
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
+    const stock=Math.max(0,Number(i.stock_available??3)),soldOut=stock<=0;
     let d=document.getElementById('menuPreview');
     if(!d){
       d=document.createElement('dialog');d.id='menuPreview';d.className='master-lightbox';
@@ -259,15 +260,46 @@ function patchMenu(){
       d.querySelector('button').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close()});document.body.appendChild(d);
     }
     const ingredients=String(i.ingredients||'').trim();
-    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p>'+(ingredients?'<section class="preview-ingredients"><h3>Ingredients</h3><p>'+escm(ingredients)+'</p></section>':'')+'<p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
+    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p>'+(ingredients?'<section class="preview-ingredients"><h3>Ingredients</h3><p>'+escm(ingredients)+'</p></section>':'')+'<p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p>'+(soldOut?'<p class="menu-stock-status" style="margin:.25rem 0;font-size:.85rem;color:#b91c1c">Sold Out</p>':'')+'<button class="btn" type="button" '+(soldOut?'disabled':'')+'>'+(soldOut?'Sold Out':'Add to cart')+'</button>';
     d.querySelector('#menuPreviewBody button.btn').onclick=()=>{window.addMenuToCart(i.id);d.close()};
     if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
   };
   window.card=function(i){
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
-    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><div class="menu-card-category"><span>Category</span><b>'+escm(i.cat||'Menu')+'</b>'+(i.region&&i.cat==='Other Asian'?'<em> · '+escm(i.region)+'</em>':'')+'</div><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s menu-add" type="button" onclick="window.addMenuToCart('+i.id+')" aria-label="Add '+escm(i.name)+' to cart">Add to cart</button></div></div></article>';
+    const stock=Math.max(0,Number(i.stock_available??3)),soldOut=stock<=0;
+    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><div class="menu-card-category"><span>Category</span><b>'+escm(i.cat||'Menu')+'</b>'+(i.region&&i.cat==='Other Asian'?'<em> · '+escm(i.region)+'</em>':'')+'</div><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p>'+(soldOut?'<p class="menu-stock-status" style="margin:.25rem 0;font-size:.85rem;color:#b91c1c">Sold Out</p>':'')+'<div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s menu-add" type="button" '+(soldOut?'disabled':'')+' onclick="window.addMenuToCart('+i.id+')" aria-label="Add '+escm(i.name)+' to cart">'+(soldOut?'Sold Out':'Add to cart')+'</button></div></div></article>';
   };
   try{renderMenu()}catch{}
+  if(!window.__paInventoryRefreshStarted){
+    window.__paInventoryRefreshStarted=true;
+    let refreshingInventory=false;
+    const refreshInventoryStatus=async()=>{
+      if(refreshingInventory||document.hidden)return;
+      refreshingInventory=true;
+      try{
+        const latestMenu=await api('/menu');
+        if(Array.isArray(latestMenu)){
+          latestMenu.forEach(row=>{const current=items.find(x=>Number(x.id)===Number(row.id));if(current)Object.assign(current,row)});
+          try{renderMenu()}catch{}
+        }
+        const latestRegional=await api('/regional-dishes');
+        if(Array.isArray(latestRegional)){
+          if(typeof window.setRegionalDishes==='function')window.setRegionalDishes(latestRegional);
+          const grid=document.getElementById('regional-grid');
+          if(grid)latestRegional.forEach(row=>{
+            const stock=Math.max(0,Number(row.stock_available??3)),soldOut=stock<=0;
+            const button=grid.querySelector('[data-regional-id="'+Number(row.id)+'"]');
+            if(button){button.disabled=soldOut;button.textContent=soldOut?'Sold Out':'Add to cart';}
+            const label=grid.querySelector('[data-regional-stock-id="'+Number(row.id)+'"]');
+            if(label){label.textContent=soldOut?'Sold Out':'';label.hidden=!soldOut;label.style.color='#b91c1c';}
+          });
+        }
+      }catch{}
+      finally{refreshingInventory=false}
+    };
+    window.addEventListener('focus',refreshInventoryStatus);
+    window.setInterval(refreshInventoryStatus,20000);
+  }
 }
 function addTheme(){
   document.documentElement.dataset.pinoyambulaTheme='heritage';
@@ -491,8 +523,8 @@ function adminBoot(){
   };
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
-    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddRegional(this)"><h3>Add regional Filipino dish</h3><div class="master-admin-grid"><label>Name<input name="name" required></label><label>Region<input name="region" required></label><label>Price<input name="price" type="number" step="0.001" min="0" value="0"></label><label>Sort order<input name="sort_order" type="number" value="0"></label></div><label>Description<textarea name="descr" rows="2"></textarea></label><button class="btn">Add dish</button></form>'+
-      tbl(rows,[['Name',x=>'<input value="'+escm(x.name)+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{name:this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Region',x=>'<input value="'+escm(x.region)+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{region:this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Description',x=>'<textarea rows="2" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{descr:this.value})">'+escm(x.descr)+'</textarea>'],['Price',x=>'<input type="number" step="0.001" value="'+x.price+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{price:+this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Available',x=>'<input type="checkbox" style="width:auto" '+(x.active?'checked':'')+' onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{active:this.checked?1:0}).then(()=>toast(&#39;Saved&#39;))">'],['Image',x=>'<div class="drop master-reg-image" data-id="'+x.id+'" style="height:80px;'+(x.img?'background:url(&#39;'+escm(x.img)+'&#39;) center/cover;color:#fff':'')+'">'+(x.img?'Replace image':'⬆ Add image')+'</div>'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/regional-dishes/'+x.id+'&#39;,&#39;Regional Dishes&#39;)">Delete</button>']]);
+    return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddRegional(this)"><h3>Add regional Filipino dish</h3><div class="master-admin-grid"><label>Name<input name="name" required></label><label>Region<input name="region" required></label><label>Price<input name="price" type="number" step="0.001" min="0" value="0"></label><label>Available today<input name="stock_available" type="number" min="0" step="1" value="3"></label><label>Daily restock quantity<input name="daily_restock_quantity" type="number" min="0" step="1" value="3"></label><label>Sort order<input name="sort_order" type="number" value="0"></label></div><label>Description<textarea name="descr" rows="2"></textarea></label><button class="btn">Add dish</button></form>'+
+      tbl(rows,[['Name',x=>'<input value="'+escm(x.name)+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{name:this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Region',x=>'<input value="'+escm(x.region)+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{region:this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Description',x=>'<textarea rows="2" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{descr:this.value})">'+escm(x.descr)+'</textarea>'],['Price',x=>'<input type="number" step="0.001" value="'+x.price+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{price:+this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Available today',x=>'<input type="number" min="0" step="1" value="'+Number(x.stock_available??3)+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{stock_available:+this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Daily restock quantity',x=>'<input type="number" min="0" step="1" value="'+Number(x.daily_restock_quantity??3)+'" onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{daily_restock_quantity:+this.value}).then(()=>toast(&#39;Saved&#39;))">'],['Available',x=>'<input type="checkbox" style="width:auto" '+(x.active?'checked':'')+' onchange="A(&#39;/regional-dishes/'+x.id+'&#39;,&#39;PUT&#39;,{active:this.checked?1:0}).then(()=>toast(&#39;Saved&#39;))">'],['Image',x=>'<div class="drop master-reg-image" data-id="'+x.id+'" style="height:80px;'+(x.img?'background:url(&#39;'+escm(x.img)+'&#39;) center/cover;color:#fff':'')+'">'+(x.img?'Replace image':'⬆ Add image')+'</div>'],['',x=>'<button class="btn s o" type="button" onclick="masterDelete(&#39;/regional-dishes/'+x.id+'&#39;,&#39;Regional Dishes&#39;)">Delete</button>']]);
   };
   R['Heritage']=async function(){
     const rows=await A('/heritage');
