@@ -331,20 +331,18 @@
         i.discount_price > 0 && i.discount_price < i.price
           ? i.discount_price
           : i.price;
-      const card = (
-        i,
-      ) => `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p>
+      const card = (i) => {
+        const stock = Math.max(0, Number(i.stock_available ?? 3));
+        const soldOut = stock <= 0;
+        return `<div class="card"><div class="ph" style="${i.img ? `background-image:url('${esc(i.img)}')` : ""}">${i.img ? "" : esc(i.emoji || "🍽️")}</div><div class="p"><p class="menu-category"><b>Category:</b> ${esc(i.cat || "Menu")}${i.region && i.cat === "Other Asian" ? ` · ${esc(i.region)}` : ""}</p><h3>${esc(i.name)}</h3><p style="font-size:.9rem;opacity:.75">${esc(i.descr)}</p><p class="menu-stock-status" style="margin:.25rem 0;font-size:.8rem;color:${soldOut ? "#b91c1c" : "#667085"}">${soldOut ? "Sold Out" : stock + " available"}</p><p>
   ${
     i.discount_price > 0 && i.discount_price < i.price
-      ? '<del style="opacity:.6">' +
-        money(i.price) +
-        '</del> <span class="pr">' +
-        money(i.discount_price) +
-        "</span>"
+      ? '<del style="opacity:.6">' + money(i.price) + '</del> <span class="pr">' + money(i.discount_price) + "</span>"
       : '<span class="pr">' + money(i.price) + "</span>"
   }
-  <button type="button" class="btn s menu-add" onclick="window.addMenuToCart(${i.id})" aria-label="Add ${esc(i.name)} to cart">Add to cart</button>
+  <button type="button" class="btn s menu-add" ${soldOut ? "disabled" : ""} onclick="window.addMenuToCart(${i.id})" aria-label="Add ${esc(i.name)} to cart">${soldOut ? "Sold Out" : "Add to cart"}</button>
 </p></div></div>`;
+      };
       function setCat(c) {
         cat = c;
         renderMenu();
@@ -391,6 +389,8 @@
               region: String(x.region || "Regional"),
               descr: String(x.descr || ""),
               price: Number(x.price || 0),
+              stock_available: Number(x.stock_available ?? 3),
+              daily_restock_quantity: Number(x.daily_restock_quantity ?? 3),
             }))
           : [];
         renderCart();
@@ -398,6 +398,12 @@
       window.addRegionalToCart = (dish) => {
         if (!dish || !dish.id) return;
         const key = regionalKey(dish.id);
+        const latest = regionalItems.find((x) => Number(x.id) === Number(dish.id));
+        const available = Math.max(0, Number(latest?.stock_available ?? dish.stock_available ?? 3));
+        if (available <= 0 || Number(cart[key] || 0) >= available) {
+          toast(available <= 0 ? "Sold Out" : "Only " + available + " available today");
+          return;
+        }
         if (!regionalItems.some((x) => Number(x.id) === Number(dish.id))) {
           regionalItems.push({
             id: Number(dish.id),
@@ -405,6 +411,8 @@
             region: String(dish.region || "Regional"),
             descr: String(dish.descr || ""),
             price: Number(dish.price || 0),
+            stock_available: Number(dish.stock_available ?? 3),
+            daily_restock_quantity: Number(dish.daily_restock_quantity ?? 3),
           });
         }
         cart[key] = (cart[key] || 0) + 1;
@@ -418,6 +426,11 @@
       window.addMenuToCart = (id) => {
         const dish = items.find((x) => Number(x.id) === Number(id));
         if (!dish) return;
+        const available = Math.max(0, Number(dish.stock_available ?? 3));
+        if (available <= 0 || Number(cart[dish.id] || 0) >= available) {
+          toast(available <= 0 ? "Sold Out" : "Only " + available + " available today");
+          return;
+        }
         cart[dish.id] = (cart[dish.id] || 0) + 1;
         sv();
         toast("Added to cart");
@@ -426,6 +439,17 @@
         window.addMenuToCart(id);
       }
       function chg(id, d) {
+        if (d > 0) {
+          const isRegional = String(id).startsWith("r:");
+          const dish = isRegional
+            ? regionalItems.find((x) => regionalKey(x.id) === String(id))
+            : items.find((x) => String(x.id) === String(id));
+          const available = Math.max(0, Number(dish?.stock_available ?? 3));
+          if (!dish || available <= 0 || Number(cart[id] || 0) >= available) {
+            toast(!dish || available <= 0 ? "Sold Out" : "Only " + available + " available today");
+            return;
+          }
+        }
         cart[id] = (cart[id] || 0) + d;
         if (cart[id] <= 0) delete cart[id];
         sv();
@@ -905,6 +929,6 @@
     </script>
     <script src="enhancements.js?v=20261007-cart1"></script>
     <script src="final-fixes.js"></script>
-    <script src="master-enhancements.js?v=20261007-cart1"></script>
+    <script src="master-enhancements.js?v=20261010-stock1"></script>
   </body>
 </html>
