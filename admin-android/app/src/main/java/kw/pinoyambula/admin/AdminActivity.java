@@ -158,7 +158,7 @@ public final class AdminActivity extends Activity {
                 return;
             }
 
-            FirebaseMessaging.getInstance(firebaseApp).getToken()
+            FirebaseMessaging.getInstance().getToken()
                 .addOnSuccessListener(this::storeAndEmit)
                 .addOnFailureListener(error ->
                     android.util.Log.w("PinoyAdmin", "Could not retrieve FCM token."));
