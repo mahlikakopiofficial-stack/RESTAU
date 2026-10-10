@@ -9,3 +9,11 @@ npm-debug.log*
 .DS_Store
 coverage/
 backups/
+# Android signing / Firebase configuration must never be committed
+*.jks
+*.keystore
+**/google-services.json
+
+# Generated Android / Gradle build outputs
+**/.gradle/
+**/build/
