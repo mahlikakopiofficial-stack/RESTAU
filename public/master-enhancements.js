@@ -184,7 +184,7 @@ async function addRegional(){
   const s=document.createElement('section');s.id='regional-favorites';s.className='master-section alt';
   s.innerHTML='<div class="wrap"><div class="t"><h2>Regional Filipino Favorites</h2><p>Famous dishes from different regions of the Philippines.</p></div><div class="master-grid" id="regional-grid"></div></div>';
   plans.insertAdjacentElement('beforebegin',s);
-  q('#regional-grid').innerHTML=rows.map(x=>'<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'<button type="button" class="btn s" data-regional-id="'+escm(x.id)+'">Add to cart</button></div></article>').join('');
+  q('#regional-grid').innerHTML=rows.map(x=>{const stock=Math.max(0,Number(x.stock_available??3)),soldOut=stock<=0;return '<article class="card"><img class="master-item-media" src="'+escm(x.img||'/icons/pinoyambula.svg')+'" alt="'+escm(x.name)+'" loading="lazy"><div class="p"><div class="pill">'+escm(x.region)+'</div><h3>'+escm(x.name)+'</h3><p>'+escm(x.descr)+'</p>'+(+x.price>0?'<p class="pr">'+money(x.price)+'</p>':'')+'<p class="menu-stock-status" data-regional-stock-id="'+escm(x.id)+'" style="margin:.25rem 0;font-size:.85rem;color:'+(soldOut?'#b91c1c':'#667085')+'">'+(soldOut?'Sold Out':stock+' available')+'</p><button type="button" class="btn s" data-regional-id="'+escm(x.id)+'" '+(soldOut?'disabled':'')+'>'+(soldOut?'Sold Out':'Add to cart')+'</button></div></article>'}).join('');
   if(typeof window.setRegionalDishes==='function')window.setRegionalDishes(rows);
   q('#regional-grid').querySelectorAll('[data-regional-id]').forEach(btn=>btn.addEventListener('click',()=>{const dish=rows.find(x=>String(x.id)===String(btn.dataset.regionalId));if(dish&&typeof window.addRegionalToCart==='function')window.addRegionalToCart(dish);}));
 }
@@ -252,6 +252,7 @@ function patchMenu(){
   window.openMenuPreview=function(id){
     const i=items.find(x=>x.id==id);if(!i)return;
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
+    const stock=Math.max(0,Number(i.stock_available??3)),soldOut=stock<=0;
     let d=document.getElementById('menuPreview');
     if(!d){
       d=document.createElement('dialog');d.id='menuPreview';d.className='master-lightbox';
@@ -259,15 +260,46 @@ function patchMenu(){
       d.querySelector('button').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close()});document.body.appendChild(d);
     }
     const ingredients=String(i.ingredients||'').trim();
-    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p>'+(ingredients?'<section class="preview-ingredients"><h3>Ingredients</h3><p>'+escm(ingredients)+'</p></section>':'')+'<p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><button class="btn" type="button">Add to cart</button>';
+    d.querySelector('#menuPreviewBody').innerHTML='<img src="'+escm(src)+'" alt="'+escm(i.name)+'"><h2>'+escm(i.name)+'</h2><div class="preview-meta"><span class="pill">'+escm(i.cat)+'</span><span class="pill">'+escm(i.region||'Filipino')+'</span></div><p>'+escm(i.descr)+'</p>'+(ingredients?'<section class="preview-ingredients"><h3>Ingredients</h3><p>'+escm(ingredients)+'</p></section>':'')+'<p class="pr">'+(sale?'<del>'+money(i.price)+'</del> ':'')+money(price)+'</p><p class="menu-stock-status" style="margin:.25rem 0;font-size:.85rem;color:'+(soldOut?'#b91c1c':'#667085')+'">'+(soldOut?'Sold Out':stock+' available')+'</p><button class="btn" type="button" '+(soldOut?'disabled':'')+'>'+(soldOut?'Sold Out':'Add to cart')+'</button>';
     d.querySelector('#menuPreviewBody button.btn').onclick=()=>{window.addMenuToCart(i.id);d.close()};
     if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');
   };
   window.card=function(i){
     const price=itemPrice(i),sale=price<i.price,src=i.img||((i.cat||'').toLowerCase()==='drinks'?drinkFallback():menuFallback());
-    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><div class="menu-card-category"><span>Category</span><b>'+escm(i.cat||'Menu')+'</b>'+(i.region&&i.cat==='Other Asian'?'<em> · '+escm(i.region)+'</em>':'')+'</div><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s menu-add" type="button" onclick="window.addMenuToCart('+i.id+')" aria-label="Add '+escm(i.name)+' to cart">Add to cart</button></div></div></article>';
+    const stock=Math.max(0,Number(i.stock_available??3)),soldOut=stock<=0;
+    return '<article class="card master-menu-card" onclick="if(!event.target.closest(\'.btn\'))openMenuPreview('+i.id+')"><button type="button" class="master-menu-photo" aria-label="Preview '+escm(i.name)+'"><img src="'+escm(src)+'" alt="'+escm(i.name)+'"></button><div class="p"><div class="menu-card-category"><span>Category</span><b>'+escm(i.cat||'Menu')+'</b>'+(i.region&&i.cat==='Other Asian'?'<em> · '+escm(i.region)+'</em>':'')+'</div><h3>'+escm(i.name)+'</h3><p class="menu-description">'+escm(i.descr)+'</p><p class="menu-stock-status" style="margin:.25rem 0;font-size:.85rem;color:'+(soldOut?'#b91c1c':'#667085')+'">'+(soldOut?'Sold Out':stock+' available')+'</p><div class="menu-card-actions"><span class="menu-price">'+(sale?'<del>'+money(i.price)+'</del> <b>'+money(price)+'</b>':'<b>'+money(price)+'</b>')+'</span><button class="btn s menu-add" type="button" '+(soldOut?'disabled':'')+' onclick="window.addMenuToCart('+i.id+')" aria-label="Add '+escm(i.name)+' to cart">'+(soldOut?'Sold Out':'Add to cart')+'</button></div></div></article>';
   };
   try{renderMenu()}catch{}
+  if(!window.__paInventoryRefreshStarted){
+    window.__paInventoryRefreshStarted=true;
+    let refreshingInventory=false;
+    const refreshInventoryStatus=async()=>{
+      if(refreshingInventory||document.hidden)return;
+      refreshingInventory=true;
+      try{
+        const latestMenu=await api('/menu');
+        if(Array.isArray(latestMenu)){
+          latestMenu.forEach(row=>{const current=items.find(x=>Number(x.id)===Number(row.id));if(current)Object.assign(current,row)});
+          try{renderMenu()}catch{}
+        }
+        const latestRegional=await api('/regional-dishes');
+        if(Array.isArray(latestRegional)){
+          if(typeof window.setRegionalDishes==='function')window.setRegionalDishes(latestRegional);
+          const grid=document.getElementById('regional-grid');
+          if(grid)latestRegional.forEach(row=>{
+            const stock=Math.max(0,Number(row.stock_available??3)),soldOut=stock<=0;
+            const button=grid.querySelector('[data-regional-id="'+Number(row.id)+'"]');
+            if(button){button.disabled=soldOut;button.textContent=soldOut?'Sold Out':'Add to cart';}
+            const label=grid.querySelector('[data-regional-stock-id="'+Number(row.id)+'"]');
+            if(label){label.textContent=soldOut?'Sold Out':stock+' available';label.style.color=soldOut?'#b91c1c':'#667085';}
+          });
+        }
+      }catch{}
+      finally{refreshingInventory=false}
+    };
+    window.addEventListener('focus',refreshInventoryStatus);
+    window.setInterval(refreshInventoryStatus,20000);
+  }
 }
 function addTheme(){
   document.documentElement.dataset.pinoyambulaTheme='heritage';
