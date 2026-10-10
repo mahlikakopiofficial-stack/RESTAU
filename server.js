@@ -3,6 +3,7 @@ try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split('\n').forEach(l=>{
 const express=require('express'),Database=require('better-sqlite3'),multer=require('multer');
 const loyalty=require('./public/loyalty.js');
 const inventory=require('./lib/inventory');
+const adminPush=require('./lib/admin-push');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
 const {notifyRegistration,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifyAdminSubscription,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,title TEXT NOT N
 CREATE TABLE IF NOT EXISTS regional_dishes(id INTEGER PRIMARY KEY,name TEXT NOT NULL,region TEXT NOT NULL,descr TEXT DEFAULT '',price REAL DEFAULT 0,img TEXT DEFAULT '',active INTEGER DEFAULT 1,sort_order INTEGER DEFAULT 0,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS heritage(id INTEGER PRIMARY KEY,title TEXT NOT NULL,caption TEXT DEFAULT '',media_type TEXT DEFAULT 'image',img TEXT DEFAULT '',media_url TEXT DEFAULT '',active INTEGER DEFAULT 1,sort_order INTEGER DEFAULT 0,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS notification_log(id INTEGER PRIMARY KEY,channel TEXT NOT NULL,event_key TEXT NOT NULL UNIQUE,recipient TEXT DEFAULT '',status TEXT DEFAULT 'Pending',error TEXT DEFAULT '',created TEXT DEFAULT CURRENT_TIMESTAMP,sent_at TEXT);
+CREATE TABLE IF NOT EXISTS admin_push_tokens(token TEXT PRIMARY KEY,device_name TEXT DEFAULT 'admin-android',active INTEGER DEFAULT 1,created_at TEXT DEFAULT CURRENT_TIMESTAMP,updated_at TEXT DEFAULT CURRENT_TIMESTAMP,last_seen TEXT DEFAULT CURRENT_TIMESTAMP);
 `);
 const ensureColumn=(table,column,definition)=>{
   if(!db.prepare(`PRAGMA table_info(${table})`).all().some(x=>x.name===column))
@@ -262,6 +264,12 @@ const broadcastAdminEvent=(event)=>{
   }
 };
 
+const queueAdminPush=event=>{
+  Promise.resolve().then(()=>adminPush.sendAdminPush(db,event)).catch(error=>{
+    console.error('[ADMIN-PUSH] Unexpected delivery error:',String(error?.message||error).slice(0,300));
+  });
+};
+
 const broadcastCustomerEvent=(customerId,event)=>{
   const streams=customerStreams.get(Number(customerId));
   if(!streams?.size)return;
@@ -300,13 +308,16 @@ const broadcastCustomerMessage=(customerId,message)=>broadcastCustomerEvent(cust
   created:String(message.created||'')
 });
 
-const broadcastAdminOrder=order=>broadcastAdminEvent({
-  type:'order',
-  id:Number(order.id),
-  name:String(order.name||''),
-  status:String(order.status||''),
-  created:String(order.created||'')
-});
+const broadcastAdminOrder=order=>{
+  broadcastAdminEvent({
+    type:'order',
+    id:Number(order.id),
+    name:String(order.name||''),
+    status:String(order.status||''),
+    created:String(order.created||'')
+  });
+  queueAdminPush({key:'order:'+Number(order.id),type:'order',id:Number(order.id)});
+};
 const broadcastAdminInquiry=inquiry=>broadcastAdminEvent({
   type:'inquiry',
   id:Number(inquiry.id),
@@ -341,16 +352,19 @@ const adminEventsAfter=(cursor={})=>{
   events.sort((a,b)=>String(a.created).localeCompare(String(b.created))||a.id-b.id);
   return events;
 };
-const broadcastAdminMessage=(inquiry,message,messageId)=>broadcastAdminEvent({
-  type:'message',
-  id:Number(messageId||0),
-  customer_id:Number(inquiry.customer_id||0),
-  order_id:Number(inquiry.order_id||0),
-  name:String(inquiry.name||'customer'),
-  inquiry_id:Number(inquiry.id),
-  message:String(message||''),
-  created:new Date().toISOString()
-});
+const broadcastAdminMessage=(inquiry,message,messageId)=>{
+  broadcastAdminEvent({
+    type:'message',
+    id:Number(messageId||0),
+    customer_id:Number(inquiry.customer_id||0),
+    order_id:Number(inquiry.order_id||0),
+    name:String(inquiry.name||'customer'),
+    inquiry_id:Number(inquiry.id),
+    message:String(message||''),
+    created:new Date().toISOString()
+  });
+  queueAdminPush({key:'message:'+Number(messageId||0),type:'message',id:Number(messageId||0)});
+};
 
 const allowedOrigins = new Set([
   'https://localhost',
@@ -445,6 +459,7 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
   notifyAdminInquiry(inquiry);
   Promise.resolve(notifyAdminWhatsApp('inquiry:'+inquiry.id+':received',adminInquiryWhatsAppText(inquiry))).catch(()=>{});
   broadcastAdminInquiry(inquiry);
+  queueAdminPush({key:'inquiry:'+Number(inquiry.id),type:'inquiry',id:Number(inquiry.id)});
   r.json({ok:1,id:inquiry.id});
 }));
 app.post('/api/register',lim(8),w((q,r)=>{
@@ -780,6 +795,7 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
   if(b.whatsapp_opt_in)db.prepare('UPDATE customers SET whatsapp_opt_in=1 WHERE id=?').run(savedSub.customer_id);
   notifySubscriptionReceived(savedSub);
   notifyAdminSubscription(savedSub);
+  queueAdminPush({key:'subscription:'+Number(id),type:'subscription',id:Number(id)});
   if(savedSub.whatsapp_opt_in)Promise.resolve(notificationOnce('subscription:'+id+':received',savedSub.phone,subscriptionWhatsAppText(savedSub,'received'))).catch(()=>{});
   r.json({id:Number(id),start:date(start),end:date(end),duration_days:duration,price:p.price,payment_method:payment,payment_status:'Pending'});
 }));
