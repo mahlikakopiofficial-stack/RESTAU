@@ -13,6 +13,9 @@ def hasSigning = System.getenv("ADMIN_ANDROID_KEYSTORE_FILE") &&
     System.getenv("ADMIN_ANDROID_KEY_ALIAS") &&
     System.getenv("ADMIN_ANDROID_KEY_PASSWORD")
 
+def requestedVersionCode = (project.findProperty("versionCode") ?: "1").toString().toInteger()
+def requestedVersionName = String.valueOf(project.findProperty("versionName") ?: "1.0.0")
+
 android {
     namespace "kw.pinoyambula.admin"
     compileSdk 36
@@ -25,8 +28,8 @@ android {
         applicationId "kw.pinoyambula.admin"
         minSdk 23
         targetSdk 36
-        versionCode (project.findProperty("versionCode") ?: "1").toInteger()
-        versionName (project.findProperty("versionName") ?: "1.0.0")
+        versionCode requestedVersionCode
+        versionName requestedVersionName
         buildConfigField "String", "FIREBASE_APP_ID", cfg("ADMIN_FIREBASE_APP_ID")
         buildConfigField "String", "FIREBASE_API_KEY", cfg("ADMIN_FIREBASE_API_KEY")
         buildConfigField "String", "FIREBASE_PROJECT_ID", cfg("ADMIN_FIREBASE_PROJECT_ID")
