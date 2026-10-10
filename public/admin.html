@@ -75,6 +75,7 @@
         }
       }
       function out() {
+        window.unregisterAdminPush?.();
         localStorage.removeItem(K);
         location.reload();
       }
@@ -1083,5 +1084,6 @@ ${f("hero_title", "Homepage headline")}
     <script src="master-enhancements.js?v=20261010-stock3"></script>
     <script id="admin-fixes-script" src="admin-fixes.js?v=20261007-live8" onload="if(tk(&quot;at&quot;))go(cur)"></script>
     <script id="admin-notify-script" src="admin-notify.js?v=20261007-live7"></script>
+    <script id="admin-push-script" src="admin-push.js?v=20261010-adminpush1"></script>
   </body>
 </html>
