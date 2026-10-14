@@ -1,7 +1,7 @@
 {
   "name": "PinoyAmbula",
   "short_name": "PinoyAmbula",
-  "id": "https://pinoyambulakw.duckdns.org/",
+  "id": "https://pinoyambula.com/",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
