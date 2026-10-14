@@ -2,10 +2,10 @@
 Node + Express + SQLite. Pages: `index.html` (customer site), `account.html` (customer account), and the host-protected `admin.html` (admin dashboard).
 
 ## Current production hosts
-- Customer site: `https://pinoyambulakw.duckdns.org`
-- Admin portal: `https://admin-pinoy-ambula.duckdns.org`
+- Customer site: `https://pinoyambula.com`
+- Admin portal: `https://admin.pinoyambula.com`
 
-The admin hostname is intentionally separate from the customer hostname. Keep the current DuckDNS admin hostname while testing; it can be changed later through `ADMIN_HOST` when the final domain is ready.
+The admin hostname is intentionally separate from the customer hostname. Legacy DuckDNS endpoints may remain temporarily for older installed APKs; retire them only after the new APK is built and verified.
 
 ## Production status
 The current production deployment has been verified with:
@@ -40,13 +40,15 @@ Node 22+ is required by the application and Capacitor configuration.
 Important production values include:
 
     RESTO_NAME=PinoyAmbula
-    PUBLIC_BASE_URL=https://pinoyambulakw.duckdns.org
+    PUBLIC_BASE_URL=https://pinoyambula.com
     ADMIN_HOST=admin-pinoy-ambula.duckdns.org
     GMAIL_FROM_NAME=PinoyAmbula
+    GMAIL_FROM_EMAIL=info@pinoyambula.com
+    GMAIL_REDIRECT_URI=https://pinoyambula.com/api/gmail/oauth/callback
 
 The database-backed restaurant name is also managed from **Admin → Settings** after the first initialization.
 
-Email notifications use the Gmail API with OAuth, not SMTP or a Gmail app password. Configure `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_OAUTH_STATE`, then visit `/api/gmail/oauth/start` once and authorize the account. The callback stores `GMAIL_REFRESH_TOKEN` in the server `.env`; set `GMAIL_ADMIN_NOTIFY_TO` to the address that should receive order and inquiry alerts (it defaults to `GMAIL_USER`). Admin → Settings shows whether required email credentials are present.
+Email notifications use the Gmail API with OAuth, not SMTP or a Gmail app password. Configure `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_OAUTH_STATE`, and `GMAIL_REDIRECT_URI`, then visit `/api/gmail/oauth/start` once and authorize the account. The callback stores `GMAIL_REFRESH_TOKEN` in the server `.env`; set `GMAIL_ADMIN_NOTIFY_TO` to the address that should receive order and inquiry alerts (it defaults to `GMAIL_USER`). Admin → Settings shows whether required email credentials are present.
 
 WhatsApp registration and order notifications require a customer opt-in. Configure `WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_ACCESS_TOKEN`. Free-form WhatsApp messages are limited to the active customer-service window; for notifications outside that window, also set `WHATSAPP_TEMPLATE_NAME` and `WHATSAPP_TEMPLATE_LANGUAGE` to an approved WhatsApp Business template with one BODY text variable. Provider credentials and templates must be provisioned in Meta and cannot be created by this app.
 
@@ -64,8 +66,8 @@ Recommended production synchronization:
 
 Then verify:
 
-    curl -fsS https://pinoyambulakw.duckdns.org/api/health
-    curl -fsS https://admin-pinoy-ambula.duckdns.org/api/health
+    curl -fsS https://pinoyambula.com/api/health
+    curl -fsS https://admin.pinoyambula.com/api/health
     su - resto -c 'pm2 status'
 
 This keeps the customer site, admin portal, server code, tests, and runtime on the same Git commit while preserving the production `.env` separately.
