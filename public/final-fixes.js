@@ -5,6 +5,7 @@
   // customer header, admin favicon, browser favicon, and PWA manifest.
   const BRAND_ICON='/icons/pinoyambula.svg';
   const BRAND_NAME='PinoyAmbula';
+  const isAdminRoute=()=>location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname.startsWith('admin.')||location.hostname.startsWith('admin-');
   const applyBrandMark=()=>{
     document.querySelectorAll('link[rel="icon"]').forEach(link=>link.href=BRAND_ICON);
     const logo=document.querySelector('nav .logo');
@@ -38,7 +39,7 @@
   },{passive:true});
 
   // Keep navigation visible and sticky; responsive CSS controls its layout.\n  // Public pages must not expose an admin navigation link.
-  if(!location.pathname.endsWith('/admin.html') && location.pathname!=='/admin.html'){
+  if(!isAdminRoute()){
     document.querySelectorAll('a[href="admin.html"],a[href="/admin.html"]').forEach(a=>a.remove());
   }
 
@@ -106,7 +107,7 @@
   }
 
   // Admin-only customer email composer. It uses the existing Gmail OAuth sender.
-  if(location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'){
+  if(isAdminRoute()){
     const addEmailButton=()=>{
       const side=document.getElementById('side');
       if(!side||side.querySelector('[data-customer-email]'))return;
