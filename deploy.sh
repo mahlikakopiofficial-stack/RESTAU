@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # One-command deploy/update for a fresh Ubuntu 22.04/24.04 DigitalOcean droplet. Safe to re-run (= update).
-# Usage (as root): REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambulakw.duckdns.org ADMIN_HOST=admin-pinoy-ambula.duckdns.org EMAIL=you@mail.com bash deploy.sh
+# Usage (as root): REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambula.com ADMIN_HOST=admin.pinoyambula.com EMAIL=you@mail.com bash deploy.sh
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run as root (sudo)"; exit 1; }
-REPO="${REPO:-}"; DOMAIN="${DOMAIN:-_}"; ADMIN_HOST="${ADMIN_HOST:-admin-pinoy-ambula.duckdns.org}"; EMAIL="${EMAIL:-}"; APP=/var/www/resto; PORT=3000
+REPO="${REPO:-}"; DOMAIN="${DOMAIN:-_}"; ADMIN_HOST="${ADMIN_HOST:-admin.pinoyambula.com}"; EMAIL="${EMAIL:-}"; APP=/var/www/resto; PORT=3000
 [ -n "$REPO" ] || [ -d "$APP/.git" ] || { echo "Set REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git"; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 echo "==> Installing system packages"
