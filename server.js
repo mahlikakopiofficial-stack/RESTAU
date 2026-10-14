@@ -369,7 +369,11 @@ const broadcastAdminMessage=(inquiry,message,messageId)=>{
 const allowedOrigins = new Set([
   'https://localhost',
   'http://localhost',
-  'https://pinoyambulakw.duckdns.org'
+  'https://pinoyambula.com',
+  'https://www.pinoyambula.com',
+  'https://admin.pinoyambula.com',
+  'https://pinoyambulakw.duckdns.org',
+  'https://admin-pinoy-ambula.duckdns.org'
 ]);
 
 app.use((q,r,n)=>{
@@ -1579,4 +1583,4 @@ app.use('/uploads',express.static(UP,{maxAge:'7d'}));app.use(express.static(path
 app.use('/api',(q,r)=>r.status(404).json({error:'Not found'}));
 app.get(/^\/(?!uploads\/).*/,(q,r)=>r.redirect('/'));
 app.use((e,q,r,n)=>r.status(400).json({error:e.message}));
-app.listen(PORT,()=>console.log(NAME+' running on http://localhost:'+PORT+(ADMIN_PW==='admin123'?'  (WARNING: set ADMIN_PASSWORD)':'')));
+app.listen(PORT,'127.0.0.1',()=>console.log(NAME+' running on http://localhost:'+PORT+(ADMIN_PW==='admin123'?'  (WARNING: set ADMIN_PASSWORD)':'')));
