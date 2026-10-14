@@ -115,5 +115,6 @@ window.pr=async function(id){
 };
 const obs=new MutationObserver(()=>{const side=document.getElementById('side');if(side&&!side.querySelector('[data-report]')){const b=document.createElement('button');b.dataset.report='1';b.textContent='Reports';b.onclick=()=>go('Reports');side.appendChild(b)}});obs.observe(document.body,{childList:true,subtree:true});
 }
-if(location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html')setTimeout(admin,50);else setTimeout(site,50);
+const isAdminRoute=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname.startsWith('admin.')||location.hostname.startsWith('admin-');
+if(isAdminRoute)setTimeout(admin,50);else setTimeout(site,50);
 })();
