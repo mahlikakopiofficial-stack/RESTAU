@@ -643,7 +643,7 @@ function adminBoot(){
 
 function boot(){
   masterCss();
-  const isAdmin=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname.startsWith('admin-');
+  const isAdmin=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname.startsWith('admin.')||location.hostname.startsWith('admin-');
   if(isAdmin){setTimeout(()=>{try{adminBoot()}catch(e){console.error('MASTER_ADMIN_BOOT_FAILED',e)}},180);return}
   setTimeout(()=>{
     try{siteBoot()}catch(e){console.error('MASTER_SITE_BOOT_FAILED',e)}
