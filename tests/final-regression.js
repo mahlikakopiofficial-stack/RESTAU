@@ -81,7 +81,7 @@ t('subscription nickname/autofill',()=>{assert(server.includes("'subs','nickname
 t('admin customer email composer',()=>{assert(server.includes("app.post('/api/admin/email-customer'"));assert(fixes.includes('Customer Email'));assert(fixes.includes('/api/admin/email-customer'))});
 t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(style.includes('@media(max-width:1000px)'));assert(master.includes('AUTHORITATIVE PUBLIC NAV v2'));assert(master.includes('@media(max-width:1180px)'));assert(!pwa.includes('nav #nl{display:none!important}'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(!fixes.includes('Auto-hide the public/admin navigation'));assert(!fixes.includes('Keep every admin navigation control visually consistent'));assert(admin.includes('admin-nav.css'));assert(admin.includes('admin-dashboard.css'));assert(!index.includes('navigation-final.js'));});
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
-t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("https://pinoyambulakw.duckdns.org"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')))});
+t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("'https://pinoyambula.com'"));assert(runtime.includes("'pinoyambulakw.duckdns.org'"));assert(runtime.includes("'admin.pinoyambula.com'"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')));assert(envExample.includes('GMAIL_REDIRECT_URI=https://pinoyambula.com/api/gmail/oauth/callback'));assert(gmail.includes("REDIRECT_DEFAULT='https://pinoyambula.com/api/gmail/oauth/callback'"));assert(gmail.includes('GMAIL_FROM_EMAIL||user'));assert(server.includes("'https://pinoyambula.com'"));assert(server.includes("'https://www.pinoyambula.com'"));assert(server.includes("'https://admin.pinoyambula.com'"));assert(server.includes("app.listen(PORT,'127.0.0.1'"));});
 t('deploy uses Node 22+',()=>{assert(deploy.includes('setup_22.x'));assert(deploy.includes('node -p'));assert(deploy.includes('chown -R resto:resto "$APP/.git"'));assert(deploy.includes('npm test'));assert(deploy.includes('pm2 start server.js --name resto'))});
 t('customer email delivery hardening',()=>{
   assert(gmail.includes("required('GMAIL_REFRESH_TOKEN')"));
@@ -144,7 +144,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v39'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v40'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -173,8 +173,8 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v39'"));
-  assert(sw.includes("const CACHE_VERSION='v39'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v40'"));
+  assert(sw.includes("const CACHE_VERSION='v40'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
@@ -445,7 +445,7 @@ t('separate admin Android app is configured for background Firebase notification
   assert(adminAndroidManifest.includes('.AdminFirebaseMessagingService'));
   assert(adminAndroidManifest.includes('android.permission.POST_NOTIFICATIONS'));
   assert(adminAndroidActivity.includes('setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)'));
-  assert(adminAndroidActivity.includes('admin-pinoy-ambula.duckdns.org'));
+  assert(adminAndroidActivity.includes('admin.pinoyambula.com'));
   assert(adminAndroidMessaging.includes('onMessageReceived'));
   assert(adminAndroidApplication.includes('FirebaseApp.initializeApp'));
   assert(admin.includes('admin-push.js?v=20261010-adminpush1'));

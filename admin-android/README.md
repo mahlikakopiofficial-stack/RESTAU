@@ -4,7 +4,7 @@ This is a separate Android application for the restaurant admin dashboard. It do
 
 ## What it does
 
-- Opens the existing authenticated admin dashboard at `https://admin-pinoy-ambula.duckdns.org/admin.html`.
+- Opens the existing authenticated admin dashboard at `https://admin.pinoyambula.com/admin.html`.
 - Uses Firebase Cloud Messaging (FCM) to show Android system notifications for new orders, inquiries, customer messages, and subscriptions, including when the dashboard is closed.
 - Opens the admin app from a push notification and routes to Orders, Inquiries, or Subscriptions after admin login.
 - Registers the FCM device token only after a valid admin bearer token is present.

@@ -28,7 +28,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import org.json.JSONObject;
 
 public final class AdminActivity extends Activity {
-    private static final String ADMIN_URL = "https://admin-pinoy-ambula.duckdns.org/admin.html";
+    private static final String ADMIN_URL = "https://admin.pinoyambula.com/admin.html";
     static final String PREFS = "pinoyambula_admin";
     static final String KEY_FCM_TOKEN = "admin_fcm_token";
     private static volatile AdminActivity activeActivity;
@@ -124,7 +124,7 @@ public final class AdminActivity extends Activity {
     private boolean isAdminUrl(Uri uri) {
         return uri != null
             && "https".equalsIgnoreCase(uri.getScheme())
-            && "admin-pinoy-ambula.duckdns.org".equalsIgnoreCase(uri.getHost());
+            && "admin.pinoyambula.com".equalsIgnoreCase(uri.getHost());
     }
 
     private void initializeFirebase() {
