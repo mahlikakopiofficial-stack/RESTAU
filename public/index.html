@@ -548,14 +548,21 @@
           expected = String(config.promo_code || "")
             .trim()
             .toUpperCase(),
-          validPromo = !!(
-            config.promo_enabled &&
-            code &&
-            expected &&
-            code === expected
-          );
+          campaignVoucher = (window.PA_PROMOTIONS || []).find((p) =>
+            String(p.voucher_code || "").trim().toUpperCase() === code &&
+            code && ["percent", "fixed"].includes(String(p.discount_type || "none"))
+          ),
+          campaignMinMet = !!campaignVoucher && sub >= Number(campaignVoucher.min_order || 0),
+          validPromo = campaignVoucher
+            ? campaignMinMet
+            : !!(config.promo_enabled && code && expected && code === expected);
         let discount = 0;
-        if (validPromo) {
+        if (validPromo && campaignVoucher) {
+          const value = Math.max(0, Number(campaignVoucher.discount_value) || 0);
+          discount = campaignVoucher.discount_type === "percent"
+            ? Math.min(sub, (sub * value) / 100)
+            : Math.min(sub, value);
+        } else if (validPromo) {
           const value = Math.max(0, +config.promo_value || 0);
           discount =
             config.promo_type === "percent"
@@ -581,9 +588,13 @@
           ? window.PINOY_LOYALTY.deliveryFee(FEE, reward)
           : rewardKind === 8 ? 0 : FEE;
         $("#promo-help").textContent = code
-          ? validPromo
-            ? "Promo code applied."
-            : "Promo code not recognized."
+          ? campaignVoucher
+            ? !campaignMinMet
+              ? "This voucher requires a minimum subtotal of " + money(campaignVoucher.min_order) + "."
+              : "Voucher discount estimated. Sign in to redeem; one use per customer."
+            : validPromo
+              ? "Promo code applied."
+              : "Promo code not recognized."
           : config.promo_enabled && expected
             ? "Promo code available."
             : "";
