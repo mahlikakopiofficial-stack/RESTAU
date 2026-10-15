@@ -526,10 +526,13 @@ function adminBoot(){
     const rows=await A('/announcements');
     const modes=[['banner','Banner only'],['popup','Opening popup'],['both','Banner + popup'],['hidden','Do not display']];
     const discounts=[['none','No discount'],['percent','Percentage'],['fixed','Fixed KD amount']];
+    const audiences=[['all','All visitors'],['registered','Signed-in customers'],['guests','Guests only']];
     const displayOptions=value=>modes.map(x=>'<option value="'+x[0]+'"'+((value||'banner')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+    const audienceOptions=value=>audiences.map(x=>'<option value="'+x[0]+'"'+((value||'all')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
     const discountOptions=value=>discounts.map(x=>'<option value="'+x[0]+'"'+((value||'none')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
     const fields=(a,create)=>'<div class="master-admin-grid">'+
-      '<label>Display location<select name="display_mode">'+displayOptions(a.display_mode)+'</select></label>'+
+      '<label>Display location<select name="display_mode">'+displayOptions(a.display_mode)+'</select></label>'+ 
+      '<label>Audience<select name="audience">'+audienceOptions(a.audience)+'</select></label>'+ 
       '<label>Discount type<select name="discount_type">'+discountOptions(a.discount_type)+'</select></label>'+
       '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
       '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
