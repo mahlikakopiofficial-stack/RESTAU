@@ -141,6 +141,7 @@ async function addPromos(){
   let rows=[];
   try{rows=await api('/announcements')}catch{return}
   window.PA_PROMOTIONS=rows;
+  try{window.renderCart?.()}catch{}
   const bannerRows=rows.filter(x=>['banner','both'].includes(String(x.display_mode||'banner')));
   let bar=document.getElementById('master-promos');
   if(!bannerRows.length){bar?.remove()}
