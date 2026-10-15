@@ -1504,6 +1504,8 @@ const announcementPayload=(body,current={})=>{
   const minOrder=Number(body.min_order??current.min_order??0);
   const voucherCode=String(body.voucher_code??current.voucher_code??'').trim().toUpperCase();
   const welcomeEnabled=body.welcome_enabled===undefined?(Number(current.welcome_enabled||0)?1:0):(body.welcome_enabled?1:0);
+  if(voucherCode&&voucherCode===String(S().promo_code||'').trim().toUpperCase())throw new Error('Voucher code must differ from the global promo code');
+  if(voucherCode&&one('SELECT id FROM announcements WHERE upper(voucher_code)=? AND id<>?',voucherCode,Number(current.id||0)))throw new Error('That voucher code is already used by another promotion');
   if(!['banner','popup','both','hidden'].includes(displayMode))throw new Error('Invalid announcement display mode');
   if(!['all','registered','guests'].includes(audience))throw new Error('Invalid announcement audience');
   if(!['none','percent','fixed'].includes(discountType))throw new Error('Invalid discount type');
