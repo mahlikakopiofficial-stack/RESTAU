@@ -469,6 +469,8 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(server.includes("app.get('/api/admin/promotion-redemptions'"));
   assert(server.includes('UNIQUE(announcement_id,customer_id)'));
   assert(server.includes('This voucher has already been used by this customer.'));
+  assert(server.includes('That voucher code is already used by another promotion'));
+  assert(server.includes('Voucher code must differ from the global promo code'));
   assert(server.includes('Sign in or register to use this voucher.'));
   assert(index.includes('campaignVoucher'));
   assert(index.includes('Voucher discount estimated. Sign in to redeem'));
