@@ -404,7 +404,7 @@ t('inventory availability is enforced by order API and displayed on customer and
   assert(!inventorySource.includes("'Only ' + available"));
   assert(!index.includes('stock + " available"'));
   assert(!index.includes('"Only " + available + " available today"'));
-  assert(sw.includes('/master-enhancements.js?v=20261010-stock3'));
+  assert(sw.includes('/master-enhancements.js?v=20261016-promotions-vouchers1'));
   assert(inventorySource.includes('stock_available=stock_available-?'));
 });
 
@@ -452,6 +452,29 @@ t('separate admin Android app is configured for background Firebase notification
   assert(admin.includes('admin-push.js?v=20261010-adminpush1'));
   assert(adminPushClient.includes('/api/admin/push/register'));
   assert(envExample.includes('FCM_SERVICE_ACCOUNT_PATH='));
+});
+
+t('admin-configurable announcement popups and single-use vouchers',()=>{
+  assert(admin.includes('"Promotions & Vouchers"'));
+  assert(master.includes("R['Promotions & Vouchers']=R['Announcements']"));
+  assert(master.includes('pa-promotion-modal'));
+  assert(master.includes('window.PA_PROMOTIONS=rows'));
+  assert(master.includes('name="display_mode"'));
+  assert(master.includes('name="discount_type"'));
+  assert(master.includes('name="voucher_code"'));
+  assert(master.includes('name="welcome_enabled"'));
+  assert(server.includes("'announcements','display_mode'"));
+  assert(server.includes("'announcements','welcome_enabled'"));
+  assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemptions'));
+  assert(server.includes("app.get('/api/admin/promotion-redemptions'"));
+  assert(server.includes('UNIQUE(announcement_id,customer_id)'));
+  assert(server.includes('This voucher has already been used by this customer.'));
+  assert(server.includes('Sign in or register to use this voucher.'));
+  assert(index.includes('campaignVoucher'));
+  assert(index.includes('Voucher discount estimated. Sign in to redeem'));
+  assert(notifications.includes('YOUR WELCOME VOUCHER'));
+  assert(notifications.includes('welcome_subject'));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
 });
 
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');
