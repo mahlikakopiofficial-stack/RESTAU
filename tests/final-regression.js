@@ -460,6 +460,8 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(master.includes('pa-promotion-modal'));
   assert(master.includes('window.PA_PROMOTIONS=rows'));
   assert(master.includes('name="display_mode"'));
+  assert(master.includes('name="audience"'));
+  assert(master.includes("parsed.searchParams.set('voucher'"));
   assert(master.includes('name="discount_type"'));
   assert(master.includes('name="voucher_code"'));
   assert(master.includes('name="welcome_enabled"'));
@@ -475,6 +477,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(index.includes('campaignVoucher'));
   assert(index.includes('Voucher discount estimated. Sign in to redeem'));
   assert(notifications.includes('YOUR WELCOME VOUCHER'));
+  assert(notifications.includes("parsed.searchParams.set('voucher'"));
   assert(notifications.includes('welcome_subject'));
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
 });
