@@ -421,31 +421,39 @@ function adminBoot(){
   window.saveAnnouncement=async function(id,form){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
+    data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
+    data.discount_value=Number(data.discount_value||0);
+    data.min_order=Number(data.min_order||0);
     try{
       data.starts_at=announcementToApiDateTime(data.starts_at);
       data.ends_at=announcementToApiDateTime(data.ends_at);
       await A('/announcements/'+id,'PUT',data);
-      toast('Announcement saved');
-      go('Announcements');
+      toast('Promotion saved');
+      go('Promotions & Vouchers');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement save failed: '+error.message)}
+    }catch(error){toast('Promotion save failed: '+error.message)}
   };
   window.createAnnouncement=async function(form){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
+    data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
+    data.discount_value=Number(data.discount_value||0);
+    data.min_order=Number(data.min_order||0);
     try{
       data.starts_at=announcementToApiDateTime(data.starts_at);
       data.ends_at=announcementToApiDateTime(data.ends_at);
       await A('/announcements','POST',data);
-      toast('Announcement created');
+      toast('Promotion created');
       form.reset();
       form.elements.priority.value=0;
       form.elements.active.checked=true;
-      go('Announcements');
+      form.elements.display_mode.value='popup';
+      form.elements.discount_type.value='none';
+      go('Promotions & Vouchers');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement create failed: '+error.message)}
+    }catch(error){toast('Promotion create failed: '+error.message)}
   };
   window.toggleAnnouncement=async function(id,active){
     try{
@@ -487,31 +495,47 @@ function adminBoot(){
   };
   R['Announcements']=async function(){
     const rows=await A('/announcements');
+    const modes=[['banner','Banner only'],['popup','Opening popup'],['both','Banner + popup'],['hidden','Do not display']];
+    const discounts=[['none','No discount'],['percent','Percentage'],['fixed','Fixed KD amount']];
+    const displayOptions=value=>modes.map(x=>'<option value="'+x[0]+'"'+((value||'banner')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+    const discountOptions=value=>discounts.map(x=>'<option value="'+x[0]+'"'+((value||'none')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+    const fields=(a,create)=>'<div class="master-admin-grid">'+
+      '<label>Display location<select name="display_mode">'+displayOptions(a.display_mode)+'</select></label>'+
+      '<label>Discount type<select name="discount_type">'+discountOptions(a.discount_type)+'</select></label>'+
+      '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
+      '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
+      '<label>Voucher code<input name="voucher_code" maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" value="'+announcementInputEsc(a.voucher_code||'')+'" placeholder="WELCOME10"></label></div>'+
+      '<p class="small">Voucher codes are checked on the server, are valid only during this offer’s dates, and can be redeemed once per customer account. Voucher redemption requires sign-in.</p>'+
+      '<label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer in the new-registration welcome email (first eligible order only)</label>'+
+      '<label>Welcome email subject<input name="welcome_subject" maxlength="160" value="'+announcementInputEsc(a.welcome_subject||'')+'" placeholder="Your welcome voucher is here"></label>'+
+      '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>';
     const createForm='<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();createAnnouncement(this)">'+
-      '<h3>Create announcement</h3>'+
-      '<p class="small">Create one announcement, then manage it from its own card. Save changes only when you press Save.</p>'+
+      '<h3>Create promotion or announcement</h3>'+
+      '<p class="small">All display, discount, validity, and registration email settings are configurable here. No promotion values are hard-coded in the customer interface.</p>'+
       '<div class="master-admin-grid">'+
       '<label>Title<input name="title" required maxlength="160" placeholder="Announcement title"></label>'+
       '<label>Priority<input name="priority" type="number" step="1" value="0"></label>'+
-      '<label>Start<input name="starts_at" type="datetime-local"></label>'+
-      '<label>End<input name="ends_at" type="datetime-local"></label></div>'+
-      '<label>Message<textarea name="message" rows="4" required maxlength="1000" placeholder="Announcement message"></textarea></label>'+
-      '<div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80" placeholder="Order now"></label>'+
-      '<label>CTA URL<input name="cta_url" maxlength="500" placeholder="/#menu or https://..."></label></div>'+
+      '<label>Start (Kuwait time)<input name="starts_at" type="datetime-local"></label>'+
+      '<label>End (Kuwait time)<input name="ends_at" type="datetime-local"></label></div>'+
+      '<label>Message<textarea name="message" rows="4" required maxlength="1000" placeholder="Offer details"></textarea></label>'+
+      '<div class="master-admin-grid"><label>Button text<input name="cta_label" maxlength="80" placeholder="Order now"></label>'+
+      '<label>Button destination<input name="cta_url" maxlength="500" placeholder="/#menu or https://..."></label></div>'+
+      fields({display_mode:'popup',discount_type:'none'},true)+
       '<label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label>'+
-      '<button class="btn" type="submit">Create announcement</button></form>';
+      '<button class="btn" type="submit">Create promotion</button></form>';
     const cards=rows.map(a=>{
       const image=a.image?'<div class="announcement-image-wrap"><img src="'+announcementInputEsc(a.image)+'" alt="Announcement image"><button class="btn s o" type="button" onclick="removeAnnouncementImage('+a.id+')">Remove image</button></div>':'<button class="btn s o" type="button" onclick="addAnnouncementImage('+a.id+')">Add image</button>';
       return '<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();saveAnnouncement('+a.id+',this)">'+
-        '<div class="announcement-manager-head"><h3>Announcement #'+a.id+'</h3><span class="'+(a.active?'master-status-ok':'master-status-off')+'">'+(a.active?'ACTIVE':'INACTIVE')+'</span></div>'+
+        '<div class="announcement-manager-head"><h3>'+announcementInputEsc(a.title)+' · #'+a.id+'</h3><span class="'+(a.active?'master-status-ok':'master-status-off')+'">'+(a.active?'ACTIVE':'INACTIVE')+'</span></div>'+
         '<div class="master-admin-grid">'+
         '<label>Title<input name="title" required maxlength="160" value="'+announcementInputEsc(a.title)+'"></label>'+
         '<label>Priority<input name="priority" type="number" step="1" value="'+(Number(a.priority)||0)+'"></label>'+
-        '<label>Start<input name="starts_at" type="datetime-local" value="'+announcementFromApiDateTime(a.starts_at)+'"></label>'+
-        '<label>End<input name="ends_at" type="datetime-local" value="'+announcementFromApiDateTime(a.ends_at)+'"></label></div>'+
+        '<label>Start (Kuwait time)<input name="starts_at" type="datetime-local" value="'+announcementFromApiDateTime(a.starts_at)+'"></label>'+
+        '<label>End (Kuwait time)<input name="ends_at" type="datetime-local" value="'+announcementFromApiDateTime(a.ends_at)+'"></label></div>'+
         '<label>Message<textarea name="message" rows="4" required maxlength="1000">'+announcementInputEsc(a.message)+'</textarea></label>'+
-        '<div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80" value="'+announcementInputEsc(a.cta_label)+'"></label>'+
-        '<label>CTA URL<input name="cta_url" maxlength="500" value="'+announcementInputEsc(a.cta_url)+'"></label></div>'+
+        '<div class="master-admin-grid"><label>Button text<input name="cta_label" maxlength="80" value="'+announcementInputEsc(a.cta_label)+'"></label>'+
+        '<label>Button destination<input name="cta_url" maxlength="500" value="'+announcementInputEsc(a.cta_url)+'"></label></div>'+
+        fields(a,false)+
         '<label><input type="checkbox" name="active" value="1" '+(a.active?'checked':'')+' style="width:auto"> Active</label>'+
         '<div class="announcement-manager-actions">'+
         '<button class="btn" type="submit">Save changes</button>'+
@@ -520,8 +544,19 @@ function adminBoot(){
         '<button class="btn s o" type="button" onclick="deleteAnnouncement('+a.id+')">Delete</button>'+
         '</div></form>';
     }).join('');
-    return createForm+'<h3>Saved announcements</h3><div class="announcement-manager-list">'+(cards||'<p class="small">No announcements yet.</p>')+'</div>';
+    let redemptions=[];
+    try{redemptions=await A('/promotion-redemptions')}catch(error){console.error('PROMOTION_REDEMPTIONS_LOAD_FAILED',error)}
+    const report=tbl(redemptions,[
+      ['Promotion',x=>announcementInputEsc(x.title)],
+      ['Voucher',x=>announcementInputEsc(x.voucher_code)],
+      ['Customer',x=>announcementInputEsc(x.customer_name)+'<br>'+announcementInputEsc(x.phone)],
+      ['Order',x=>'#'+x.order_id+' · '+announcementInputEsc(x.order_status)],
+      ['Total',x=>money(x.order_total)],
+      ['Redeemed',x=>announcementInputEsc(x.created)]
+    ]);
+    return createForm+'<h3>Saved promotions and announcements</h3><div class="announcement-manager-list">'+(cards||'<p class="small">No promotions or announcements yet.</p>')+'</div><h3>Voucher redemptions</h3><p class="small">Most recent 500 redemptions. Each campaign can be redeemed once per customer account.</p>'+report;
   };
+  R['Promotions & Vouchers']=R['Announcements'];
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
     return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddRegional(this)"><h3>Add regional Filipino dish</h3><div class="master-admin-grid"><label>Name<input name="name" required></label><label>Region<input name="region" required></label><label>Price<input name="price" type="number" step="0.001" min="0" value="0"></label><label>Available today<input name="stock_available" type="number" min="0" step="1" value="3"></label><label>Daily restock quantity<input name="daily_restock_quantity" type="number" min="0" step="1" value="3"></label><label>Sort order<input name="sort_order" type="number" value="0"></label></div><label>Description<textarea name="descr" rows="2"></textarea></label><button class="btn">Add dish</button></form>'+
