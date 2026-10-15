@@ -138,26 +138,54 @@ function cartOutside(){
 
 async function addPromos(){
   const nav=document.querySelector('.site-nav');
-  if(!nav)return;
   let rows=[];
   try{rows=await api('/announcements')}catch{return}
+  window.PA_PROMOTIONS=rows;
+  const bannerRows=rows.filter(x=>['banner','both'].includes(String(x.display_mode||'banner')));
   let bar=document.getElementById('master-promos');
-  if(!rows.length){bar?.remove();return}
-  if(!bar){
-    bar=document.createElement('div');
-    bar.id='master-promos';bar.className='master-promo';
-    bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
-    nav.insertAdjacentElement('afterend',bar);
+  if(!bannerRows.length){bar?.remove()}
+  else{
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='master-promos';bar.className='master-promo';
+      bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
+      nav?.insertAdjacentElement('afterend',bar);
+    }
+    const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
+      '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
+      (x.discount_type&&x.discount_type!=='none'&&x.voucher_code?'<div class="promo-voucher"><b>'+escm(x.voucher_code)+'</b><small>'+escm(x.discount_type==='percent'?String(x.discount_value)+'% off':money(x.discount_value)+' off')+'</small></div>':'')+
+      (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
+    const content=document.getElementById('masterPromoContent');
+    if(content){content.className='master-promo-track';content.innerHTML=(bannerRows.length>1?bannerRows.concat(bannerRows):bannerRows).map(renderItem).join('');if(bannerRows.length===1)content.style.animation='none';}
   }
-  const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
-    '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
-    (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
-  const content=document.getElementById('masterPromoContent');
-  content.className='master-promo-track';
-  content.innerHTML=(rows.length>1?rows.concat(rows):rows).map(renderItem).join('');
-  if(rows.length===1)content.style.animation='none';
+  const popups=rows.filter(x=>['popup','both'].includes(String(x.display_mode||'banner')));
+  const chosen=popups[0];
+  if(!chosen||!nav){document.getElementById('pa-promotion-modal')?.remove();return}
+  let dismissed=false;
+  try{dismissed=localStorage.getItem('pa-promotion-dismissed-'+chosen.id)==='1'}catch{}
+  if(dismissed)return;
+  if(!document.getElementById('pa-promotion-modal-style')){
+    const style=document.createElement('style');style.id='pa-promotion-modal-style';
+    style.textContent='.pa-promotion-overlay{position:fixed;inset:0;z-index:99999;background:rgba(20,10,10,.68);display:flex;align-items:center;justify-content:center;padding:18px}.pa-promotion-dialog{position:relative;width:min(520px,100%);max-height:90vh;overflow:auto;background:#fffaf0;color:#33201d;border:2px solid #c8a45d;border-radius:18px;box-shadow:0 18px 70px rgba(0,0,0,.35);padding:26px;text-align:center}.pa-promotion-dialog h2{margin:8px 34px 10px;color:#7b2d26}.pa-promotion-dialog p{white-space:pre-line}.pa-promotion-dialog img{width:100%;max-height:220px;object-fit:cover;border-radius:12px}.pa-promotion-close{position:absolute;right:10px;top:8px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#7b2d26}.pa-promotion-code{border:2px dashed #7b2d26;background:#fff;padding:12px;border-radius:10px;margin:16px 0}.pa-promotion-code strong{display:block;font-size:24px;letter-spacing:2px}.pa-promotion-code small{display:block;margin-top:5px}.pa-promotion-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}.pa-promotion-actions a{display:inline-block;text-decoration:none}.pa-promotion-dismiss{border:1px solid #7b2d26;border-radius:8px;padding:10px 14px;background:transparent;color:#7b2d26;cursor:pointer}';
+    document.head.appendChild(style);
+  }
+  let modal=document.getElementById('pa-promotion-modal');
+  if(!modal){modal=document.createElement('div');modal.id='pa-promotion-modal';modal.className='pa-promotion-overlay';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-label','Promotion announcement');document.body.appendChild(modal)}
+  const code=chosen.discount_type&&chosen.discount_type!=='none'&&chosen.voucher_code;
+  const discount=chosen.discount_type==='percent'?String(chosen.discount_value)+'% off':money(chosen.discount_value)+' off';
+  const min=Number(chosen.min_order||0)>0?'<p><small>Minimum eligible subtotal: '+escm(money(chosen.min_order))+'</small></p>':'';
+  modal.innerHTML='<div class="pa-promotion-dialog"><button class="pa-promotion-close" type="button" aria-label="Close promotion">×</button>'+
+    (chosen.image?'<img src="'+escm(chosen.image)+'" alt="">':'')+
+    '<h2>'+escm(chosen.title)+'</h2><p>'+escm(chosen.message)+'</p>'+
+    (code?'<div class="pa-promotion-code"><small>VOUCHER CODE</small><strong>'+escm(chosen.voucher_code)+'</strong><small>'+escm(discount)+' · one use per customer · sign in to redeem</small></div>'+min:'')+
+    '<div class="pa-promotion-actions">'+(chosen.cta_label&&chosen.cta_url?'<a class="btn" href="'+escm(chosen.cta_url)+'">'+escm(chosen.cta_label)+'</a>':'')+
+    '<button type="button" class="pa-promotion-dismiss">Maybe later</button></div></div>';
+  const close=()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}modal.remove()};
+  modal.querySelector('.pa-promotion-close')?.addEventListener('click',close);
+  modal.querySelector('.pa-promotion-dismiss')?.addEventListener('click',close);
+  modal.addEventListener('click',event=>{if(event.target===modal)close()});
+  document.addEventListener('keydown',function closeOnEscape(event){if(event.key==='Escape'&&document.getElementById('pa-promotion-modal')){close();document.removeEventListener('keydown',closeOnEscape)}});
 }
-
 async function refreshSubscriptionPlans(){
   const section=document.querySelector('#plans')?.closest('section');
   const list=document.getElementById('plan-list');
