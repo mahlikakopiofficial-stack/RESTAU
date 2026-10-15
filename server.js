@@ -83,10 +83,19 @@ const ensureColumn=(table,column,definition)=>{
   ['inquiries','order_id','INTEGER'],
   ['inquiries','status',"TEXT DEFAULT 'New'"],
   ['announcements','updated_at','TEXT'],
+  ['announcements','display_mode',"TEXT DEFAULT 'banner'"],
+  ['announcements','discount_type',"TEXT DEFAULT 'none'"],
+  ['announcements','discount_value','REAL DEFAULT 0'],
+  ['announcements','min_order','REAL DEFAULT 0'],
+  ['announcements','voucher_code',"TEXT DEFAULT ''"],
+  ['announcements','welcome_enabled','INTEGER DEFAULT 0'],
+  ['announcements','welcome_subject',"TEXT DEFAULT ''"],
+  ['announcements','welcome_message',"TEXT DEFAULT ''"],
   ['regional_dishes','stock_available','INTEGER DEFAULT 3'],
   ['regional_dishes','daily_restock_quantity','INTEGER DEFAULT 3'],
   ['regional_dishes','stock_date',"TEXT DEFAULT ''"]
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
+db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));`);
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
 'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
@@ -482,7 +491,8 @@ app.post('/api/register',lim(8),w((q,r)=>{
     id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
   const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
-  if(registeredCustomer?.email)Promise.resolve(notifyRegistration(registeredCustomer)).catch(error=>console.error('REGISTRATION_EMAIL_FAILED',error.message));
+  const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=customers.id) ORDER BY priority DESC,id DESC LIMIT 1",id);
+  if(registeredCustomer?.email)Promise.resolve(notifyRegistration(registeredCustomer,welcomeOffer||null)).catch(error=>console.error('REGISTRATION_EMAIL_FAILED',error.message));
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
@@ -694,16 +704,28 @@ app.post('/api/order',lim(30),w((q,r)=>{
 
   let discount=0;
   let promoCode=String(b.promo_code||'').trim().toUpperCase();
-
-  if(st.promo_enabled!=='0' && promoCode && promoCode===String(st.promo_code||'').trim().toUpperCase()){
-    const pv=Math.max(0,+st.promo_value||0);
-
-    if(String(st.promo_type||'percent')==='percent')
-      discount=Math.min(sub,sub*pv/100);
-    else
-      discount=Math.min(sub,pv);
-  }else{
-    promoCode='';
+  let promotion=null;
+  if(promoCode){
+    const candidate=one('SELECT * FROM announcements WHERE upper(voucher_code)=?',promoCode);
+    if(candidate){
+      const active=one("SELECT id FROM announcements WHERE id=? AND active=1 AND discount_type IN ('percent','fixed') AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now'))",candidate.id);
+      if(!active)throw new Error('This voucher is not active or has expired.');
+      const token=customerToken(q);
+      if(!token)throw new Error('Sign in or register to use this voucher.');
+      if(Number(token.id)!==Number(customerId))throw new Error('Sign in to the account that owns this order to use the voucher.');
+      if(sub<Number(candidate.min_order||0))throw new Error('This voucher requires a minimum eligible subtotal of '+Number(candidate.min_order||0).toFixed(3)+' '+(st.currency||'KWD')+'.');
+      if(one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',candidate.id,customerId))throw new Error('This voucher has already been used by this customer.');
+      if(Number(candidate.welcome_enabled)===1&&one("SELECT id FROM orders WHERE customer_id=? LIMIT 1",customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
+      const value=Math.max(0,Number(candidate.discount_value)||0);
+      discount=candidate.discount_type==='percent'?Math.min(sub,sub*value/100):Math.min(sub,value);
+      promotion=candidate;
+    }else if(st.promo_enabled!=='0' && promoCode && promoCode===String(st.promo_code||'').trim().toUpperCase()){
+      const pv=Math.max(0,+st.promo_value||0);
+      if(String(st.promo_type||'percent')==='percent')discount=Math.min(sub,sub*pv/100);
+      else discount=Math.min(sub,pv);
+    }else{
+      promoCode='';
+    }
   }
 
   const rewardKind=loyalty.rewardKind(rewardThreshold);
@@ -717,6 +739,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const status=approval==='ADMIN'?'Pending':'Confirmed';
 
   const saveOrder=db.transaction(()=>{
+  if(promotion&&one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',promotion.id,customerId))throw new Error('This voucher has already been used by this customer.');
   inventory.reserveOrderInventory(db,its,kuwaitToday());
   const id=db.prepare(`
     INSERT INTO orders(
@@ -749,6 +772,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   ).lastInsertRowid;
   db.prepare('UPDATE orders SET inventory_deducted=1 WHERE id=?').run(id);
   if(rewardThreshold)db.prepare('INSERT INTO loyalty_redemptions(customer_id,threshold,order_id) VALUES(?,?,?)').run(customerId,rewardThreshold,id);
+  if(promotion)db.prepare('INSERT INTO promotion_redemptions(announcement_id,customer_id,order_id) VALUES(?,?,?)').run(promotion.id,customerId,id);
   return Number(id);
   });
   const id=saveOrder();
@@ -1471,6 +1495,19 @@ const announcementPayload=(body,current={})=>{
   const starts=body.starts_at!==undefined?announcementDateTime(body.starts_at):String(current.starts_at||'');
   const ends=body.ends_at!==undefined?announcementDateTime(body.ends_at):String(current.ends_at||'');
   if(starts&&ends&&starts>ends)throw new Error('Announcement end must be after its start');
+  const displayMode=String(body.display_mode??current.display_mode??'banner');
+  const discountType=String(body.discount_type??current.discount_type??'none');
+  const discountValue=Number(body.discount_value??current.discount_value??0);
+  const minOrder=Number(body.min_order??current.min_order??0);
+  const voucherCode=String(body.voucher_code??current.voucher_code??'').trim().toUpperCase();
+  const welcomeEnabled=body.welcome_enabled===undefined?(Number(current.welcome_enabled||0)?1:0):(body.welcome_enabled?1:0);
+  if(!['banner','popup','both','hidden'].includes(displayMode))throw new Error('Invalid announcement display mode');
+  if(!['none','percent','fixed'].includes(discountType))throw new Error('Invalid discount type');
+  if(!Number.isFinite(discountValue)||discountValue<0||(discountType==='percent'&&discountValue>100))throw new Error('Invalid discount value');
+  if(!Number.isFinite(minOrder)||minOrder<0)throw new Error('Minimum order must be zero or greater');
+  if(discountType!=='none'&&(!voucherCode||! /^[A-Z0-9_-]{3,40}$/.test(voucherCode)))throw new Error('Enter a voucher code with 3–40 letters, numbers, hyphens or underscores');
+  if(discountType!=='none'&&discountValue<=0)throw new Error('Discount value must be greater than zero');
+  if(welcomeEnabled&&discountType==='none')throw new Error('Configure a discount before enabling the registration welcome offer');
   return {
     title,message,
     image:String(body.image??current.image??'').slice(0,500),
@@ -1478,29 +1515,35 @@ const announcementPayload=(body,current={})=>{
     cta_url:announcementUrl(body.cta_url??current.cta_url??''),
     priority:Math.trunc(+(body.priority??current.priority??0)||0),
     starts_at:starts,ends_at:ends,
-    active:body.active===undefined?(Number(current.active??1)?1:0):(body.active?1:0)
+    active:body.active===undefined?(Number(current.active??1)?1:0):(body.active?1:0),
+    display_mode:displayMode,discount_type:discountType,discount_value:discountValue,min_order:minOrder,voucher_code:voucherCode,
+    welcome_enabled:welcomeEnabled,
+    welcome_subject:String(body.welcome_subject??current.welcome_subject??'').trim().slice(0,160),
+    welcome_message:String(body.welcome_message??current.welcome_message??'').trim().slice(0,1000)
   };
 };
 app.get('/api/announcements',(q,r)=>{
-  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
+  r.set('Cache-Control','no-store');
+  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,discount_type,discount_value,min_order,voucher_code FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) ORDER BY priority DESC,id DESC").all());
 });
 app.get('/api/regional-dishes',(q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.set('Cache-Control','no-store');r.json(db.prepare("SELECT id,name,region,descr,price,img,stock_available,daily_restock_quantity FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all())});
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
 app.post('/api/admin/announcements',admin,w((q,r)=>{
   const b=announcementPayload(q.body);
-  const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active) VALUES(?,?,?,?,?,?,?,?,?)')
-    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active).lastInsertRowid);
+  const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,discount_type,discount_value,min_order,voucher_code,welcome_enabled,welcome_subject,welcome_message) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.welcome_subject,b.welcome_message).lastInsertRowid);
   r.json({ok:1,id});
 }));
 app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
   const current=one('SELECT * FROM announcements WHERE id=?',q.params.id);
   if(!current)throw new Error('Announcement not found');
   const b=announcementPayload(q.body,current);
-  db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
-    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,q.params.id);
+  db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,display_mode=?,discount_type=?,discount_value=?,min_order=?,voucher_code=?,welcome_enabled=?,welcome_subject=?,welcome_message=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.welcome_subject,b.welcome_message,q.params.id);
   r.json({ok:1});
 }));
+app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,p.title,p.voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemptions pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
 app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
   const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);
   if(!row)throw new Error('Announcement not found');
