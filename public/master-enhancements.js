@@ -141,6 +141,15 @@ async function addPromos(){
   let rows=[];
   try{rows=await api('/announcements')}catch{return}
   window.PA_PROMOTIONS=rows;
+  const promotionCtaUrl=(url,code)=>{
+    const raw=String(url||'').trim();if(!raw)return '';
+    try{const parsed=new URL(raw,location.origin);if(code&&parsed.origin===location.origin){parsed.searchParams.set('voucher',String(code).toUpperCase());return parsed.pathname+parsed.search+parsed.hash}return raw}catch{return raw}
+  };
+  if(!window.__paVoucherAutoApplied){
+    let autoVoucher='';try{autoVoucher=new URL(location.href).searchParams.get('voucher')||''}catch{}
+    const promoInput=document.getElementById('promo-code');
+    if(autoVoucher&&promoInput){promoInput.value=autoVoucher.toUpperCase();window.__paVoucherAutoApplied=true;try{window.renderCart?.()}catch{}}
+  }
   try{window.renderCart?.()}catch{}
   const bannerRows=rows.filter(x=>['banner','both'].includes(String(x.display_mode||'banner')));
   let bar=document.getElementById('master-promos');
@@ -155,7 +164,7 @@ async function addPromos(){
     const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
       '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
       (x.discount_type&&x.discount_type!=='none'&&x.voucher_code?'<div class="promo-voucher"><b>'+escm(x.voucher_code)+'</b><small>'+escm(x.discount_type==='percent'?String(x.discount_value)+'% off':money(x.discount_value)+' off')+'</small></div>':'')+
-      (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
+      (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(promotionCtaUrl(x.cta_url,x.voucher_code&&x.discount_type!=='none'?x.voucher_code:''))+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
     const content=document.getElementById('masterPromoContent');
     if(content){content.className='master-promo-track';content.innerHTML=(bannerRows.length>1?bannerRows.concat(bannerRows):bannerRows).map(renderItem).join('');if(bannerRows.length===1)content.style.animation='none';}
   }
@@ -179,11 +188,12 @@ async function addPromos(){
     (chosen.image?'<img src="'+escm(chosen.image)+'" alt="">':'')+
     '<h2>'+escm(chosen.title)+'</h2><p>'+escm(chosen.message)+'</p>'+
     (code?'<div class="pa-promotion-code"><small>VOUCHER CODE</small><strong>'+escm(chosen.voucher_code)+'</strong><small>'+escm(discount)+' · one use per customer · sign in to redeem</small></div>'+min:'')+
-    '<div class="pa-promotion-actions">'+(chosen.cta_label&&chosen.cta_url?'<a class="btn" href="'+escm(chosen.cta_url)+'">'+escm(chosen.cta_label)+'</a>':'')+
+    '<div class="pa-promotion-actions">'+(chosen.cta_label&&chosen.cta_url?'<a class="btn" href="'+escm(promotionCtaUrl(chosen.cta_url,code?chosen.voucher_code:''))+'">'+escm(chosen.cta_label)+'</a>':'')+
     '<button type="button" class="pa-promotion-dismiss">Maybe later</button></div></div>';
   const close=()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}modal.remove()};
   modal.querySelector('.pa-promotion-close')?.addEventListener('click',close);
   modal.querySelector('.pa-promotion-dismiss')?.addEventListener('click',close);
+  modal.querySelector('.pa-promotion-actions a')?.addEventListener('click',()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}});
   modal.addEventListener('click',event=>{if(event.target===modal)close()});
   document.addEventListener('keydown',function closeOnEscape(event){if(event.key==='Escape'&&document.getElementById('pa-promotion-modal')){close();document.removeEventListener('keydown',closeOnEscape)}});
 }
