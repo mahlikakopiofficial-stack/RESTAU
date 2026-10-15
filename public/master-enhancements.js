@@ -490,16 +490,16 @@ function adminBoot(){
       toast(active?'Announcement activated':'Announcement deactivated');
       go('Announcements');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement status failed: '+error.message)}
+    }catch(error){toast('Promotion status failed: '+error.message)}
   };
   window.deleteAnnouncement=async function(id){
     if(!confirm('Delete this announcement permanently?'))return;
     try{
       await A('/announcements/'+id,'DELETE');
-      toast('Announcement deleted');
+      toast('Promotion deleted');
       go('Announcements');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement delete failed: '+error.message)}
+    }catch(error){toast('Promotion delete failed: '+error.message)}
   };
   window.addAnnouncementImage=async function(id){
     const input=document.createElement('input');
@@ -510,8 +510,8 @@ function adminBoot(){
         const fd=new FormData(); fd.append('file',input.files[0]);
         await A('/upload?target=announcement&id='+encodeURIComponent(id),'POST',fd);
         toast('Announcement image saved');
-        go('Announcements');
-      }catch(error){toast('Announcement image failed: '+error.message)}
+        go('Promotions & Vouchers');
+      }catch(error){toast('Promotion image failed: '+error.message)}
     };
     input.click();
   };
@@ -519,8 +519,8 @@ function adminBoot(){
     try{
       await A('/image','DELETE',{target:'announcement',id});
       toast('Announcement image removed');
-      go('Announcements');
-    }catch(error){toast('Announcement image removal failed: '+error.message)}
+      go('Promotions & Vouchers');
+    }catch(error){toast('Promotion image removal failed: '+error.message)}
   };
   R['Announcements']=async function(){
     const rows=await A('/announcements');
@@ -543,7 +543,7 @@ function adminBoot(){
       '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>';
     const createForm='<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();createAnnouncement(this)">'+
       '<h3>Create promotion or announcement</h3>'+
-      '<p class="small">All display, discount, validity, and registration email settings are configurable here. No promotion values are hard-coded in the customer interface.</p>'+
+      '<p class="small">All display, audience, discount, validity, and registration email settings are configurable here. No offer amounts or voucher codes are hard-coded in the customer interface. Only the highest-priority active welcome offer is included in registration emails.</p>'+
       '<div class="master-admin-grid">'+
       '<label>Title<input name="title" required maxlength="160" placeholder="Announcement title"></label>'+
       '<label>Priority<input name="priority" type="number" step="1" value="0"></label>'+
