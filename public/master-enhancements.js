@@ -547,7 +547,7 @@ function adminBoot(){
       '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
       '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
       '<label>Voucher code<input name="voucher_code" maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" value="'+announcementInputEsc(a.voucher_code||'')+'" placeholder="WELCOME10"></label></div>'+
-      '<p class="small">Voucher codes must be unique and differ from the legacy global promo code. The server enforces validity dates and one redemption per customer account. Voucher redemption requires sign-in.</p>'+
+      '<p class="small">Voucher codes must be unique and differ from the legacy global promo code. Internal button links automatically carry the voucher into the cart. The server enforces validity dates and one redemption per customer account; redemption requires sign-in.</p>'+
       '<label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer in the new-registration welcome email (first eligible order only)</label>'+
       '<label>Welcome email subject<input name="welcome_subject" maxlength="160" value="'+announcementInputEsc(a.welcome_subject||'')+'" placeholder="Your welcome voucher is here"></label>'+
       '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>';
