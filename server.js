@@ -741,6 +741,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
 
   const saveOrder=db.transaction(()=>{
   if(promotion&&one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',promotion.id,customerId))throw new Error('This voucher has already been used by this customer.');
+  if(promotion&&Number(promotion.welcome_enabled)===1&&one('SELECT id FROM orders WHERE customer_id=? LIMIT 1',customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
   inventory.reserveOrderInventory(db,its,kuwaitToday());
   const id=db.prepare(`
     INSERT INTO orders(
