@@ -553,8 +553,9 @@
             code && ["percent", "fixed"].includes(String(p.discount_type || "none"))
           ),
           campaignMinMet = !!campaignVoucher && sub >= Number(campaignVoucher.min_order || 0),
+          campaignStackBlocked = !!campaignVoucher && Number(campaignVoucher.allow_stack || 0) !== 1 && Number($("#loyalty_reward")?.value || 0) > 0,
           validPromo = campaignVoucher
-            ? campaignMinMet
+            ? campaignMinMet && !campaignStackBlocked
             : !!(config.promo_enabled && code && expected && code === expected);
         let discount = 0;
         if (validPromo && campaignVoucher) {
@@ -562,6 +563,7 @@
           discount = campaignVoucher.discount_type === "percent"
             ? Math.min(sub, (sub * value) / 100)
             : Math.min(sub, value);
+          if (Number(campaignVoucher.discount_cap || 0) > 0) discount = Math.min(discount, Number(campaignVoucher.discount_cap));
         } else if (validPromo) {
           const value = Math.max(0, +config.promo_value || 0);
           discount =
@@ -591,7 +593,9 @@
           ? campaignVoucher
             ? !campaignMinMet
               ? "This voucher requires a minimum subtotal of " + money(campaignVoucher.min_order) + "."
-              : "Voucher discount estimated. Sign in to redeem; one use per customer."
+              : campaignStackBlocked
+                ? "This voucher cannot be combined with a loyalty reward. Remove the reward or choose another voucher."
+                : "Voucher discount estimated. Sign in to redeem; one use per customer."
             : validPromo
               ? "Promo code applied."
               : "Promo code not recognized."
