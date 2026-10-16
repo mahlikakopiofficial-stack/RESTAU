@@ -76,6 +76,9 @@ function masterCss(){
     '#main .master-admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
     '.master-status-ok{color:#1c6b41;font-weight:700}.master-status-off{color:#8a2b24;font-weight:700}',
     '.announcement-manager{display:flex;flex-direction:column;gap:10px}',
+    '#main .promotion-audience-field{grid-column:1/-1;display:block;border:2px solid var(--pa-maroon);background:#fffaf0;padding:12px 14px;border-radius:12px;font-weight:800}',
+    '#main .promotion-audience-field select{display:block;width:100%;margin-top:8px;font-weight:400}',
+    '#main .promotion-audience-field small{display:block;margin-top:4px;font-size:.82rem;font-weight:400;color:#53655b}',
     '.announcement-manager h3{margin:0}',
     '.announcement-manager-head{display:flex;align-items:center;justify-content:space-between;gap:12px}',
     '.announcement-manager-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -558,7 +561,7 @@ function adminBoot(){
     const discountOptions=value=>discounts.map(x=>'<option value="'+x[0]+'"'+((value||'none')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
     const fields=(a,create)=>'<div class="master-admin-grid">'+
       '<label>Display location<select name="display_mode">'+displayOptions(a.display_mode)+'</select></label>'+ 
-      '<label>Who sees this promotion<select name="audience">'+audienceOptions(a.audience)+'</select></label>'+ 
+      '<label class="promotion-audience-field">Audience — who can see this promotion<select name="audience" aria-label="Audience — who can see this promotion">'+audienceOptions(a.audience)+'</select><small>Choose All visitors, Signed-in customers, or Guests only.</small></label>'+ 
       '<label>Discount type<select name="discount_type">'+discountOptions(a.discount_type)+'</select></label>'+
       '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
       '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
