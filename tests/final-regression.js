@@ -475,6 +475,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(server.includes('Voucher code must differ from the global promo code'));
   assert(server.includes('Sign in or register to use this voucher.'));
   assert(index.includes('campaignVoucher'));
+  assert(index.includes('$("#promo-code").disabled = false;'));
   assert(index.includes('Voucher discount estimated. Sign in to redeem'));
   assert(notifications.includes('YOUR WELCOME VOUCHER'));
   assert(notifications.includes("parsed.searchParams.set('voucher'"));
