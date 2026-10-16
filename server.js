@@ -285,8 +285,8 @@ const eligibleWelcomeVoucher=customerId=>one(`SELECT id,title,message,cta_url,vo
 
 const issueEmailVerification=(customerId,email)=>{
   const address=String(email||'').trim().toLowerCase();
-  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(address))throw new Error('A valid email address is required.');
-  const base=String(E.PUBLIC_BASE_URL||'').replace(/\\/+$/,'');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address))throw new Error('A valid email address is required.');
+  const base=String(E.PUBLIC_BASE_URL||'').replace(/\/+$/,'');
   if(!base)throw new Error('PUBLIC_BASE_URL is not configured.');
   const now=Date.now();
   db.prepare('DELETE FROM email_verification_tokens WHERE used_at IS NOT NULL OR expires_at<?').run(now);
