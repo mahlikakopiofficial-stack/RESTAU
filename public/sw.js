@@ -1,5 +1,5 @@
-const CACHE_NAME='pinoyambula-shell-v47';
-const CACHE_VERSION='v46';
+const CACHE_NAME='pinoyambula-shell-v48';
+const CACHE_VERSION='v47';
 const SHELL=[
   '/index.html',
   '/account.html',

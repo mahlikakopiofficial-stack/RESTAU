@@ -279,6 +279,7 @@ const GMAIL_OAUTH_STATE_TTL_MS=10*60*1000;
 const customerToken=q=>{const token=rd(q);if(token?.r!=='c')return null;const customer=one('SELECT auth_version FROM customers WHERE id=?',token.id);return customer&&+(token.v||0)===(customer.auth_version||0)?token:null};
 const cust=(q,r,n)=>{const t=customerToken(q);if(!t)return r.status(401).json({error:'Login required'});q.cid=t.id;n()};
 const one=(s,...a)=>db.prepare(s).get(...a);
+const eligibleWelcomeVoucher=customerId=>one(`SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND first_order_only=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND trim(COALESCE(voucher_code,''))<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND (COALESCE(max_redemptions,0)=0 OR (SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id)<COALESCE(max_redemptions,0)) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1`,Number(customerId));
 const custId=(b,q)=>{const t=customerToken(q);if(t)return t.id;const p=String(b.phone).trim(),c=one('SELECT id FROM customers WHERE phone=?',p);return c?c.id:Number(db.prepare('INSERT INTO customers(name,phone,email) VALUES(?,?,?)').run(b.name,p,b.email||'').lastInsertRowid)};
 const hits=new Map();setInterval(()=>hits.clear(),6e4).unref();
 const lim=n=>(q,r,x)=>{const k=q.ip+q.path,c=(hits.get(k)||0)+1;hits.set(k,c);c>n?r.status(429).json({error:'Too many attempts. Please wait a minute and try again.'}):x()};
@@ -517,7 +518,7 @@ app.post('/api/register',lim(8),w((q,r)=>{
     id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
   const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
-  const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND first_order_only=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1",id);
+  const welcomeOffer=eligibleWelcomeVoucher(id);
   if(registeredCustomer?.email)safeNotification('registration',notifyRegistration,registeredCustomer,welcomeOffer||null);
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
@@ -688,7 +689,8 @@ app.get('/api/me',cust,w((q,r)=>{
     if(o.status!=='Out for delivery')return {...o,eta:'',driver_name:'',driver_phone:'',status_message:''};
     return {...o,eta:'',status_message:''};
   });
-  r.json({...c,delivered,cycleProgress:loyalty.cycleProgress(delivered),rewards,orders,subs:db.prepare('SELECT * FROM subs WHERE customer_id=? ORDER BY id DESC').all(q.cid)});
+  const welcomeVoucher=eligibleWelcomeVoucher(q.cid);
+  r.json({...c,delivered,cycleProgress:loyalty.cycleProgress(delivered),rewards,orders,subs:db.prepare('SELECT * FROM subs WHERE customer_id=? ORDER BY id DESC').all(q.cid),welcomeVoucher});
 }));
 app.post('/api/order',lim(30),w((q,r)=>{
   const b=q.body;
