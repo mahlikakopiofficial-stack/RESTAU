@@ -136,10 +136,10 @@ t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));ass
 t('regional cart + floating cart',()=>{assert(index.includes('window.addRegionalToCart'));assert(index.includes('regionalKey'));assert(master.includes('addRegionalToCart'));assert(server.includes("SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1"));assert(index.includes('id="cart-fab"'));assert(style.includes('#cart-fab{'));assert(style.includes('input[type="checkbox"]'));assert(style.includes('#cart-fab'));assert(style.includes('#menu{padding:34px 0}'));});
 t('website service images render from saved content',()=>{assert(index.includes('content_service_regular_image'));assert(index.includes('resolveMediaUrl(raw)'));assert(index.includes('service-image-filled'));assert(style.includes('.service-image{'));assert(server.includes("websiteServiceImageKeys={regular:'content_service_regular_image'"));assert(server.includes("target==='service'"));});
 t('menu add button uses shared app alignment',()=>{assert(master.includes('menu-add'));assert(enhancements.includes('menu-add'));assert(index.includes('menu-add'));assert(style.includes('.menu-card-actions .menu-add'));assert(style.includes('.menu-card .menu-add'));assert(index.includes('window.addMenuToCart'));assert(master.includes('window.addMenuToCart'));assert(enhancements.includes('window.addMenuToCart'));assert(index.includes('Add to cart'));assert(master.includes('Add to cart'));});
-t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261016-promotions-vouchers2'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
-t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261016-promotions-vouchers2'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
+t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261016-promotions-vouchers3'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
+t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261016-promotions-vouchers3'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
 t('admin responsive navigation',()=>{assert(admin.includes('admin-nav-toggle'));assert(admin.includes('admin-nav-menu'));assert(admin.includes('toggleAdminNav'));assert(fs.existsSync(path.join(root,'public','admin-nav.css')));});
-t('admin root route initializes admin-only panels',()=>{assert(enhancements.includes("location.hostname.startsWith('admin.')"));assert(master.includes("location.hostname.startsWith('admin.')"));assert(fixes.includes('const isAdminRoute=()=>'));assert(fixes.includes('if(!isAdminRoute())'));assert(fixes.includes('if(isAdminRoute())'));assert(admin.includes('enhancements.js?v=20261014-admin-route1'));assert(admin.includes('final-fixes.js?v=20261014-admin-route1'));assert(admin.includes('master-enhancements.js?v=20261016-promotions-vouchers2'));assert(master.includes("R['Announcements']=async function"));assert(master.includes("R['Regional Dishes']=async function"));assert(master.includes("R['Heritage']=async function"));});
+t('admin root route initializes admin-only panels',()=>{assert(enhancements.includes("location.hostname.startsWith('admin.')"));assert(master.includes("location.hostname.startsWith('admin.')"));assert(fixes.includes('const isAdminRoute=()=>'));assert(fixes.includes('if(!isAdminRoute())'));assert(fixes.includes('if(isAdminRoute())'));assert(admin.includes('enhancements.js?v=20261014-admin-route1'));assert(admin.includes('final-fixes.js?v=20261014-admin-route1'));assert(admin.includes('master-enhancements.js?v=20261016-promotions-vouchers3'));assert(master.includes("R['Announcements']=async function"));assert(master.includes("R['Regional Dishes']=async function"));assert(master.includes("R['Heritage']=async function"));});
 t('universal logo upload and branding',()=>{assert(server.includes("fileFilter:(q,f,cb)=>/^image\\/(jpe?g|png|webp|gif|svg\\+xml)$/"));assert(admin.includes('id="logo-file"'));assert(admin.includes('image/svg+xml'));assert(admin.includes('saveUniversalLogo'));assert(app.includes("api('/admin/upload?target=logo'"));assert(app.includes('const configured=String(c.logo_url||\'\').trim()'));assert(app.includes('resolveMediaUrl(configured)'));assert(app.includes('applyUniversalBranding'));assert(app.includes('window.PINOY_BRANDING'));assert(server.includes("r.set('Cache-Control','no-store')"));});
 t('admin order live delivery',()=>{
   assert(server.includes("app.get('/api/admin/events"));
@@ -164,7 +164,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v42'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v43'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -193,8 +193,8 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v42'"));
-  assert(sw.includes("const CACHE_VERSION='v41'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v43'"));
+  assert(sw.includes("const CACHE_VERSION='v42'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
@@ -423,7 +423,7 @@ t('inventory availability is enforced by order API and displayed on customer and
   assert(!inventorySource.includes("'Only ' + available"));
   assert(!index.includes('stock + " available"'));
   assert(!index.includes('"Only " + available + " available today"'));
-  assert(sw.includes('/master-enhancements.js?v=20261016-promotions-vouchers2'));
+  assert(sw.includes('/master-enhancements.js?v=20261016-promotions-vouchers3'));
   assert(inventorySource.includes('stock_available=stock_available-?'));
 });
 
@@ -477,6 +477,8 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(admin.includes('"Promotions & Vouchers"'));
   assert(master.includes("R['Promotions & Vouchers']=R['Announcements']"));
   assert(master.includes('pa-promotion-modal'));
+  assert(master.includes('window.__paPromotionDismissedThisVisit'));
+  assert(!master.includes('pa-promotion-dismissed-'));
   assert(master.includes('window.PA_PROMOTIONS=rows'));
   assert(master.includes('name="display_mode"'));
   assert(master.includes('name="audience"'));
@@ -521,7 +523,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(notifications.includes('YOUR WELCOME VOUCHER'));
   assert(notifications.includes("parsed.searchParams.set('voucher'"));
   assert(notifications.includes('welcome_subject'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v42'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v43'"));
 });
 
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');
