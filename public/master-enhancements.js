@@ -559,14 +559,14 @@ function adminBoot(){
     const discountOptions=value=>discounts.map(x=>'<option value="'+x[0]+'"'+((value||'none')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
     const fields=(a,create)=>'<div class="master-admin-grid">'+
       '<label>Display location<select name="display_mode">'+displayOptions(a.display_mode)+'</select></label>'+ 
-      '<label>Audience<select name="audience">'+audienceOptions(a.audience)+'</select></label>'+ 
+      '<label>Who sees this promotion<select name="audience">'+audienceOptions(a.audience)+'</select></label>'+ 
       '<label>Discount type<select name="discount_type">'+discountOptions(a.discount_type)+'</select></label>'+
       '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
       '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
       '<label>Maximum discount (KD; 0 = no cap)<input name="discount_cap" type="number" min="0" step="0.001" value="'+(Number(a.discount_cap)||0)+'"></label>'+
       '<label>Maximum redemptions (0 = unlimited)<input name="max_redemptions" type="number" min="0" step="1" value="'+(Number(a.max_redemptions)||0)+'"></label>'+
       '<label>Voucher code<input name="voucher_code" maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" value="'+announcementInputEsc(a.voucher_code||'')+'" placeholder="WELCOME10"></label></div>'+
-      '<p class="small">Voucher codes are unique. A maximum discount caps the offer value; a redemption limit caps the total campaign uses. Cancelled orders and failed payments release the voucher. Redemption requires sign-in.</p>'+
+      '<p class="small">Audience controls who sees the announcement. Voucher redemption requires sign-in. Codes are unique; a maximum discount caps the offer value; a redemption limit caps total active uses. Cancelled orders and failed payments release the voucher, with a retained audit record.</p>'+
       '<label><input type="checkbox" name="allow_stack" value="1" '+(Number(a.allow_stack)?'checked':'')+' style="width:auto"> Allow this voucher to stack with loyalty rewards</label>'+
       '<h4>Registration welcome email</h4><label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer to new registrations (first eligible order only)</label>'+
       '<label>Welcome email subject<input name="welcome_subject" maxlength="160" value="'+announcementInputEsc(a.welcome_subject||'')+'" placeholder="Your welcome voucher is here"></label>'+
@@ -614,6 +614,7 @@ function adminBoot(){
     const report=tbl(redemptions,[
       ['Promotion',x=>announcementInputEsc(x.title)],
       ['Voucher',x=>announcementInputEsc(x.voucher_code)],
+      ['Redemption',x=>announcementInputEsc(x.status)+(x.released_at?' · '+announcementInputEsc(x.released_at):'')],
       ['Customer',x=>announcementInputEsc(x.customer_name)+'<br>'+announcementInputEsc(x.phone)],
       ['Order',x=>'#'+x.order_id+' · '+announcementInputEsc(x.order_status)],
       ['Total',x=>money(x.order_total)],
