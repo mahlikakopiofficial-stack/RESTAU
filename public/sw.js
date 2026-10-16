@@ -1,10 +1,11 @@
-const CACHE_NAME='pinoyambula-shell-v48';
-const CACHE_VERSION='v47';
+const CACHE_NAME='pinoyambula-shell-v49';
+const CACHE_VERSION='v48';
 const SHELL=[
   '/index.html',
   '/account.html',
   '/admin.html',
   '/reset-password.html',
+  '/verify-email.html',
   '/style.css',
   '/app.js?v=20261007-live7',
   '/loyalty.js?v=20261009-loyalty1',
