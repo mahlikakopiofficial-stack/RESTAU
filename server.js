@@ -90,6 +90,7 @@ const ensureColumn=(table,column,definition)=>{
   ['announcements','min_order','REAL DEFAULT 0'],
   ['announcements','voucher_code',"TEXT DEFAULT ''"],
   ['announcements','welcome_enabled','INTEGER DEFAULT 0'],
+  ['announcements','first_order_only','INTEGER DEFAULT 0'],
   ['announcements','welcome_subject',"TEXT DEFAULT ''"],
   ['announcements','welcome_message',"TEXT DEFAULT ''"],
   ['announcements','max_redemptions','INTEGER DEFAULT 0'],
@@ -102,6 +103,8 @@ const ensureColumn=(table,column,definition)=>{
   ['regional_dishes','daily_restock_quantity','INTEGER DEFAULT 3'],
   ['regional_dishes','stock_date',"TEXT DEFAULT ''"]
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
+// Preserve first-order restrictions for existing registration-welcome campaigns.
+db.prepare("UPDATE announcements SET first_order_only=1 WHERE COALESCE(welcome_enabled,0)=1 AND COALESCE(first_order_only,0)=0").run();
 db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));
 CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,UNIQUE(order_id));`);
 db.exec(`INSERT OR IGNORE INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,created) SELECT announcement_id,customer_id,order_id,'Applied',created FROM promotion_redemptions;`);
@@ -503,7 +506,7 @@ app.post('/api/register',lim(8),w((q,r)=>{
     id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
   const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
-  const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1",id);
+  const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND first_order_only=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1",id);
   if(registeredCustomer?.email)safeNotification('registration',notifyRegistration,registeredCustomer,welcomeOffer||null);
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
@@ -746,7 +749,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
       if(one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',candidate.id,customerId))throw new Error('This voucher has already been used by this customer.');
       if(Number(candidate.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',candidate.id).n>=Number(candidate.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
       if(rewardThreshold&&Number(candidate.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
-      if(Number(candidate.welcome_enabled)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
+      if(Number(candidate.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
       const value=Math.max(0,Number(candidate.discount_value)||0);
       discount=candidate.discount_type==='percent'?Math.min(sub,sub*value/100):Math.min(sub,value);
       if(Number(candidate.discount_cap||0)>0)discount=Math.min(discount,Number(candidate.discount_cap));
@@ -774,7 +777,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   if(promotion&&one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',promotion.id,customerId))throw new Error('This voucher has already been used by this customer.');
   if(promotion&&Number(promotion.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',promotion.id).n>=Number(promotion.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
   if(promotion&&rewardThreshold&&Number(promotion.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
-  if(promotion&&Number(promotion.welcome_enabled)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
+  if(promotion&&Number(promotion.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
   inventory.reserveOrderInventory(db,its,kuwaitToday());
   const id=db.prepare(`
     INSERT INTO orders(
@@ -1549,6 +1552,8 @@ const announcementPayload=(body,current={})=>{
   const minOrder=Number(body.min_order??current.min_order??0);
   const voucherCode=String(body.voucher_code??current.voucher_code??'').trim().toUpperCase();
   const welcomeEnabled=body.welcome_enabled===undefined?(Number(current.welcome_enabled||0)?1:0):(body.welcome_enabled?1:0);
+  let firstOrderOnly=body.first_order_only===undefined?(Number(current.first_order_only||current.welcome_enabled||0)?1:0):(body.first_order_only?1:0);
+  if(welcomeEnabled)firstOrderOnly=1;
   const maxRedemptions=Number(body.max_redemptions??current.max_redemptions??0);
   const discountCap=Number(body.discount_cap??current.discount_cap??0);
   const allowStack=body.allow_stack===undefined?(Number(current.allow_stack||0)?1:0):(body.allow_stack?1:0);
@@ -1575,6 +1580,7 @@ const announcementPayload=(body,current={})=>{
     active:body.active===undefined?(Number(current.active??1)?1:0):(body.active?1:0),
     display_mode:displayMode,audience,discount_type:discountType,discount_value:discountValue,min_order:minOrder,voucher_code:voucherCode,
     welcome_enabled:welcomeEnabled,
+    first_order_only:firstOrderOnly,
     welcome_subject:String(body.welcome_subject??current.welcome_subject??'').trim().slice(0,160),
     welcome_message:String(body.welcome_message??current.welcome_message??'').trim().slice(0,1000),
     max_redemptions:maxRedemptions,discount_cap:discountCap,allow_stack:allowStack,
@@ -1591,23 +1597,23 @@ app.get('/api/announcements',(q,r)=>{
   // customer who already has a qualifying order, so general existing-customer
   // promotions can be selected and displayed instead.
   const hasEligibleOrder=token&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",token.id)?1:0;
-  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,audience,discount_type,discount_value,min_order,voucher_code,welcome_enabled,discount_cap,allow_stack,max_redemptions,(SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id) AS redemption_count FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND (max_redemptions=0 OR (SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id)<max_redemptions) AND (audience='all' OR (audience='registered' AND ?=1) OR (audience='guests' AND ?=0)) AND (welcome_enabled=0 OR ?=0) ORDER BY priority DESC,id DESC").all(signedIn,signedIn,hasEligibleOrder));
+  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,audience,discount_type,discount_value,min_order,voucher_code,welcome_enabled,first_order_only,discount_cap,allow_stack,max_redemptions,(SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id) AS redemption_count FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND (max_redemptions=0 OR (SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id)<max_redemptions) AND (audience='all' OR (audience='registered' AND ?=1) OR (audience='guests' AND ?=0)) AND (first_order_only=0 OR ?=0) ORDER BY priority DESC,id DESC").all(signedIn,signedIn,hasEligibleOrder));
 });
 app.get('/api/regional-dishes',(q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.set('Cache-Control','no-store');r.json(db.prepare("SELECT id,name,region,descr,price,img,stock_available,daily_restock_quantity FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all())});
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));
 app.get('/api/admin/announcements',admin,w((q,r)=>r.json(db.prepare('SELECT * FROM announcements ORDER BY priority DESC,id DESC').all())));
 app.post('/api/admin/announcements',admin,w((q,r)=>{
   const b=announcementPayload(q.body);
-  const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,audience,discount_type,discount_value,min_order,voucher_code,welcome_enabled,welcome_subject,welcome_message,max_redemptions,discount_cap,allow_stack,redemption_email_enabled,redemption_email_subject,redemption_email_message) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message).lastInsertRowid);
+  const id=Number(db.prepare('INSERT INTO announcements(title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,audience,discount_type,discount_value,min_order,voucher_code,welcome_enabled,first_order_only,welcome_subject,welcome_message,max_redemptions,discount_cap,allow_stack,redemption_email_enabled,redemption_email_subject,redemption_email_message) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.first_order_only,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message).lastInsertRowid);
   r.json({ok:1,id});
 }));
 app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
   const current=one('SELECT * FROM announcements WHERE id=?',q.params.id);
   if(!current)throw new Error('Announcement not found');
   const b=announcementPayload(q.body,current);
-  db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,display_mode=?,audience=?,discount_type=?,discount_value=?,min_order=?,voucher_code=?,welcome_enabled=?,welcome_subject=?,welcome_message=?,max_redemptions=?,discount_cap=?,allow_stack=?,redemption_email_enabled=?,redemption_email_subject=?,redemption_email_message=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
-    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message,q.params.id);
+  db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,display_mode=?,audience=?,discount_type=?,discount_value=?,min_order=?,voucher_code=?,welcome_enabled=?,first_order_only=?,welcome_subject=?,welcome_message=?,max_redemptions=?,discount_cap=?,allow_stack=?,redemption_email_enabled=?,redemption_email_subject=?,redemption_email_message=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.first_order_only,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message,q.params.id);
   r.json({ok:1});
 }));
 app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,p.title,p.voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
