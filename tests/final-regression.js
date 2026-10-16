@@ -467,6 +467,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(master.includes('name="welcome_enabled"'));
   assert(server.includes("'announcements','display_mode'"));
   assert(server.includes("'announcements','welcome_enabled'"));
+  assert(server.includes("audience IN ('all','registered')"));
   assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemptions'));
   assert(server.includes("app.get('/api/admin/promotion-redemptions'"));
   assert(server.includes('UNIQUE(announcement_id,customer_id)'));
