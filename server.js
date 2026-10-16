@@ -1585,8 +1585,13 @@ const announcementPayload=(body,current={})=>{
 };
 app.get('/api/announcements',(q,r)=>{
   r.set('Cache-Control','no-store');
-  const signedIn=customerToken(q)?1:0;
-  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,audience,discount_type,discount_value,min_order,voucher_code,discount_cap,allow_stack,max_redemptions,(SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id) AS redemption_count FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND (max_redemptions=0 OR (SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id)<max_redemptions) AND (audience='all' OR (audience='registered' AND ?=1) OR (audience='guests' AND ?=0)) ORDER BY priority DESC,id DESC").all(signedIn,signedIn));
+  const token=customerToken(q);
+  const signedIn=token?1:0;
+  // Registration welcome offers are first-order offers. Hide them from a signed-in
+  // customer who already has a qualifying order, so general existing-customer
+  // promotions can be selected and displayed instead.
+  const hasEligibleOrder=token&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",token.id)?1:0;
+  r.json(db.prepare("SELECT id,title,message,image,cta_label,cta_url,priority,starts_at,ends_at,active,display_mode,audience,discount_type,discount_value,min_order,voucher_code,welcome_enabled,discount_cap,allow_stack,max_redemptions,(SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id) AS redemption_count FROM announcements WHERE active=1 AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND (max_redemptions=0 OR (SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id)<max_redemptions) AND (audience='all' OR (audience='registered' AND ?=1) OR (audience='guests' AND ?=0)) AND (welcome_enabled=0 OR ?=0) ORDER BY priority DESC,id DESC").all(signedIn,signedIn,hasEligibleOrder));
 });
 app.get('/api/regional-dishes',(q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.set('Cache-Control','no-store');r.json(db.prepare("SELECT id,name,region,descr,price,img,stock_available,daily_restock_quantity FROM regional_dishes WHERE active=1 ORDER BY sort_order,id").all())});
 app.get('/api/heritage',(q,r)=>r.json(db.prepare("SELECT id,title,caption,media_type,img,media_url FROM heritage WHERE active=1 ORDER BY sort_order,id").all()));

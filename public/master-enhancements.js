@@ -576,6 +576,7 @@ function adminBoot(){
     const createForm='<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();createAnnouncement(this)">'+
       '<h3>Create promotion or announcement</h3>'+
       '<p class="small">All display, audience, discount, validity, and registration email settings are configurable here. No offer amounts or voucher codes are hard-coded in the customer interface. Only the highest-priority active welcome offer is included in registration emails.</p>'+
+      '<p class="small"><b>For an existing-customer voucher:</b> set Audience to Registered and leave “Send this offer to new registrations” unchecked. Customers may have previous orders, but each customer can redeem this voucher only once. Welcome offers are hidden from signed-in customers who already have a qualifying order.</p>'+
       '<div class="master-admin-grid">'+
       '<label>Title<input name="title" required maxlength="160" placeholder="Announcement title"></label>'+
       '<label>Priority<input name="priority" type="number" step="1" value="0"></label>'+
