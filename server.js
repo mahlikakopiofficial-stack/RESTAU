@@ -102,7 +102,8 @@ const ensureColumn=(table,column,definition)=>{
   ['regional_dishes','daily_restock_quantity','INTEGER DEFAULT 3'],
   ['regional_dishes','stock_date',"TEXT DEFAULT ''"]
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
-db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));`);
+db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));
+CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,UNIQUE(order_id));`);
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
 'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
@@ -785,7 +786,10 @@ app.post('/api/order',lim(30),w((q,r)=>{
   ).lastInsertRowid;
   db.prepare('UPDATE orders SET inventory_deducted=1 WHERE id=?').run(id);
   if(rewardThreshold)db.prepare('INSERT INTO loyalty_redemptions(customer_id,threshold,order_id) VALUES(?,?,?)').run(customerId,rewardThreshold,id);
-  if(promotion)db.prepare('INSERT INTO promotion_redemptions(announcement_id,customer_id,order_id) VALUES(?,?,?)').run(promotion.id,customerId,id);
+  if(promotion){
+    db.prepare('INSERT INTO promotion_redemptions(announcement_id,customer_id,order_id) VALUES(?,?,?)').run(promotion.id,customerId,id);
+    db.prepare("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status) VALUES(?,?,?,'Applied')").run(promotion.id,customerId,id);
+  }
   return Number(id);
   });
   const id=saveOrder();
@@ -1173,7 +1177,10 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
         const createdDay=one("SELECT date(datetime(?,'+3 hours')) day",before.created)?.day;
         inventory.restoreCancelledOrderInventory(db,before,kuwaitToday(),createdDay);
       }
-      if(status==='Cancelled'&&before.status!=='Cancelled')db.prepare('DELETE FROM promotion_redemptions WHERE order_id=?').run(q.params.id);
+      if(status==='Cancelled'&&before.status!=='Cancelled'){
+        db.prepare("UPDATE promotion_redemption_history SET status='Released',released_at=CURRENT_TIMESTAMP WHERE order_id=? AND status='Applied'").run(q.params.id);
+        db.prepare('DELETE FROM promotion_redemptions WHERE order_id=?').run(q.params.id);
+      }
       db.prepare('UPDATE orders SET '+sets.join(',')+' WHERE id=?').run(...vals);
     })();
     const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
@@ -1208,7 +1215,10 @@ app.put('/api/admin/payment/:id',admin,w((q,r)=>{
   if(!before)throw new Error('Order not found');
   db.transaction(()=>{
     db.prepare('UPDATE orders SET payment_status=? WHERE id=?').run(status,q.params.id);
-    if(status==='Failed'&&before.payment_status!=='Failed')db.prepare('DELETE FROM promotion_redemptions WHERE order_id=?').run(q.params.id);
+    if(status==='Failed'&&before.payment_status!=='Failed'){
+      db.prepare("UPDATE promotion_redemption_history SET status='Released',released_at=CURRENT_TIMESTAMP WHERE order_id=? AND status='Applied'").run(q.params.id);
+      db.prepare('DELETE FROM promotion_redemptions WHERE order_id=?').run(q.params.id);
+    }
   })();
   const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
   notifyPaymentStatus(after,before.payment_status);
@@ -1576,7 +1586,7 @@ app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
     .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message,q.params.id);
   r.json({ok:1});
 }));
-app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,p.title,p.voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemptions pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
+app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,p.title,p.voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
 app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
   const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);
   if(!row)throw new Error('Announcement not found');
