@@ -89,6 +89,14 @@
           <button class="btn s o" onclick="out()">Logout</button>
           <a class="btn s" href="index.html#menu">Order food</a>
         </p>
+        <section id="welcome-voucher-card" hidden class="card" style="margin:20px 0;padding:18px;border:1px solid #d8bd78;background:#fff8e8;border-radius:14px">
+          <h3 id="welcome-voucher-title">Your welcome voucher</h3>
+          <p id="welcome-voucher-message"></p>
+          <p style="font-size:.8rem;letter-spacing:1px;margin-bottom:4px">VOUCHER CODE</p>
+          <p id="welcome-voucher-code" style="font-size:1.5rem;font-weight:800;letter-spacing:2px;margin-top:0"></p>
+          <p id="welcome-voucher-details"></p>
+          <a id="welcome-voucher-use" class="btn" href="index.html#menu">Use voucher and order</a>
+        </section>
         <section id="loyalty" style="padding: 12px 0">
           <h3>Loyalty</h3>
           <p id="loyalty-progress"></p>
@@ -442,6 +450,38 @@
           $("#auth").hidden = true;
           $("#me").hidden = false;
           $("#hi").textContent = "Mabuhay, " + m.name + "!";
+          const welcomeVoucher = m.welcomeVoucher;
+          const welcomeCard = $("#welcome-voucher-card");
+          if (welcomeVoucher && welcomeVoucher.voucher_code && welcomeCard) {
+            const code = String(welcomeVoucher.voucher_code).trim().toUpperCase();
+            welcomeCard.hidden = false;
+            $("#welcome-voucher-title").textContent = welcomeVoucher.title || "Your welcome voucher";
+            $("#welcome-voucher-message").textContent =
+              welcomeVoucher.welcome_message ||
+              welcomeVoucher.message ||
+              "Enjoy a welcome discount on your first eligible order.";
+            $("#welcome-voucher-code").textContent = code;
+            const discount =
+              welcomeVoucher.discount_type === "percent"
+                ? Number(welcomeVoucher.discount_value || 0) + "% off"
+                : money(welcomeVoucher.discount_value) + " off";
+            const minimum = Number(welcomeVoucher.min_order || 0) > 0
+              ? "Minimum subtotal: " + money(welcomeVoucher.min_order)
+              : "";
+            const validity = welcomeVoucher.ends_at
+              ? "Valid until " + kuwaitDateTime(welcomeVoucher.ends_at)
+              : "Valid while the offer is active";
+            $("#welcome-voucher-details").textContent = [
+              discount,
+              minimum,
+              validity,
+              "First eligible order only · one use per customer",
+            ].filter(Boolean).join(" · ");
+            $("#welcome-voucher-use").href =
+              "index.html?voucher=" + encodeURIComponent(code) + "#menu";
+          } else if (welcomeCard) {
+            welcomeCard.hidden = true;
+          }
           const cycleProgress = window.PINOY_LOYALTY
             ? window.PINOY_LOYALTY.cycleProgress(m.delivered)
             : (m.delivered % 10 || (m.delivered ? 10 : 0));
