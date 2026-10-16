@@ -143,6 +143,7 @@ t('customer email verification uses one-time tokens and shared email sender',()=
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
   assert(sw.includes("const CACHE_VERSION='v48'"));
   assert(sw.includes("  '/verify-email.html',"));
+  assert(sw.includes("url.pathname==='/verify-email.html'&&url.searchParams.has('token')"));
   assert(gmail.includes('GMAIL_FROM_EMAIL||user'));
 });
 t('admin report selected date/range',()=>{
