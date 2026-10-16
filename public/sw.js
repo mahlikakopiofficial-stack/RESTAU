@@ -1,5 +1,5 @@
-const CACHE_NAME='pinoyambula-shell-v42';
-const CACHE_VERSION='v41';
+const CACHE_NAME='pinoyambula-shell-v43';
+const CACHE_VERSION='v42';
 const SHELL=[
   '/index.html',
   '/account.html',
@@ -10,7 +10,7 @@ const SHELL=[
   '/loyalty.js?v=20261009-loyalty1',
   '/enhancements.js',
   '/final-fixes.js',
-  '/master-enhancements.js?v=20261016-promotions-vouchers2',
+  '/master-enhancements.js?v=20261016-promotions-vouchers3',
   '/admin-fixes.js?v=20261007-live8',
   '/admin-notify.js?v=20261007-live7',
   '/admin-push.js?v=20261010-adminpush1',
