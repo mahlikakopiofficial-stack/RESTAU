@@ -1366,7 +1366,24 @@ app.put('/api/admin/gallery/:id',admin,w((q,r)=>{
   if(!result.changes)throw new Error('Gallery item not found');
   r.json({ok:1});
 }));
-app.delete('/api/admin/:t/:id',admin,w((q,r)=>{if(!DEL.includes(q.params.t))throw new Error('bad table');db.prepare(`DELETE FROM ${q.params.t} WHERE id=?`).run(q.params.id);r.json({ok:1})}));
+app.delete('/api/admin/:t/:id',admin,w((q,r)=>{
+  const table=q.params.t,id=q.params.id;
+  if(table==='announcements'){
+    const row=one('SELECT id,image FROM announcements WHERE id=?',id);
+    if(!row)throw new Error('Announcement not found');
+    // Remove live redemption locks/counters, but retain voucher title/code snapshots.
+    const removePromotion=db.transaction(()=>{
+      db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(id);
+      db.prepare('DELETE FROM announcements WHERE id=?').run(id);
+    });
+    removePromotion();
+    if(row.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});
+    return r.json({ok:1,historyPreserved:true});
+  }
+  if(!DEL.includes(table))throw new Error('bad table');
+  db.prepare(`DELETE FROM ${table} WHERE id=?`).run(id);
+  r.json({ok:1});
+}));
 const SK=[
   'name','phone','hours','currency','fee','min_order','accepting','subscriptions_enabled',
   'hero_title','hero_text','logo_url','whatsapp','facebook','instagram',
@@ -1630,18 +1647,7 @@ app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
   r.json({ok:1,voucherCodeChanged});
 }));
 app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,COALESCE(NULLIF(pr.voucher_title,''),p.title,'Deleted voucher #'||pr.announcement_id) AS title,COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code,'') AS voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr LEFT JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
-app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
-  const row=one('SELECT id,image FROM announcements WHERE id=?',q.params.id);
-  if(!row)throw new Error('Announcement not found');
-  // Remove current redemption locks/counters, but preserve the audit history.
-  const removePromotion=db.transaction(()=>{
-    db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(q.params.id);
-    db.prepare('DELETE FROM announcements WHERE id=?').run(q.params.id);
-  });
-  removePromotion();
-  if(row.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});
-  r.json({ok:1,historyPreserved:true});
-}));
+
 app.get('/api/admin/regional-dishes',admin,w((q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())}));
 app.post('/api/admin/regional-dishes',admin,w((q,r)=>{
   need(q.body,'name','region');
