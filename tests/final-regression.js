@@ -490,6 +490,11 @@ t('voucher first-order eligibility is separate from welcome email delivery',()=>
   assert(index.includes('First eligible order only. Sign in to redeem; one use per customer.'));
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v47'"));
 });
+t('legacy voucher redemption history backfills the exact code from the original order',()=>{
+  assert(server.includes("NULLIF((SELECT promo_code FROM orders WHERE orders.id=promotion_redemption_history.order_id),'')"));
+  assert(server.includes("(SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id)"));
+  assert(server.includes("WHERE COALESCE(voucher_code,'')=''"));
+});
 t('voucher codes are one-use per signed-in customer even when the campaign code changes',()=>{
   assert(server.includes("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1"));
   assert((server.match(/SELECT id FROM promotion_redemption_history WHERE upper\(trim\(COALESCE\(voucher_code/g)||[]).length>=2);
