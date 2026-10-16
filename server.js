@@ -5,7 +5,7 @@ const loyalty=require('./public/loyalty.js');
 const inventory=require('./lib/inventory');
 const adminPush=require('./lib/admin-push');
 const {sendMail,getAuthorizationUrl,exchangeCode}=require('./lib/gmail');
-const {notifyRegistration,notifyPromotionRedeemed,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifyAdminSubscription,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
+const {notifyRegistration,notifyEmailVerification,notifyPromotionRedeemed,notifyInquiryReceived,notifyInquiryReply,notifyAdminInquiry,notifyAdminCustomerMessage,notifyNewsletterWelcome,sendNewsletterCampaign,notifyOrderReceived,notifyAdminOrder,notifyOrderStatus,notifyPaymentStatus,notifySubscriptionReceived,notifyAdminSubscription,notifySubscriptionStatus,notifySubscriptionPaymentStatus,sendPasswordResetEmail}=require('./lib/notifications');
 const {sendWhatsAppText,configured:whatsappConfigured,status:whatsappStatus}=require('./lib/whatsapp');
 const E=process.env,PORT=E.PORT||3000,SECRET=E.SECRET||'change-me',ADMIN_PW=E.ADMIN_PASSWORD||'admin123',CUR=E.CURRENCY||'KWD',FEE=+(E.DELIVERY_FEE||1),NAME=E.RESTO_NAME||'PinoyAmbula';
 const kuwaitToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,customer_id INTEGER,nam
 CREATE TABLE IF NOT EXISTS subs(id INTEGER PRIMARY KEY,customer_id INTEGER,name TEXT,phone TEXT,address TEXT,paci TEXT,plan TEXT,start TEXT,end TEXT,price REAL,status TEXT DEFAULT 'Active',created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS inquiries(id INTEGER PRIMARY KEY,customer_id INTEGER,order_id INTEGER,name TEXT,email TEXT,phone TEXT,type TEXT,msg TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS password_reset_tokens(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL,token_hash TEXT UNIQUE NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER,created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS email_verification_tokens(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL,email TEXT NOT NULL,token_hash TEXT UNIQUE NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS newsletter(id INTEGER PRIMARY KEY,email TEXT UNIQUE,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS gallery(id INTEGER PRIMARY KEY,img TEXT,caption TEXT);
 CREATE TABLE IF NOT EXISTS testimonials(id INTEGER PRIMARY KEY,name TEXT,text TEXT,stars INTEGER DEFAULT 5);
@@ -48,6 +49,7 @@ const ensureColumn=(table,column,definition)=>{
   ['customers','nationality',"TEXT DEFAULT ''"],
   ['customers','auth_version','INTEGER DEFAULT 0'],
   ['customers','whatsapp_opt_in','INTEGER DEFAULT 0'],
+  ['customers','email_verified','INTEGER DEFAULT 0'],
   ['orders','subtotal','REAL DEFAULT 0'],
   ['orders','discount','REAL DEFAULT 0'],
   ['orders','email',"TEXT DEFAULT ''"],
@@ -280,6 +282,20 @@ const customerToken=q=>{const token=rd(q);if(token?.r!=='c')return null;const cu
 const cust=(q,r,n)=>{const t=customerToken(q);if(!t)return r.status(401).json({error:'Login required'});q.cid=t.id;n()};
 const one=(s,...a)=>db.prepare(s).get(...a);
 const eligibleWelcomeVoucher=customerId=>one(`SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND first_order_only=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND trim(COALESCE(voucher_code,''))<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND (COALESCE(max_redemptions,0)=0 OR (SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.announcement_id=announcements.id)<COALESCE(max_redemptions,0)) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1`,Number(customerId));
+
+const issueEmailVerification=(customerId,email)=>{
+  const address=String(email||'').trim().toLowerCase();
+  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(address))throw new Error('A valid email address is required.');
+  const base=String(E.PUBLIC_BASE_URL||'').replace(/\\/+$/,'');
+  if(!base)throw new Error('PUBLIC_BASE_URL is not configured.');
+  const now=Date.now();
+  db.prepare('DELETE FROM email_verification_tokens WHERE used_at IS NOT NULL OR expires_at<?').run(now);
+  db.prepare('UPDATE email_verification_tokens SET used_at=? WHERE customer_id=? AND used_at IS NULL').run(now,Number(customerId));
+  const raw=crypto.randomBytes(32).toString('base64url');
+  const tokenHash=crypto.createHash('sha256').update(raw).digest('hex');
+  db.prepare('INSERT INTO email_verification_tokens(customer_id,email,token_hash,expires_at,created_at) VALUES(?,?,?,?,?)').run(Number(customerId),address,tokenHash,now+24*60*60*1000,now);
+  return {tokenHash,verificationUrl:base+'/verify-email.html?token='+encodeURIComponent(raw)};
+};
 const custId=(b,q)=>{const t=customerToken(q);if(t)return t.id;const p=String(b.phone).trim(),c=one('SELECT id FROM customers WHERE phone=?',p);return c?c.id:Number(db.prepare('INSERT INTO customers(name,phone,email) VALUES(?,?,?)').run(b.name,p,b.email||'').lastInsertRowid)};
 const hits=new Map();setInterval(()=>hits.clear(),6e4).unref();
 const lim=n=>(q,r,x)=>{const k=q.ip+q.path,c=(hits.get(k)||0)+1;hits.set(k,c);c>n?r.status(429).json({error:'Too many attempts. Please wait a minute and try again.'}):x()};
@@ -506,25 +522,69 @@ app.post('/api/register',lim(8),w((q,r)=>{
   const b=q.body;
   need(b,'name','phone','password');
   if(b.password.length<6)throw new Error('Password min 6 characters');
-  if(b.email&&!/^\S+@\S+\.\S+$/.test(String(b.email)))throw new Error('Valid email required');
+  const email=String(b.email||'').trim().toLowerCase();
+  if(email&&!/^\S+@\S+\.\S+$/.test(email))throw new Error('Valid email required');
   const phone=String(b.phone).trim(),customer=one('SELECT * FROM customers WHERE phone=?',phone);
-  const values=[String(b.name).slice(0,100),phone,String(b.email||'').slice(0,200),String(b.address||'').slice(0,500),String(b.paci||'').slice(0,80),validDate(b.birthday)||'',String(b.nationality||'').slice(0,100)];
+  if(email){
+    const emailOwner=one("SELECT id FROM customers WHERE lower(trim(COALESCE(email,'')))=lower(trim(?)) AND (? IS NULL OR id<>?) LIMIT 1",email,customer?.id??null,customer?.id??null);
+    if(emailOwner)throw new Error('That email is already linked to another customer account.');
+  }
+  const values=[String(b.name).slice(0,100),phone,email,String(b.address||'').slice(0,500),String(b.paci||'').slice(0,80),validDate(b.birthday)||'',String(b.nationality||'').slice(0,100)];
   let id;
   if(customer){
     if(customer.pw)throw new Error('Phone already registered');
-    db.prepare('UPDATE customers SET name=?,phone=?,email=?,address=?,paci=?,birthday=?,nationality=?,pw=?,whatsapp_opt_in=? WHERE id=?').run(...values,hash(b.password),b.whatsapp_opt_in?1:0,customer.id);
+    db.prepare("UPDATE customers SET name=?,phone=?,email=?,address=?,paci=?,birthday=?,nationality=?,pw=?,whatsapp_opt_in=?,email_verified=CASE WHEN lower(trim(COALESCE(email,'')))=lower(trim(?)) THEN COALESCE(email_verified,0) ELSE 0 END WHERE id=?").run(...values,hash(b.password),b.whatsapp_opt_in?1:0,email,customer.id);
     id=customer.id;
   }else{
-    id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
+    id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in,email_verified) VALUES(?,?,?,?,?,?,?,?,?,0)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
-  const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
+  const registeredCustomer=one('SELECT id,name,email,phone,email_verified FROM customers WHERE id=?',id);
   const welcomeOffer=eligibleWelcomeVoucher(id);
-  if(registeredCustomer?.email)safeNotification('registration',notifyRegistration,registeredCustomer,welcomeOffer||null);
+  if(registeredCustomer?.email){
+    if(Number(registeredCustomer.email_verified)!==1){
+      try{
+        const verification=issueEmailVerification(id,registeredCustomer.email);
+        safeNotification('email-verification',notifyEmailVerification,{email:registeredCustomer.email,name:registeredCustomer.name,verificationUrl:verification.verificationUrl});
+      }catch(error){console.error('EMAIL_VERIFICATION_ISSUE_FAILED',error.message)}
+    }
+    safeNotification('registration',notifyRegistration,registeredCustomer,welcomeOffer||null);
+  }
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
-  r.json({token:mk({r:'c',id,v:version}),name:b.name});
+  r.json({token:mk({r:'c',id,v:version}),name:b.name,emailVerificationRequired:Boolean(registeredCustomer?.email&&Number(registeredCustomer.email_verified)!==1)});
 }));
 app.post('/api/login',lim(8),w((q,r)=>{const c=one('SELECT * FROM customers WHERE phone=?',String(q.body.phone||'').trim());if(!c||!chk(q.body.password||'',c.pw))return r.status(401).json({error:'Wrong phone or password'});r.json({token:mk({r:'c',id:c.id,v:c.auth_version||0}),name:c.name})}));
+app.post('/api/email/verification/send',lim(5),cust,async(q,r)=>{
+  const customer=one('SELECT id,name,email,email_verified FROM customers WHERE id=?',q.cid);
+  if(!customer?.email)return r.status(400).json({error:'Add an email address to your account before verifying it.'});
+  if(Number(customer.email_verified)===1)return r.json({ok:1,verified:true,message:'Your email address is already verified.'});
+  let issued;
+  try{
+    issued=issueEmailVerification(customer.id,customer.email);
+    await notifyEmailVerification({email:customer.email,name:customer.name,verificationUrl:issued.verificationUrl});
+    r.json({ok:1,message:'Verification email sent. Check your inbox and spam folder.'});
+  }catch(error){
+    if(issued?.tokenHash)db.prepare('UPDATE email_verification_tokens SET used_at=? WHERE token_hash=? AND used_at IS NULL').run(Date.now(),issued.tokenHash);
+    console.error('EMAIL_VERIFICATION_SEND_FAILED',error.message);
+    r.status(502).json({error:'We could not send the verification email. Please try again later.'});
+  }
+});
+app.post('/api/email/verify/confirm',lim(10),w((q,r)=>{
+  const raw=String(q.body.token||'').trim();
+  if(raw.length<40||raw.length>200)throw new Error('This verification link is invalid or expired. Request a new one.');
+  const tokenHash=crypto.createHash('sha256').update(raw).digest('hex');
+  const row=one('SELECT id,customer_id,email,expires_at,used_at FROM email_verification_tokens WHERE token_hash=?',tokenHash);
+  if(!row||row.used_at||Number(row.expires_at)<Date.now())throw new Error('This verification link is invalid or expired. Request a new one.');
+  const now=Date.now();
+  const verify=db.transaction(()=>{
+    const updated=db.prepare("UPDATE customers SET email_verified=1 WHERE id=? AND lower(trim(COALESCE(email,'')))=lower(trim(?))").run(row.customer_id,row.email);
+    if(!updated.changes)throw new Error('The email address on this account has changed. Request a new verification link.');
+    db.prepare('UPDATE email_verification_tokens SET used_at=? WHERE id=?').run(now,row.id);
+    db.prepare('UPDATE email_verification_tokens SET used_at=? WHERE customer_id=? AND used_at IS NULL').run(now,row.customer_id);
+  });
+  verify();
+  r.json({ok:1,message:'Your email address has been verified. You can return to PinoyAmbula.'});
+}));
 app.post('/api/admin/gmail/oauth/start',admin,w((q,r)=>{
   const state=crypto.randomBytes(32).toString('base64url');
   gmailOAuthStates.set(state,Date.now()+GMAIL_OAUTH_STATE_TTL_MS);
@@ -681,7 +741,7 @@ app.post('/api/customer/inquiries/:id/messages',lim(20),cust,w((q,r)=>{
   r.json({ok:1,id:Number(id)});
 }));
 app.get('/api/me',cust,w((q,r)=>{
-  const c=one('SELECT id,name,phone,email,address,paci,birthday,nationality FROM customers WHERE id=?',q.cid);
+  const c=one('SELECT id,name,phone,email,email_verified,address,paci,birthday,nationality FROM customers WHERE id=?',q.cid);
   const delivered=one("SELECT COUNT(*) n FROM orders WHERE customer_id=? AND status IN ('Delivered','Completed')",q.cid).n;
   const redeemed=db.prepare('SELECT threshold FROM loyalty_redemptions WHERE customer_id=?').all(q.cid).map(x=>x.threshold);
   const rewards=loyalty.availableRewards(delivered,redeemed);
