@@ -106,8 +106,10 @@ const ensureColumn=(table,column,definition)=>{
 // Preserve first-order restrictions for existing registration-welcome campaigns.
 db.prepare("UPDATE announcements SET first_order_only=1 WHERE COALESCE(welcome_enabled,0)=1 AND COALESCE(first_order_only,0)=0").run();
 db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));
-CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,UNIQUE(order_id));`);
+CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,voucher_code TEXT DEFAULT '',UNIQUE(order_id));`);
+ensureColumn('promotion_redemption_history','voucher_code',"TEXT DEFAULT ''");
 db.exec(`INSERT OR IGNORE INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,created) SELECT announcement_id,customer_id,order_id,'Applied',created FROM promotion_redemptions;`);
+db.prepare("UPDATE promotion_redemption_history SET voucher_code=COALESCE((SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_code,'')=''").run();
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
 'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
@@ -812,7 +814,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   if(rewardThreshold)db.prepare('INSERT INTO loyalty_redemptions(customer_id,threshold,order_id) VALUES(?,?,?)').run(customerId,rewardThreshold,id);
   if(promotion){
     db.prepare('INSERT INTO promotion_redemptions(announcement_id,customer_id,order_id) VALUES(?,?,?)').run(promotion.id,customerId,id);
-    db.prepare("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status) VALUES(?,?,?,'Applied')").run(promotion.id,customerId,id);
+    db.prepare("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,voucher_code) VALUES(?,?,?,'Applied',?)").run(promotion.id,customerId,id,promoCode);
   }
   return Number(id);
   });
@@ -1612,11 +1614,20 @@ app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
   const current=one('SELECT * FROM announcements WHERE id=?',q.params.id);
   if(!current)throw new Error('Announcement not found');
   const b=announcementPayload(q.body,current);
-  db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,display_mode=?,audience=?,discount_type=?,discount_value=?,min_order=?,voucher_code=?,welcome_enabled=?,first_order_only=?,welcome_subject=?,welcome_message=?,max_redemptions=?,discount_cap=?,allow_stack=?,redemption_email_enabled=?,redemption_email_subject=?,redemption_email_message=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
-    .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.first_order_only,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message,q.params.id);
-  r.json({ok:1});
+  const previousVoucherCode=String(current.voucher_code||'').trim().toUpperCase();
+  const nextVoucherCode=String(b.voucher_code||'').trim().toUpperCase();
+  const voucherCodeChanged=previousVoucherCode!==nextVoucherCode;
+  const savePromotion=db.transaction(()=>{
+    // Editing the code creates a new voucher version. Retain the historical
+    // redemption audit, but clear per-customer and global counts for the old code.
+    if(voucherCodeChanged)db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(q.params.id);
+    db.prepare('UPDATE announcements SET title=?,message=?,image=?,cta_label=?,cta_url=?,priority=?,starts_at=?,ends_at=?,active=?,display_mode=?,audience=?,discount_type=?,discount_value=?,min_order=?,voucher_code=?,welcome_enabled=?,first_order_only=?,welcome_subject=?,welcome_message=?,max_redemptions=?,discount_cap=?,allow_stack=?,redemption_email_enabled=?,redemption_email_subject=?,redemption_email_message=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+      .run(b.title,b.message,b.image,b.cta_label,b.cta_url,b.priority,b.starts_at,b.ends_at,b.active,b.display_mode,b.audience,b.discount_type,b.discount_value,b.min_order,b.voucher_code,b.welcome_enabled,b.first_order_only,b.welcome_subject,b.welcome_message,b.max_redemptions,b.discount_cap,b.allow_stack,b.redemption_email_enabled,b.redemption_email_subject,b.redemption_email_message,q.params.id);
+  });
+  savePromotion();
+  r.json({ok:1,voucherCodeChanged});
 }));
-app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,p.title,p.voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
+app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,p.title,COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code) AS voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
 app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
   const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);
   if(!row)throw new Error('Announcement not found');
