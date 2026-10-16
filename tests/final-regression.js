@@ -470,6 +470,8 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(server.includes("audience IN ('all','registered')"));
   assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemptions'));
   assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemption_history'));
+  assert(server.includes('INSERT OR IGNORE INTO promotion_redemption_history'));
+  assert(server.includes('Cannot mark payment paid on a cancelled order'));
   assert(server.includes("'announcements','max_redemptions'"));
   assert(server.includes("'announcements','discount_cap'"));
   assert(server.includes("'announcements','allow_stack'"));
