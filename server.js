@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,a
 ensureColumn('promotion_redemption_history','voucher_code',"TEXT DEFAULT ''");
 ensureColumn('promotion_redemption_history','voucher_title',"TEXT DEFAULT ''");
 db.exec(`INSERT OR IGNORE INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,created) SELECT announcement_id,customer_id,order_id,'Applied',created FROM promotion_redemptions;`);
-db.prepare("UPDATE promotion_redemption_history SET voucher_code=COALESCE((SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_code,'')=''").run();
+db.prepare("UPDATE promotion_redemption_history SET voucher_code=COALESCE(NULLIF((SELECT promo_code FROM orders WHERE orders.id=promotion_redemption_history.order_id),''),(SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_code,'')=''").run();
 db.prepare("UPDATE promotion_redemption_history SET voucher_title=COALESCE((SELECT title FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_title,'')=''").run();
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
