@@ -1166,6 +1166,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     if(!allowed.includes(status))throw new Error('Invalid order status');
     const before=one('SELECT * FROM orders WHERE id=?',q.params.id);
     if(!before)throw new Error('Order not found');
+    if(before.status==='Cancelled'&&status!=='Cancelled')throw new Error('Cancelled orders cannot be reopened; create a new order so inventory and voucher eligibility are revalidated.');
     const sets=['status=?'];
     const vals=[status];
     if(status==='Confirmed'){sets.push('confirmed_at=?');vals.push(new Date().toISOString());}
@@ -1215,10 +1216,6 @@ app.put('/api/admin/payment/:id',admin,w((q,r)=>{
   if(!before)throw new Error('Order not found');
   db.transaction(()=>{
     db.prepare('UPDATE orders SET payment_status=? WHERE id=?').run(status,q.params.id);
-    if(status==='Failed'&&before.payment_status!=='Failed'){
-      db.prepare("UPDATE promotion_redemption_history SET status='Released',released_at=CURRENT_TIMESTAMP WHERE order_id=? AND status='Applied'").run(q.params.id);
-      db.prepare('DELETE FROM promotion_redemptions WHERE order_id=?').run(q.params.id);
-    }
   })();
   const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
   notifyPaymentStatus(after,before.payment_status);
