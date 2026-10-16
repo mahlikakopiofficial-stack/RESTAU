@@ -496,6 +496,9 @@ t('voucher codes are one-use per signed-in customer even when the campaign code 
   assert(server.includes("voucher_code,voucher_title) VALUES(?,?,?,'Applied',?,?)"));
   assert(server.includes("ensureColumn('promotion_redemption_history','voucher_title'"));
   assert(server.includes("COALESCE(NULLIF(pr.voucher_title,''),p.title,'Deleted voucher #'||pr.announcement_id) AS title"));
+  assert(server.includes("const voucherCodeChanged=previousVoucherCode!==nextVoucherCode;"));
+  assert(server.includes("if(voucherCodeChanged)db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(q.params.id);"));
+  assert(server.includes("r.json({ok:1,voucherCodeChanged})"));
 });
 t('expired voucher validation and campaign deletion preserve redemption audit',()=>{
   assert(server.includes("ends_at>=datetime('now')"));
