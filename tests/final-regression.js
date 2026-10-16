@@ -490,10 +490,11 @@ t('voucher first-order eligibility is separate from welcome email delivery',()=>
   assert(index.includes('First eligible order only. Sign in to redeem; one use per customer.'));
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v47'"));
 });
-t('legacy voucher redemption history backfills the exact code from the original order',()=>{
-  assert(server.includes("NULLIF((SELECT promo_code FROM orders WHERE orders.id=promotion_redemption_history.order_id),'')"));
-  assert(server.includes("(SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id)"));
-  assert(server.includes("WHERE COALESCE(voucher_code,'')=''"));
+t('voucher history migration corrects previously populated codes using each original order',()=>{
+  assert(server.includes("SET voucher_code=upper(trim((SELECT promo_code FROM orders WHERE orders.id=promotion_redemption_history.order_id)))"));
+  assert(server.includes("WHERE EXISTS(SELECT 1 FROM orders WHERE orders.id=promotion_redemption_history.order_id AND trim(COALESCE(orders.promo_code,''))<>'')"));
+  assert(server.includes("SET voucher_code=upper(trim(COALESCE((SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),''))) WHERE COALESCE(voucher_code,'')=''"));
+  assert(server.includes("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1"));
 });
 t('voucher codes are one-use per signed-in customer even when the campaign code changes',()=>{
   assert(server.includes("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1"));
