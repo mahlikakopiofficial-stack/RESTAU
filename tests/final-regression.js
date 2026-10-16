@@ -505,6 +505,10 @@ t('expired voucher validation and campaign deletion preserve redemption audit',(
   assert(server.includes("DELETE FROM promotion_redemptions WHERE announcement_id=?"));
   assert(server.includes("r.json({ok:1,historyPreserved:true})"));
   assert(server.includes("LEFT JOIN announcements p ON p.id=pr.announcement_id"));
+  const genericDelete=server.indexOf("app.delete('/api/admin/:t/:id'");
+  const specialCase=server.indexOf("if(table==='announcements')",genericDelete);
+  const badTable=server.indexOf("if(!DEL.includes(table))throw new Error('bad table')",genericDelete);
+  assert(genericDelete>=0&&specialCase>genericDelete&&badTable>specialCase,'voucher delete must run before generic bad-table rejection');
 });
 t('welcome vouchers are hidden from existing customers and general vouchers remain usable',()=>{
   assert(server.includes('const hasEligibleOrder=token&&one("SELECT id FROM orders WHERE customer_id=? AND status!=\'Cancelled\' AND payment_status!=\'Failed\' LIMIT 1",token.id)?1:0;'));
