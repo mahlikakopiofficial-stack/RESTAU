@@ -889,7 +889,8 @@
         $('#sub-pay-method option[value="CARD"]').disabled =
           c.payment_card === false;
 
-        $("#promo-code").disabled = !c.promo_enabled;
+        // Keep voucher entry available even when the legacy global promo is disabled.
+        $("#promo-code").disabled = false;
         $("#promo-help").textContent =
           c.promo_enabled && c.promo_code ? "Promo code available." : "";
       }
