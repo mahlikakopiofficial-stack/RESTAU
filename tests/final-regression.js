@@ -94,7 +94,7 @@ t('customer email delivery hardening',()=>{
 
 t('registration, password reset and order email wiring',()=>{
   assert(notifications.includes('notifyRegistration'));
-  assert(server.includes('notifyRegistration(registeredCustomer)'));
+  assert(server.includes('notifyRegistration(registeredCustomer,welcomeOffer||null)'));
   assert(server.includes('sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl})'));
   assert(server.includes("app.post('/api/password-reset'"));
   assert(server.includes("app.post('/api/password-reset/confirm'"));
@@ -117,10 +117,10 @@ t('admin report selected date/range',()=>{
 t('regional cart + floating cart',()=>{assert(index.includes('window.addRegionalToCart'));assert(index.includes('regionalKey'));assert(master.includes('addRegionalToCart'));assert(server.includes("SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1"));assert(index.includes('id="cart-fab"'));assert(style.includes('#cart-fab{'));assert(style.includes('input[type="checkbox"]'));assert(style.includes('#cart-fab'));assert(style.includes('#menu{padding:34px 0}'));});
 t('website service images render from saved content',()=>{assert(index.includes('content_service_regular_image'));assert(index.includes('resolveMediaUrl(raw)'));assert(index.includes('service-image-filled'));assert(style.includes('.service-image{'));assert(server.includes("websiteServiceImageKeys={regular:'content_service_regular_image'"));assert(server.includes("target==='service'"));});
 t('menu add button uses shared app alignment',()=>{assert(master.includes('menu-add'));assert(enhancements.includes('menu-add'));assert(index.includes('menu-add'));assert(style.includes('.menu-card-actions .menu-add'));assert(style.includes('.menu-card .menu-add'));assert(index.includes('window.addMenuToCart'));assert(master.includes('window.addMenuToCart'));assert(enhancements.includes('window.addMenuToCart'));assert(index.includes('Add to cart'));assert(master.includes('Add to cart'));});
-t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261010-stock3'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
-t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261010-stock3'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
+t('menu category visible on card display',()=>{assert(master.includes('menu-card-category'));assert(master.includes("Category</span><b>"));assert(style.includes('.menu-category'));assert(index.includes('master-enhancements.js?v=20261016-promotions-vouchers1'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(index.includes('<p class="menu-category"><b>Category:</b>'));});
+t('compact customer UI',()=>{assert(style.includes('#menu{padding:34px 0}'));assert(style.includes('.hero{padding:58px 0}'));assert(style.includes('#menu-list .card .p>p:last-child'));assert(style.includes('float:none!important'));assert(style.includes('#regional-grid .card>.p>[data-regional-id]'));assert(style.includes('width:16px!important'));assert(index.includes('app.js?v=20261007-live7'));assert(index.includes('style.css?v=20261006-ui2'));assert(index.includes('master-enhancements.js?v=20261016-promotions-vouchers1'));assert(index.includes('enhancements.js?v=20261007-cart1'));assert(master.includes('isSqlDateTime'));assert(app.includes('isSqlDateTime'));});
 t('admin responsive navigation',()=>{assert(admin.includes('admin-nav-toggle'));assert(admin.includes('admin-nav-menu'));assert(admin.includes('toggleAdminNav'));assert(fs.existsSync(path.join(root,'public','admin-nav.css')));});
-t('admin root route initializes admin-only panels',()=>{assert(enhancements.includes("location.hostname.startsWith('admin.')"));assert(master.includes("location.hostname.startsWith('admin.')"));assert(fixes.includes('const isAdminRoute=()=>'));assert(fixes.includes('if(!isAdminRoute())'));assert(fixes.includes('if(isAdminRoute())'));assert(admin.includes('enhancements.js?v=20261014-admin-route1'));assert(admin.includes('final-fixes.js?v=20261014-admin-route1'));assert(admin.includes('master-enhancements.js?v=20261014-admin-route1'));assert(master.includes("R['Announcements']=async function"));assert(master.includes("R['Regional Dishes']=async function"));assert(master.includes("R['Heritage']=async function"));});
+t('admin root route initializes admin-only panels',()=>{assert(enhancements.includes("location.hostname.startsWith('admin.')"));assert(master.includes("location.hostname.startsWith('admin.')"));assert(fixes.includes('const isAdminRoute=()=>'));assert(fixes.includes('if(!isAdminRoute())'));assert(fixes.includes('if(isAdminRoute())'));assert(admin.includes('enhancements.js?v=20261014-admin-route1'));assert(admin.includes('final-fixes.js?v=20261014-admin-route1'));assert(admin.includes('master-enhancements.js?v=20261016-promotions-vouchers1'));assert(master.includes("R['Announcements']=async function"));assert(master.includes("R['Regional Dishes']=async function"));assert(master.includes("R['Heritage']=async function"));});
 t('universal logo upload and branding',()=>{assert(server.includes("fileFilter:(q,f,cb)=>/^image\\/(jpe?g|png|webp|gif|svg\\+xml)$/"));assert(admin.includes('id="logo-file"'));assert(admin.includes('image/svg+xml'));assert(admin.includes('saveUniversalLogo'));assert(app.includes("api('/admin/upload?target=logo'"));assert(app.includes('const configured=String(c.logo_url||\'\').trim()'));assert(app.includes('resolveMediaUrl(configured)'));assert(app.includes('applyUniversalBranding'));assert(app.includes('window.PINOY_BRANDING'));assert(server.includes("r.set('Cache-Control','no-store')"));});
 t('admin order live delivery',()=>{
   assert(server.includes("app.get('/api/admin/events"));
@@ -145,7 +145,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v40'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -174,8 +174,8 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v40'"));
-  assert(sw.includes("const CACHE_VERSION='v40'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
+  assert(sw.includes("const CACHE_VERSION='v41'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
@@ -225,7 +225,7 @@ t('admin functions and Kuwait report',()=>{assert(admin.includes('const adminKuw
 t('admin menu category search',()=>{assert(admin.includes('id="admin-menu-category"'));assert(admin.includes('id="admin-menu-search"'));assert(admin.includes('filterAdminMenu'));assert(admin.includes('class="card admin-menu-item"'));assert(style.includes('.admin-menu-tools'));});
 t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
 t('master enhancement customer UX',()=>{assert(index.includes('master-enhancements.js'));assert(admin.includes('master-enhancements.js'));assert(master.includes('menu_default_icon'));assert(master.includes('master-promo'));assert(master.includes('Regional Filipino Favorites'));assert(master.includes('Ancient Script &amp; Filipino Heritage'));assert(master.includes('whatsapp_opt_in'));assert(master.includes('master-carousel'));assert(master.includes('receipt_logo_url'));});
-t('announcement active toggle and refresh',()=>{assert(master.includes('masterSetAnnouncementActive'));assert(master.includes("setInterval(()=>{if(!document.hidden)addPromos()},5000)"));assert(master.includes('announcementToApiDateTime'));assert(master.includes('announcementFromApiDateTime'));assert(master.includes('saveAnnouncement'));assert(master.includes('createAnnouncement'));assert(master.includes('toggleAnnouncement'));assert(master.includes('deleteAnnouncement'));assert(master.includes('addAnnouncementImage'));assert(master.includes('removeAnnouncementImage'));assert(master.includes('pa-announcement-refresh'));assert(server.includes('announcementDateTime'));assert(server.includes('announcementPayload'));assert(server.includes("['announcements','updated_at','TEXT']"));assert(server.includes("if(starts&&ends&&starts>ends)"));assert(master.includes("if(!rows.length){bar?.remove();return}"));assert(server.includes("WHERE active=1 AND (starts_at=''"));assert(!server.includes("Mabuhay! New PinoyAmbula updates"));assert(!server.includes("Orders, subscriptions and delivery updates are ready. Salamat po!"))});
+t('announcement active toggle and refresh',()=>{assert(master.includes('masterSetAnnouncementActive'));assert(master.includes("setInterval(()=>{if(!document.hidden)addPromos()},5000)"));assert(master.includes('announcementToApiDateTime'));assert(master.includes('announcementFromApiDateTime'));assert(master.includes('saveAnnouncement'));assert(master.includes('createAnnouncement'));assert(master.includes('toggleAnnouncement'));assert(master.includes('deleteAnnouncement'));assert(master.includes('addAnnouncementImage'));assert(master.includes('removeAnnouncementImage'));assert(master.includes('pa-announcement-refresh'));assert(server.includes('announcementDateTime'));assert(server.includes('announcementPayload'));assert(server.includes("['announcements','updated_at','TEXT']"));assert(server.includes("if(starts&&ends&&starts>ends)"));assert(master.includes("if(!bannerRows.length){bar?.remove()}"));assert(server.includes("WHERE active=1 AND (starts_at=''"));assert(!server.includes("Mabuhay! New PinoyAmbula updates"));assert(!server.includes("Orders, subscriptions and delivery updates are ready. Salamat po!"))});
 t('subscription submit uses Kuwait date and admin notification',()=>{assert(server.includes("const kuwaitToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait'"));assert(server.includes('if(b.start<kuwaitToday())'));assert(server.includes('notifySubscriptionReceived(savedSub)'));assert(server.includes('notifyAdminSubscription(savedSub)'));assert(notifications.includes('notifyAdminSubscription'));assert(notifications.includes("fire('admin-subscription-received'"));});
 
 t('subscription schedule and WhatsApp consent are admin-managed',()=>{const startField=index.match(/<input\b[^>]*\bname="start"[^>]*>/s);assert(startField&&!/type="date"/.test(startField[0]));assert(!index.includes('id="sub-end"'));assert(!master.includes('Send subscription updates on WhatsApp'));assert(!master.includes('setInterval(addCartOptIn,1200)'));assert(master.includes('Customer consent recorded'));assert(master.includes('masterSaveSub'))});
@@ -404,7 +404,7 @@ t('inventory availability is enforced by order API and displayed on customer and
   assert(!inventorySource.includes("'Only ' + available"));
   assert(!index.includes('stock + " available"'));
   assert(!index.includes('"Only " + available + " available today"'));
-  assert(sw.includes('/master-enhancements.js?v=20261010-stock3'));
+  assert(sw.includes('/master-enhancements.js?v=20261016-promotions-vouchers1'));
   assert(inventorySource.includes('stock_available=stock_available-?'));
 });
 
@@ -452,6 +452,36 @@ t('separate admin Android app is configured for background Firebase notification
   assert(admin.includes('admin-push.js?v=20261010-adminpush1'));
   assert(adminPushClient.includes('/api/admin/push/register'));
   assert(envExample.includes('FCM_SERVICE_ACCOUNT_PATH='));
+});
+
+t('admin-configurable announcement popups and single-use vouchers',()=>{
+  assert(admin.includes('"Promotions & Vouchers"'));
+  assert(master.includes("R['Promotions & Vouchers']=R['Announcements']"));
+  assert(master.includes('pa-promotion-modal'));
+  assert(master.includes('window.PA_PROMOTIONS=rows'));
+  assert(master.includes('name="display_mode"'));
+  assert(master.includes('name="audience"'));
+  assert(master.includes("parsed.searchParams.set('voucher'"));
+  assert(master.includes('name="discount_type"'));
+  assert(master.includes('name="voucher_code"'));
+  assert(master.includes('name="welcome_enabled"'));
+  assert(server.includes("'announcements','display_mode'"));
+  assert(server.includes("'announcements','welcome_enabled'"));
+  assert(server.includes("audience IN ('all','registered')"));
+  assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemptions'));
+  assert(server.includes("app.get('/api/admin/promotion-redemptions'"));
+  assert(server.includes('UNIQUE(announcement_id,customer_id)'));
+  assert(server.includes('This voucher has already been used by this customer.'));
+  assert(server.includes('That voucher code is already used by another promotion'));
+  assert(server.includes('Voucher code must differ from the global promo code'));
+  assert(server.includes('Sign in or register to use this voucher.'));
+  assert(index.includes('campaignVoucher'));
+  assert(index.includes('$("#promo-code").disabled = false;'));
+  assert(index.includes('Voucher discount estimated. Sign in to redeem'));
+  assert(notifications.includes('YOUR WELCOME VOUCHER'));
+  assert(notifications.includes("parsed.searchParams.set('voucher'"));
+  assert(notifications.includes('welcome_subject'));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
 });
 
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');

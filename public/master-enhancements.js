@@ -138,26 +138,65 @@ function cartOutside(){
 
 async function addPromos(){
   const nav=document.querySelector('.site-nav');
-  if(!nav)return;
   let rows=[];
   try{rows=await api('/announcements')}catch{return}
-  let bar=document.getElementById('master-promos');
-  if(!rows.length){bar?.remove();return}
-  if(!bar){
-    bar=document.createElement('div');
-    bar.id='master-promos';bar.className='master-promo';
-    bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
-    nav.insertAdjacentElement('afterend',bar);
+  window.PA_PROMOTIONS=rows;
+  const promotionCtaUrl=(url,code)=>{
+    const raw=String(url||'').trim();if(!raw)return '';
+    try{const parsed=new URL(raw,location.origin);if(code&&parsed.origin===location.origin){parsed.searchParams.set('voucher',String(code).toUpperCase());return parsed.pathname+parsed.search+parsed.hash}return raw}catch{return raw}
+  };
+  if(!window.__paVoucherAutoApplied){
+    let autoVoucher='';try{autoVoucher=new URL(location.href).searchParams.get('voucher')||''}catch{}
+    const promoInput=document.getElementById('promo-code');
+    if(autoVoucher&&promoInput){promoInput.value=autoVoucher.toUpperCase();window.__paVoucherAutoApplied=true;try{window.renderCart?.()}catch{}}
   }
-  const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
-    '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
-    (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(x.cta_url)+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
-  const content=document.getElementById('masterPromoContent');
-  content.className='master-promo-track';
-  content.innerHTML=(rows.length>1?rows.concat(rows):rows).map(renderItem).join('');
-  if(rows.length===1)content.style.animation='none';
+  try{window.renderCart?.()}catch{}
+  const bannerRows=rows.filter(x=>['banner','both'].includes(String(x.display_mode||'banner')));
+  let bar=document.getElementById('master-promos');
+  if(!bannerRows.length){bar?.remove()}
+  else{
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='master-promos';bar.className='master-promo';
+      bar.innerHTML='<div class="wrap master-promo-inner"><div id="masterPromoContent"></div></div>';
+      nav?.insertAdjacentElement('afterend',bar);
+    }
+    const renderItem=x=>'<div class="master-promo-item">'+(x.image?'<img src="'+escm(x.image)+'" alt="">':'')+
+      '<div class="promo-text"><strong>'+escm(x.title)+'</strong><span>'+escm(x.message)+'</span></div>'+
+      (x.discount_type&&x.discount_type!=='none'&&x.voucher_code?'<div class="promo-voucher"><b>'+escm(x.voucher_code)+'</b><small>'+escm(x.discount_type==='percent'?String(x.discount_value)+'% off':money(x.discount_value)+' off')+'</small></div>':'')+
+      (x.cta_label&&x.cta_url?'<a class="btn s y" href="'+escm(promotionCtaUrl(x.cta_url,x.voucher_code&&x.discount_type!=='none'?x.voucher_code:''))+'">'+escm(x.cta_label)+'</a>':'')+'</div>';
+    const content=document.getElementById('masterPromoContent');
+    if(content){content.className='master-promo-track';content.innerHTML=(bannerRows.length>1?bannerRows.concat(bannerRows):bannerRows).map(renderItem).join('');if(bannerRows.length===1)content.style.animation='none';}
+  }
+  const popups=rows.filter(x=>['popup','both'].includes(String(x.display_mode||'banner')));
+  const chosen=popups[0];
+  if(!chosen||!nav){document.getElementById('pa-promotion-modal')?.remove();return}
+  let dismissed=false;
+  try{dismissed=localStorage.getItem('pa-promotion-dismissed-'+chosen.id)==='1'}catch{}
+  if(dismissed)return;
+  if(!document.getElementById('pa-promotion-modal-style')){
+    const style=document.createElement('style');style.id='pa-promotion-modal-style';
+    style.textContent='.pa-promotion-overlay{position:fixed;inset:0;z-index:99999;background:rgba(20,10,10,.68);display:flex;align-items:center;justify-content:center;padding:18px}.pa-promotion-dialog{position:relative;width:min(520px,100%);max-height:90vh;overflow:auto;background:#fffaf0;color:#33201d;border:2px solid #c8a45d;border-radius:18px;box-shadow:0 18px 70px rgba(0,0,0,.35);padding:26px;text-align:center}.pa-promotion-dialog h2{margin:8px 34px 10px;color:#7b2d26}.pa-promotion-dialog p{white-space:pre-line}.pa-promotion-dialog img{width:100%;max-height:220px;object-fit:cover;border-radius:12px}.pa-promotion-close{position:absolute;right:10px;top:8px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#7b2d26}.pa-promotion-code{border:2px dashed #7b2d26;background:#fff;padding:12px;border-radius:10px;margin:16px 0}.pa-promotion-code strong{display:block;font-size:24px;letter-spacing:2px}.pa-promotion-code small{display:block;margin-top:5px}.pa-promotion-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}.pa-promotion-actions a{display:inline-block;text-decoration:none}.pa-promotion-dismiss{border:1px solid #7b2d26;border-radius:8px;padding:10px 14px;background:transparent;color:#7b2d26;cursor:pointer}';
+    document.head.appendChild(style);
+  }
+  let modal=document.getElementById('pa-promotion-modal');
+  if(!modal){modal=document.createElement('div');modal.id='pa-promotion-modal';modal.className='pa-promotion-overlay';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-label','Promotion announcement');document.body.appendChild(modal)}
+  const code=chosen.discount_type&&chosen.discount_type!=='none'&&chosen.voucher_code;
+  const discount=chosen.discount_type==='percent'?String(chosen.discount_value)+'% off':money(chosen.discount_value)+' off';
+  const min=Number(chosen.min_order||0)>0?'<p><small>Minimum eligible subtotal: '+escm(money(chosen.min_order))+'</small></p>':'';
+  modal.innerHTML='<div class="pa-promotion-dialog"><button class="pa-promotion-close" type="button" aria-label="Close promotion">×</button>'+
+    (chosen.image?'<img src="'+escm(chosen.image)+'" alt="">':'')+
+    '<h2>'+escm(chosen.title)+'</h2><p>'+escm(chosen.message)+'</p>'+
+    (code?'<div class="pa-promotion-code"><small>VOUCHER CODE</small><strong>'+escm(chosen.voucher_code)+'</strong><small>'+escm(discount)+' · one use per customer · sign in to redeem</small></div>'+min:'')+
+    '<div class="pa-promotion-actions">'+(chosen.cta_label&&chosen.cta_url?'<a class="btn" href="'+escm(promotionCtaUrl(chosen.cta_url,code?chosen.voucher_code:''))+'">'+escm(chosen.cta_label)+'</a>':'')+
+    '<button type="button" class="pa-promotion-dismiss">Maybe later</button></div></div>';
+  const close=()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}modal.remove()};
+  modal.querySelector('.pa-promotion-close')?.addEventListener('click',close);
+  modal.querySelector('.pa-promotion-dismiss')?.addEventListener('click',close);
+  modal.querySelector('.pa-promotion-actions a')?.addEventListener('click',()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}});
+  modal.addEventListener('click',event=>{if(event.target===modal)close()});
+  document.addEventListener('keydown',function closeOnEscape(event){if(event.key==='Escape'&&document.getElementById('pa-promotion-modal')){close();document.removeEventListener('keydown',closeOnEscape)}});
 }
-
 async function refreshSubscriptionPlans(){
   const section=document.querySelector('#plans')?.closest('section');
   const list=document.getElementById('plan-list');
@@ -421,31 +460,39 @@ function adminBoot(){
   window.saveAnnouncement=async function(id,form){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
+    data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
+    data.discount_value=Number(data.discount_value||0);
+    data.min_order=Number(data.min_order||0);
     try{
       data.starts_at=announcementToApiDateTime(data.starts_at);
       data.ends_at=announcementToApiDateTime(data.ends_at);
       await A('/announcements/'+id,'PUT',data);
-      toast('Announcement saved');
-      go('Announcements');
+      toast('Promotion saved');
+      go('Promotions & Vouchers');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement save failed: '+error.message)}
+    }catch(error){toast('Promotion save failed: '+error.message)}
   };
   window.createAnnouncement=async function(form){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
+    data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
+    data.discount_value=Number(data.discount_value||0);
+    data.min_order=Number(data.min_order||0);
     try{
       data.starts_at=announcementToApiDateTime(data.starts_at);
       data.ends_at=announcementToApiDateTime(data.ends_at);
       await A('/announcements','POST',data);
-      toast('Announcement created');
+      toast('Promotion created');
       form.reset();
       form.elements.priority.value=0;
       form.elements.active.checked=true;
-      go('Announcements');
+      form.elements.display_mode.value='popup';
+      form.elements.discount_type.value='none';
+      go('Promotions & Vouchers');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement create failed: '+error.message)}
+    }catch(error){toast('Promotion create failed: '+error.message)}
   };
   window.toggleAnnouncement=async function(id,active){
     try{
@@ -453,16 +500,16 @@ function adminBoot(){
       toast(active?'Announcement activated':'Announcement deactivated');
       go('Announcements');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement status failed: '+error.message)}
+    }catch(error){toast('Promotion status failed: '+error.message)}
   };
   window.deleteAnnouncement=async function(id){
     if(!confirm('Delete this announcement permanently?'))return;
     try{
       await A('/announcements/'+id,'DELETE');
-      toast('Announcement deleted');
+      toast('Promotion deleted');
       go('Announcements');
       localStorage.setItem('pa-announcement-refresh',String(Date.now()));
-    }catch(error){toast('Announcement delete failed: '+error.message)}
+    }catch(error){toast('Promotion delete failed: '+error.message)}
   };
   window.addAnnouncementImage=async function(id){
     const input=document.createElement('input');
@@ -473,8 +520,8 @@ function adminBoot(){
         const fd=new FormData(); fd.append('file',input.files[0]);
         await A('/upload?target=announcement&id='+encodeURIComponent(id),'POST',fd);
         toast('Announcement image saved');
-        go('Announcements');
-      }catch(error){toast('Announcement image failed: '+error.message)}
+        go('Promotions & Vouchers');
+      }catch(error){toast('Promotion image failed: '+error.message)}
     };
     input.click();
   };
@@ -482,36 +529,55 @@ function adminBoot(){
     try{
       await A('/image','DELETE',{target:'announcement',id});
       toast('Announcement image removed');
-      go('Announcements');
-    }catch(error){toast('Announcement image removal failed: '+error.message)}
+      go('Promotions & Vouchers');
+    }catch(error){toast('Promotion image removal failed: '+error.message)}
   };
   R['Announcements']=async function(){
     const rows=await A('/announcements');
+    const modes=[['banner','Banner only'],['popup','Opening popup'],['both','Banner + popup'],['hidden','Do not display']];
+    const discounts=[['none','No discount'],['percent','Percentage'],['fixed','Fixed KD amount']];
+    const audiences=[['all','All visitors'],['registered','Signed-in customers'],['guests','Guests only']];
+    const displayOptions=value=>modes.map(x=>'<option value="'+x[0]+'"'+((value||'banner')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+    const audienceOptions=value=>audiences.map(x=>'<option value="'+x[0]+'"'+((value||'all')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+    const discountOptions=value=>discounts.map(x=>'<option value="'+x[0]+'"'+((value||'none')===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+    const fields=(a,create)=>'<div class="master-admin-grid">'+
+      '<label>Display location<select name="display_mode">'+displayOptions(a.display_mode)+'</select></label>'+ 
+      '<label>Audience<select name="audience">'+audienceOptions(a.audience)+'</select></label>'+ 
+      '<label>Discount type<select name="discount_type">'+discountOptions(a.discount_type)+'</select></label>'+
+      '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
+      '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
+      '<label>Voucher code<input name="voucher_code" maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" value="'+announcementInputEsc(a.voucher_code||'')+'" placeholder="WELCOME10"></label></div>'+
+      '<p class="small">Voucher codes must be unique and differ from the legacy global promo code. Internal button links automatically carry the voucher into the cart. The server enforces validity dates and one redemption per customer account; redemption requires sign-in.</p>'+
+      '<label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer in the new-registration welcome email (first eligible order only)</label>'+
+      '<label>Welcome email subject<input name="welcome_subject" maxlength="160" value="'+announcementInputEsc(a.welcome_subject||'')+'" placeholder="Your welcome voucher is here"></label>'+
+      '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>';
     const createForm='<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();createAnnouncement(this)">'+
-      '<h3>Create announcement</h3>'+
-      '<p class="small">Create one announcement, then manage it from its own card. Save changes only when you press Save.</p>'+
+      '<h3>Create promotion or announcement</h3>'+
+      '<p class="small">All display, audience, discount, validity, and registration email settings are configurable here. No offer amounts or voucher codes are hard-coded in the customer interface. Only the highest-priority active welcome offer is included in registration emails.</p>'+
       '<div class="master-admin-grid">'+
       '<label>Title<input name="title" required maxlength="160" placeholder="Announcement title"></label>'+
       '<label>Priority<input name="priority" type="number" step="1" value="0"></label>'+
-      '<label>Start<input name="starts_at" type="datetime-local"></label>'+
-      '<label>End<input name="ends_at" type="datetime-local"></label></div>'+
-      '<label>Message<textarea name="message" rows="4" required maxlength="1000" placeholder="Announcement message"></textarea></label>'+
-      '<div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80" placeholder="Order now"></label>'+
-      '<label>CTA URL<input name="cta_url" maxlength="500" placeholder="/#menu or https://..."></label></div>'+
+      '<label>Start (Kuwait time)<input name="starts_at" type="datetime-local"></label>'+
+      '<label>End (Kuwait time)<input name="ends_at" type="datetime-local"></label></div>'+
+      '<label>Message<textarea name="message" rows="4" required maxlength="1000" placeholder="Offer details"></textarea></label>'+
+      '<div class="master-admin-grid"><label>Button text<input name="cta_label" maxlength="80" placeholder="Order now"></label>'+
+      '<label>Button destination<input name="cta_url" maxlength="500" placeholder="/#menu or https://..."></label></div>'+
+      fields({display_mode:'popup',discount_type:'none'},true)+
       '<label><input type="checkbox" name="active" value="1" checked style="width:auto"> Active</label>'+
-      '<button class="btn" type="submit">Create announcement</button></form>';
+      '<button class="btn" type="submit">Create promotion</button></form>';
     const cards=rows.map(a=>{
       const image=a.image?'<div class="announcement-image-wrap"><img src="'+announcementInputEsc(a.image)+'" alt="Announcement image"><button class="btn s o" type="button" onclick="removeAnnouncementImage('+a.id+')">Remove image</button></div>':'<button class="btn s o" type="button" onclick="addAnnouncementImage('+a.id+')">Add image</button>';
       return '<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();saveAnnouncement('+a.id+',this)">'+
-        '<div class="announcement-manager-head"><h3>Announcement #'+a.id+'</h3><span class="'+(a.active?'master-status-ok':'master-status-off')+'">'+(a.active?'ACTIVE':'INACTIVE')+'</span></div>'+
+        '<div class="announcement-manager-head"><h3>'+announcementInputEsc(a.title)+' · #'+a.id+'</h3><span class="'+(a.active?'master-status-ok':'master-status-off')+'">'+(a.active?'ACTIVE':'INACTIVE')+'</span></div>'+
         '<div class="master-admin-grid">'+
         '<label>Title<input name="title" required maxlength="160" value="'+announcementInputEsc(a.title)+'"></label>'+
         '<label>Priority<input name="priority" type="number" step="1" value="'+(Number(a.priority)||0)+'"></label>'+
-        '<label>Start<input name="starts_at" type="datetime-local" value="'+announcementFromApiDateTime(a.starts_at)+'"></label>'+
-        '<label>End<input name="ends_at" type="datetime-local" value="'+announcementFromApiDateTime(a.ends_at)+'"></label></div>'+
+        '<label>Start (Kuwait time)<input name="starts_at" type="datetime-local" value="'+announcementFromApiDateTime(a.starts_at)+'"></label>'+
+        '<label>End (Kuwait time)<input name="ends_at" type="datetime-local" value="'+announcementFromApiDateTime(a.ends_at)+'"></label></div>'+
         '<label>Message<textarea name="message" rows="4" required maxlength="1000">'+announcementInputEsc(a.message)+'</textarea></label>'+
-        '<div class="master-admin-grid"><label>CTA label<input name="cta_label" maxlength="80" value="'+announcementInputEsc(a.cta_label)+'"></label>'+
-        '<label>CTA URL<input name="cta_url" maxlength="500" value="'+announcementInputEsc(a.cta_url)+'"></label></div>'+
+        '<div class="master-admin-grid"><label>Button text<input name="cta_label" maxlength="80" value="'+announcementInputEsc(a.cta_label)+'"></label>'+
+        '<label>Button destination<input name="cta_url" maxlength="500" value="'+announcementInputEsc(a.cta_url)+'"></label></div>'+
+        fields(a,false)+
         '<label><input type="checkbox" name="active" value="1" '+(a.active?'checked':'')+' style="width:auto"> Active</label>'+
         '<div class="announcement-manager-actions">'+
         '<button class="btn" type="submit">Save changes</button>'+
@@ -520,8 +586,19 @@ function adminBoot(){
         '<button class="btn s o" type="button" onclick="deleteAnnouncement('+a.id+')">Delete</button>'+
         '</div></form>';
     }).join('');
-    return createForm+'<h3>Saved announcements</h3><div class="announcement-manager-list">'+(cards||'<p class="small">No announcements yet.</p>')+'</div>';
+    let redemptions=[];
+    try{redemptions=await A('/promotion-redemptions')}catch(error){console.error('PROMOTION_REDEMPTIONS_LOAD_FAILED',error)}
+    const report=tbl(redemptions,[
+      ['Promotion',x=>announcementInputEsc(x.title)],
+      ['Voucher',x=>announcementInputEsc(x.voucher_code)],
+      ['Customer',x=>announcementInputEsc(x.customer_name)+'<br>'+announcementInputEsc(x.phone)],
+      ['Order',x=>'#'+x.order_id+' · '+announcementInputEsc(x.order_status)],
+      ['Total',x=>money(x.order_total)],
+      ['Redeemed',x=>announcementInputEsc(x.created)]
+    ]);
+    return createForm+'<h3>Saved promotions and announcements</h3><div class="announcement-manager-list">'+(cards||'<p class="small">No promotions or announcements yet.</p>')+'</div><h3>Voucher redemptions</h3><p class="small">Most recent 500 redemptions. Each campaign can be redeemed once per customer account.</p>'+report;
   };
+  R['Promotions & Vouchers']=R['Announcements'];
   R['Regional Dishes']=async function(){
     const rows=await A('/regional-dishes');
     return '<form class="master-admin-card" onsubmit="event.preventDefault();masterAddRegional(this)"><h3>Add regional Filipino dish</h3><div class="master-admin-grid"><label>Name<input name="name" required></label><label>Region<input name="region" required></label><label>Price<input name="price" type="number" step="0.001" min="0" value="0"></label><label>Available today<input name="stock_available" type="number" min="0" step="1" value="3"></label><label>Daily restock quantity<input name="daily_restock_quantity" type="number" min="0" step="1" value="3"></label><label>Sort order<input name="sort_order" type="number" value="0"></label></div><label>Description<textarea name="descr" rows="2"></textarea></label><button class="btn">Add dish</button></form>'+
