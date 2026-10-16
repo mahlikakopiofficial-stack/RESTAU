@@ -176,7 +176,7 @@ async function addPromos(){
   if(dismissed)return;
   if(!document.getElementById('pa-promotion-modal-style')){
     const style=document.createElement('style');style.id='pa-promotion-modal-style';
-    style.textContent='.pa-promotion-overlay{position:fixed;inset:0;z-index:99999;background:rgba(20,10,10,.68);display:flex;align-items:center;justify-content:center;padding:18px}.pa-promotion-dialog{position:relative;width:min(520px,100%);max-height:90vh;overflow:auto;background:#fffaf0;color:#33201d;border:2px solid #c8a45d;border-radius:18px;box-shadow:0 18px 70px rgba(0,0,0,.35);padding:26px;text-align:center}.pa-promotion-dialog h2{margin:8px 34px 10px;color:#7b2d26}.pa-promotion-dialog p{white-space:pre-line}.pa-promotion-dialog img{width:100%;max-height:220px;object-fit:cover;border-radius:12px}.pa-promotion-close{position:absolute;right:10px;top:8px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#7b2d26}.pa-promotion-code{border:2px dashed #7b2d26;background:#fff;padding:12px;border-radius:10px;margin:16px 0}.pa-promotion-code strong{display:block;font-size:24px;letter-spacing:2px}.pa-promotion-code small{display:block;margin-top:5px}.pa-promotion-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}.pa-promotion-actions a{display:inline-block;text-decoration:none}.pa-promotion-dismiss{border:1px solid #7b2d26;border-radius:8px;padding:10px 14px;background:transparent;color:#7b2d26;cursor:pointer}';
+    style.textContent=`.pa-promotion-overlay{position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 20% 10%,rgba(214,174,91,.28),transparent 32%),rgba(28,10,13,.78);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px;animation:paPromoFade .22s ease-out}.pa-promotion-dialog{position:relative;isolation:isolate;width:min(560px,100%);max-height:92vh;overflow:auto;background:linear-gradient(145deg,#fffdf6 0%,#fff5dc 58%,#f8e8c5 100%);color:#33201d;border:1px solid #e0c27b;border-radius:26px;box-shadow:0 28px 90px rgba(0,0,0,.42),0 0 0 7px rgba(218,181,98,.12);padding:clamp(20px,5vw,34px);text-align:center;animation:paPromoRise .32s cubic-bezier(.2,.8,.2,1)}.pa-promotion-dialog:before{content:'✦  ✧  ✦';display:block;color:#b38a39;letter-spacing:14px;font-size:15px;margin:-5px 0 8px}.pa-promotion-topline{display:flex;justify-content:center;align-items:center;gap:8px;color:#8b6a27;font-size:11px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase}.pa-promotion-eyebrow{margin-top:12px;color:#946d22;font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase}.pa-promotion-dialog h2{margin:8px 28px 12px;color:#76262d;font-family:Georgia,serif;font-size:clamp(25px,5vw,36px);line-height:1.1}.pa-promotion-dialog p{white-space:pre-line;line-height:1.65}.pa-promotion-dialog img{width:100%;max-height:235px;object-fit:cover;border-radius:17px;border:1px solid rgba(137,91,31,.2);box-shadow:0 10px 24px rgba(69,35,19,.12);margin:12px 0}.pa-promotion-close{position:absolute;right:12px;top:12px;width:38px;height:38px;border:1px solid #ead9b0;border-radius:50%;background:rgba(255,255,255,.78);font-size:25px;line-height:1;cursor:pointer;color:#76262d;z-index:2}.pa-promotion-code{position:relative;border:1px dashed #9b7029;background:linear-gradient(120deg,#fff 0%,#fff9e8 100%);padding:17px 14px;border-radius:16px;margin:20px 0 12px;box-shadow:inset 0 0 0 4px rgba(218,181,98,.1)}.pa-promotion-code strong{display:block;font-size:clamp(24px,5vw,31px);letter-spacing:3px;color:#76262d;margin:5px 0}.pa-promotion-code small{display:block;margin-top:5px;color:#6e5b42}.pa-promotion-copy{border:0;border-radius:999px;background:#76262d;color:#fff8e8;padding:10px 18px;font-weight:800;cursor:pointer;box-shadow:0 5px 14px rgba(118,38,45,.2)}.pa-promotion-actions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:20px}.pa-promotion-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:999px;padding:12px 20px;background:linear-gradient(135deg,#842d33,#5e1722);color:#fff!important;font-weight:800;box-shadow:0 8px 18px rgba(94,23,34,.22)}.pa-promotion-dismiss{border:1px solid #bda36d;border-radius:999px;padding:11px 17px;background:rgba(255,255,255,.45);color:#6b342d;cursor:pointer;font-weight:700}.pa-promotion-limit{font-size:12px;color:#7c602d;margin-top:8px}@keyframes paPromoFade{from{opacity:0}to{opacity:1}}@keyframes paPromoRise{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}@media(max-width:480px){.pa-promotion-overlay{padding:10px}.pa-promotion-dialog{border-radius:20px;padding:20px 16px}.pa-promotion-dialog img{max-height:170px}.pa-promotion-actions{flex-direction:column}.pa-promotion-actions a,.pa-promotion-dismiss{width:100%;box-sizing:border-box}}`;
     document.head.appendChild(style);
   }
   let modal=document.getElementById('pa-promotion-modal');
@@ -184,15 +184,24 @@ async function addPromos(){
   const code=chosen.discount_type&&chosen.discount_type!=='none'&&chosen.voucher_code;
   const discount=chosen.discount_type==='percent'?String(chosen.discount_value)+'% off':money(chosen.discount_value)+' off';
   const min=Number(chosen.min_order||0)>0?'<p><small>Minimum eligible subtotal: '+escm(money(chosen.min_order))+'</small></p>':'';
-  modal.innerHTML='<div class="pa-promotion-dialog"><button class="pa-promotion-close" type="button" aria-label="Close promotion">×</button>'+
-    (chosen.image?'<img src="'+escm(chosen.image)+'" alt="">':'')+
-    '<h2>'+escm(chosen.title)+'</h2><p>'+escm(chosen.message)+'</p>'+
-    (code?'<div class="pa-promotion-code"><small>VOUCHER CODE</small><strong>'+escm(chosen.voucher_code)+'</strong><small>'+escm(discount)+' · one use per customer · sign in to redeem</small></div>'+min:'')+
+  const validUntil=chosen.ends_at?(()=>{const d=new Date(String(chosen.ends_at).replace(' ','T')+'Z');return Number.isNaN(d.valueOf())?'':'<p class="pa-promotion-limit">Offer ends '+escm(d.toLocaleDateString('en-GB',{timeZone:'Asia/Kuwait',day:'numeric',month:'short',year:'numeric'}))+'</p>'})():'';
+  const remaining=Number(chosen.max_redemptions||0)>0?'<p class="pa-promotion-limit">'+Math.max(0,Number(chosen.max_redemptions)-Number(chosen.redemption_count||0))+' offers remaining</p>':'';
+  const signature=JSON.stringify([chosen.id,chosen.title,chosen.message,chosen.image,chosen.cta_label,chosen.cta_url,chosen.voucher_code,chosen.discount_type,chosen.discount_value,chosen.min_order,chosen.ends_at,chosen.max_redemptions,chosen.redemption_count]);
+  if(modal.dataset.promotionSignature===signature)return;
+  modal.dataset.promotionSignature=signature;
+  modal.innerHTML='<div class="pa-promotion-dialog"><div class="pa-promotion-topline">PinoyAmbula Special</div><button class="pa-promotion-close" type="button" aria-label="Close promotion">×</button>'+
+    (chosen.image?'<img src="'+escm(chosen.image)+'" alt="Promotion artwork">':'')+
+    '<div class="pa-promotion-eyebrow">A little something for you</div><h2>'+escm(chosen.title)+'</h2><p>'+escm(chosen.message)+'</p>'+
+    (code?'<div class="pa-promotion-code"><small>YOUR VOUCHER CODE</small><strong>'+escm(chosen.voucher_code)+'</strong><small>'+escm(discount)+' · one use per customer · sign in to redeem</small><button type="button" class="pa-promotion-copy">Use this voucher</button></div>'+min:'')+validUntil+remaining+
     '<div class="pa-promotion-actions">'+(chosen.cta_label&&chosen.cta_url?'<a class="btn" href="'+escm(promotionCtaUrl(chosen.cta_url,code?chosen.voucher_code:''))+'">'+escm(chosen.cta_label)+'</a>':'')+
     '<button type="button" class="pa-promotion-dismiss">Maybe later</button></div></div>';
   const close=()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}modal.remove()};
   modal.querySelector('.pa-promotion-close')?.addEventListener('click',close);
   modal.querySelector('.pa-promotion-dismiss')?.addEventListener('click',close);
+  modal.querySelector('.pa-promotion-copy')?.addEventListener('click',()=>{
+    const input=document.getElementById('promo-code');
+    if(input){input.value=String(chosen.voucher_code||'').toUpperCase();try{window.renderCart?.()}catch{}close();document.getElementById('cart')?.classList.add('open');}
+  });
   modal.querySelector('.pa-promotion-actions a')?.addEventListener('click',()=>{try{localStorage.setItem('pa-promotion-dismissed-'+chosen.id,'1')}catch{}});
   modal.addEventListener('click',event=>{if(event.target===modal)close()});
   document.addEventListener('keydown',function closeOnEscape(event){if(event.key==='Escape'&&document.getElementById('pa-promotion-modal')){close();document.removeEventListener('keydown',closeOnEscape)}});
@@ -461,9 +470,13 @@ function adminBoot(){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
     data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
+    data.allow_stack=form.elements.allow_stack?.checked?1:0;
+    data.redemption_email_enabled=form.elements.redemption_email_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
     data.discount_value=Number(data.discount_value||0);
     data.min_order=Number(data.min_order||0);
+    data.max_redemptions=Math.max(0,Math.trunc(Number(data.max_redemptions||0)));
+    data.discount_cap=Number(data.discount_cap||0);
     try{
       data.starts_at=announcementToApiDateTime(data.starts_at);
       data.ends_at=announcementToApiDateTime(data.ends_at);
@@ -477,9 +490,13 @@ function adminBoot(){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
     data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
+    data.allow_stack=form.elements.allow_stack?.checked?1:0;
+    data.redemption_email_enabled=form.elements.redemption_email_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
     data.discount_value=Number(data.discount_value||0);
     data.min_order=Number(data.min_order||0);
+    data.max_redemptions=Math.max(0,Math.trunc(Number(data.max_redemptions||0)));
+    data.discount_cap=Number(data.discount_cap||0);
     try{
       data.starts_at=announcementToApiDateTime(data.starts_at);
       data.ends_at=announcementToApiDateTime(data.ends_at);
@@ -546,11 +563,17 @@ function adminBoot(){
       '<label>Discount type<select name="discount_type">'+discountOptions(a.discount_type)+'</select></label>'+
       '<label>Discount value<input name="discount_value" type="number" min="0" step="0.001" value="'+(Number(a.discount_value)||0)+'" placeholder="e.g. 10 for 10%"></label>'+
       '<label>Minimum eligible subtotal (KD)<input name="min_order" type="number" min="0" step="0.001" value="'+(Number(a.min_order)||0)+'"></label>'+
+      '<label>Maximum discount (KD; 0 = no cap)<input name="discount_cap" type="number" min="0" step="0.001" value="'+(Number(a.discount_cap)||0)+'"></label>'+
+      '<label>Maximum redemptions (0 = unlimited)<input name="max_redemptions" type="number" min="0" step="1" value="'+(Number(a.max_redemptions)||0)+'"></label>'+
       '<label>Voucher code<input name="voucher_code" maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" value="'+announcementInputEsc(a.voucher_code||'')+'" placeholder="WELCOME10"></label></div>'+
-      '<p class="small">Voucher codes must be unique and differ from the legacy global promo code. Internal button links automatically carry the voucher into the cart. The server enforces validity dates and one redemption per customer account; redemption requires sign-in.</p>'+
-      '<label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer in the new-registration welcome email (first eligible order only)</label>'+
+      '<p class="small">Voucher codes are unique. A maximum discount caps the offer value; a redemption limit caps the total campaign uses. Cancelled orders and failed payments release the voucher. Redemption requires sign-in.</p>'+
+      '<label><input type="checkbox" name="allow_stack" value="1" '+(Number(a.allow_stack)?'checked':'')+' style="width:auto"> Allow this voucher to stack with loyalty rewards</label>'+
+      '<h4>Registration welcome email</h4><label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer to new registrations (first eligible order only)</label>'+
       '<label>Welcome email subject<input name="welcome_subject" maxlength="160" value="'+announcementInputEsc(a.welcome_subject||'')+'" placeholder="Your welcome voucher is here"></label>'+
-      '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>';
+      '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>'+
+      '<h4>Voucher redemption email</h4><label><input type="checkbox" name="redemption_email_enabled" value="1" '+(Number(a.redemption_email_enabled)?'checked':'')+' style="width:auto"> Email customer after this voucher is accepted for an order</label>'+
+      '<label>Redemption email subject<input name="redemption_email_subject" maxlength="160" value="'+announcementInputEsc(a.redemption_email_subject||'')+'" placeholder="Your voucher was applied"></label>'+
+      '<label>Redemption email message<textarea name="redemption_email_message" rows="2" maxlength="1000" placeholder="Your voucher was accepted for this order.">'+announcementInputEsc(a.redemption_email_message||'')+'</textarea></label>';
     const createForm='<form class="master-admin-card announcement-manager" onsubmit="event.preventDefault();createAnnouncement(this)">'+
       '<h3>Create promotion or announcement</h3>'+
       '<p class="small">All display, audience, discount, validity, and registration email settings are configurable here. No offer amounts or voucher codes are hard-coded in the customer interface. Only the highest-priority active welcome offer is included in registration emails.</p>'+
