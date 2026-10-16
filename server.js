@@ -116,7 +116,8 @@ db.exec(`INSERT OR IGNORE INTO promotion_redemption_history(announcement_id,cust
 db.prepare("UPDATE promotion_redemption_history SET voucher_code=upper(trim((SELECT promo_code FROM orders WHERE orders.id=promotion_redemption_history.order_id))) WHERE EXISTS(SELECT 1 FROM orders WHERE orders.id=promotion_redemption_history.order_id AND trim(COALESCE(orders.promo_code,''))<>'')").run();
 // Legacy history without an order code falls back to the campaign code only
 // when its snapshot is still empty.
-db.prepare("UPDATE promotion_redemption_history SET voucher_code=upper(trim(COALESCE((SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),''))) WHERE COALESCE(voucher_code,'')=''").run();
+// Historical codes must come from the original order. Older code guessed the campaign's current voucher_code for orders with no promo_code, which can falsely lock a newly rotated code. Unknown legacy codes are not safe to use as redemption locks.
+db.prepare("UPDATE promotion_redemption_history SET voucher_code='' WHERE COALESCE(trim(voucher_code),'')<>'' AND EXISTS(SELECT 1 FROM orders WHERE orders.id=promotion_redemption_history.order_id AND trim(COALESCE(orders.promo_code,''))='')").run();
 db.prepare("UPDATE promotion_redemption_history SET voucher_title=COALESCE((SELECT title FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_title,'')=''").run();
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
@@ -756,7 +757,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
       if(!token)throw new Error('Sign in or register to use this voucher.');
       if(Number(token.id)!==Number(customerId))throw new Error('Sign in to the account that owns this order to use the voucher.');
       if(sub<Number(candidate.min_order||0))throw new Error('This voucher requires a minimum eligible subtotal of '+Number(candidate.min_order||0).toFixed(3)+' '+(st.currency||'KWD')+'.');
-      if(one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
+      if(one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? AND status='Applied' LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
       if(Number(candidate.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',candidate.id).n>=Number(candidate.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
       if(rewardThreshold&&Number(candidate.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
       if(Number(candidate.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
@@ -784,7 +785,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const status=approval==='ADMIN'?'Pending':'Confirmed';
 
   const saveOrder=db.transaction(()=>{
-  if(promotion&&one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
+  if(promotion&&one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? AND status='Applied' LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
   if(promotion&&Number(promotion.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',promotion.id).n>=Number(promotion.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
   if(promotion&&rewardThreshold&&Number(promotion.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
   if(promotion&&Number(promotion.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
@@ -1652,7 +1653,7 @@ app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
   savePromotion();
   r.json({ok:1,voucherCodeChanged});
 }));
-app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,COALESCE(NULLIF(pr.voucher_title,''),p.title,'Deleted voucher #'||pr.announcement_id) AS title,COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code,'') AS voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr LEFT JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
+app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,COALESCE(NULLIF(pr.voucher_title,''),p.title,'Deleted voucher #'||pr.announcement_id) AS title,COALESCE(pr.voucher_code,'') AS voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr LEFT JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
 
 app.get('/api/admin/regional-dishes',admin,w((q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())}));
 app.post('/api/admin/regional-dishes',admin,w((q,r)=>{
