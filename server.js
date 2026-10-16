@@ -104,6 +104,7 @@ const ensureColumn=(table,column,definition)=>{
 ].forEach(([table,column,definition])=>ensureColumn(table,column,definition));
 db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));
 CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,UNIQUE(order_id));`);
+db.exec(`INSERT OR IGNORE INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,created) SELECT announcement_id,customer_id,order_id,'Applied',created FROM promotion_redemptions;`);
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
 'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
@@ -1214,6 +1215,7 @@ app.put('/api/admin/payment/:id',admin,w((q,r)=>{
   if(!['Pending','Paid','Failed','Refunded'].includes(status))throw new Error('Invalid payment status');
   const before=one('SELECT * FROM orders WHERE id=?',q.params.id);
   if(!before)throw new Error('Order not found');
+  if(status==='Paid'&&before.status==='Cancelled')throw new Error('Cannot mark payment paid on a cancelled order; create a new order to revalidate inventory and vouchers.');
   db.transaction(()=>{
     db.prepare('UPDATE orders SET payment_status=? WHERE id=?').run(status,q.params.id);
   })();
