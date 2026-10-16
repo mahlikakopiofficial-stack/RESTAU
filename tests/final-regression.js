@@ -129,6 +129,7 @@ t('customer email verification uses one-time tokens and shared email sender',()=
   assert(server.includes("['customers','email_verified','INTEGER DEFAULT 0']"));
   assert(server.includes('CREATE TABLE IF NOT EXISTS email_verification_tokens'));
   assert(server.includes("app.post('/api/email/verification/send'"));
+  assert(server.includes("app.post('/api/customer/email'"));
   assert(server.includes("app.post('/api/email/verify/confirm'"));
   assert(server.includes('emailVerificationRequired'));
   assert(server.includes("safeNotification('email-verification',notifyEmailVerification"));
@@ -137,11 +138,14 @@ t('customer email verification uses one-time tokens and shared email sender',()=
   assert(notifications.includes("subject=restaurant()+': Verify your email address'"));
   assert(notifications.includes("GMAIL_FROM_EMAIL")===false);
   assert(account.includes('id="email-verification-card"'));
+  assert(account.includes('id="email-address-form"'));
+  assert(account.includes('saveAccountEmail(event)'));
+  assert(account.includes('toggleEmailEditor()'));
   assert(account.includes('resendVerificationEmail'));
   assert(verifyPage.includes('api("/email/verify/confirm", "POST"'));
   assert(verifyPage.includes('Verify email address'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
-  assert(sw.includes("const CACHE_VERSION='v48'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
+  assert(sw.includes("const CACHE_VERSION='v49'"));
   assert(sw.includes("  '/verify-email.html',"));
   assert(sw.includes("url.pathname==='/verify-email.html'&&url.searchParams.has('token')"));
   assert(gmail.includes('GMAIL_FROM_EMAIL||user'));
@@ -187,7 +191,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -216,8 +220,8 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
-  assert(sw.includes("const CACHE_VERSION='v48'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
+  assert(sw.includes("const CACHE_VERSION='v49'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(pwa.includes("/sw.js?v=20261006-v28"));
@@ -511,7 +515,7 @@ t('voucher first-order eligibility is separate from welcome email delivery',()=>
   assert(master.includes('data.first_order_only=form.elements.first_order_only?.checked?1:0'));
   assert(master.includes('if(data.welcome_enabled)data.first_order_only=1'));
   assert(index.includes('First eligible order only. Sign in to redeem; one use per customer.'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
 });
 t('voucher history uses original order codes and never guesses from the current campaign',()=>{
   assert(server.includes("SET voucher_code=upper(trim((SELECT promo_code FROM orders WHERE orders.id=promotion_redemption_history.order_id)))"));
@@ -536,7 +540,7 @@ t('admin voucher guidance describes code-specific one-use, expiry and history-pr
   assert(master.includes('Deleting a campaign keeps its voucher audit history.'));
   assert(index.includes('master-enhancements.js?v=20261016-voucher-code-lifecycle7'));
   assert(admin.includes('master-enhancements.js?v=20261016-voucher-code-lifecycle7'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
 });
 t('expired voucher validation and campaign deletion preserve redemption audit',()=>{
   assert(server.includes("ends_at>=datetime('now')"));
@@ -568,7 +572,7 @@ t('welcome voucher is visible to every eligible new account without requiring em
   assert(account.includes('const welcomeVoucher = m.welcomeVoucher;'));
   assert(account.includes('index.html?voucher='));
   assert(account.includes('First eligible order only · one use per customer'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
 });
 t('promotion audience control is explicit and visually prominent',()=>{
   assert(master.includes('class="promotion-audience-field"'));
@@ -577,7 +581,7 @@ t('promotion audience control is explicit and visually prominent',()=>{
   assert(master.includes('#main .promotion-audience-field{grid-column:1/-1'));
   assert(index.includes('master-enhancements.js?v=20261016-voucher-code-lifecycle7'));
   assert(admin.includes('master-enhancements.js?v=20261016-voucher-code-lifecycle7'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
 });
 t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(admin.includes('"Promotions & Vouchers"'));
@@ -629,7 +633,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(notifications.includes('YOUR WELCOME VOUCHER'));
   assert(notifications.includes("parsed.searchParams.set('voucher'"));
   assert(notifications.includes('welcome_subject'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v49'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v50'"));
 });
 
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');
