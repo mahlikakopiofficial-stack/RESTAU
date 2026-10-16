@@ -106,10 +106,12 @@ const ensureColumn=(table,column,definition)=>{
 // Preserve first-order restrictions for existing registration-welcome campaigns.
 db.prepare("UPDATE announcements SET first_order_only=1 WHERE COALESCE(welcome_enabled,0)=1 AND COALESCE(first_order_only,0)=0").run();
 db.exec(`CREATE TABLE IF NOT EXISTS promotion_redemptions(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(announcement_id,customer_id),UNIQUE(order_id));
-CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,voucher_code TEXT DEFAULT '',UNIQUE(order_id));`);
+CREATE TABLE IF NOT EXISTS promotion_redemption_history(id INTEGER PRIMARY KEY,announcement_id INTEGER NOT NULL,customer_id INTEGER NOT NULL,order_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'Applied',created TEXT DEFAULT CURRENT_TIMESTAMP,released_at TEXT,voucher_code TEXT DEFAULT '',voucher_title TEXT DEFAULT '',UNIQUE(order_id));`);
 ensureColumn('promotion_redemption_history','voucher_code',"TEXT DEFAULT ''");
+ensureColumn('promotion_redemption_history','voucher_title',"TEXT DEFAULT ''");
 db.exec(`INSERT OR IGNORE INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,created) SELECT announcement_id,customer_id,order_id,'Applied',created FROM promotion_redemptions;`);
 db.prepare("UPDATE promotion_redemption_history SET voucher_code=COALESCE((SELECT voucher_code FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_code,'')=''").run();
+db.prepare("UPDATE promotion_redemption_history SET voucher_title=COALESCE((SELECT title FROM announcements WHERE announcements.id=promotion_redemption_history.announcement_id),'') WHERE COALESCE(voucher_title,'')=''").run();
 const ingredientDefaults={
 'Chicken Adobo':'Chicken, soy sauce, vinegar, garlic, bay leaf, black pepper, cooking oil, steamed rice',
 'Kare-Kare':'Oxtail, beef, peanut butter, annatto, eggplant, string beans, bok choy, bagoong',
@@ -748,7 +750,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
       if(!token)throw new Error('Sign in or register to use this voucher.');
       if(Number(token.id)!==Number(customerId))throw new Error('Sign in to the account that owns this order to use the voucher.');
       if(sub<Number(candidate.min_order||0))throw new Error('This voucher requires a minimum eligible subtotal of '+Number(candidate.min_order||0).toFixed(3)+' '+(st.currency||'KWD')+'.');
-      if(one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',candidate.id,customerId))throw new Error('This voucher has already been used by this customer.');
+      if(one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
       if(Number(candidate.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',candidate.id).n>=Number(candidate.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
       if(rewardThreshold&&Number(candidate.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
       if(Number(candidate.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
@@ -776,7 +778,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const status=approval==='ADMIN'?'Pending':'Confirmed';
 
   const saveOrder=db.transaction(()=>{
-  if(promotion&&one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',promotion.id,customerId))throw new Error('This voucher has already been used by this customer.');
+  if(promotion&&one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
   if(promotion&&Number(promotion.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',promotion.id).n>=Number(promotion.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
   if(promotion&&rewardThreshold&&Number(promotion.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
   if(promotion&&Number(promotion.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
@@ -814,7 +816,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   if(rewardThreshold)db.prepare('INSERT INTO loyalty_redemptions(customer_id,threshold,order_id) VALUES(?,?,?)').run(customerId,rewardThreshold,id);
   if(promotion){
     db.prepare('INSERT INTO promotion_redemptions(announcement_id,customer_id,order_id) VALUES(?,?,?)').run(promotion.id,customerId,id);
-    db.prepare("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,voucher_code) VALUES(?,?,?,'Applied',?)").run(promotion.id,customerId,id,promoCode);
+    db.prepare("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,voucher_code,voucher_title) VALUES(?,?,?,'Applied',?,?)").run(promotion.id,customerId,id,promoCode,String(promotion.title||''));
   }
   return Number(id);
   });
@@ -1364,7 +1366,24 @@ app.put('/api/admin/gallery/:id',admin,w((q,r)=>{
   if(!result.changes)throw new Error('Gallery item not found');
   r.json({ok:1});
 }));
-app.delete('/api/admin/:t/:id',admin,w((q,r)=>{if(!DEL.includes(q.params.t))throw new Error('bad table');db.prepare(`DELETE FROM ${q.params.t} WHERE id=?`).run(q.params.id);r.json({ok:1})}));
+app.delete('/api/admin/:t/:id',admin,w((q,r)=>{
+  const table=q.params.t,id=q.params.id;
+  if(table==='announcements'){
+    const row=one('SELECT id,image FROM announcements WHERE id=?',id);
+    if(!row)throw new Error('Announcement not found');
+    // Remove live redemption locks/counters, but retain voucher title/code snapshots.
+    const removePromotion=db.transaction(()=>{
+      db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(id);
+      db.prepare('DELETE FROM announcements WHERE id=?').run(id);
+    });
+    removePromotion();
+    if(row.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});
+    return r.json({ok:1,historyPreserved:true});
+  }
+  if(!DEL.includes(table))throw new Error('bad table');
+  db.prepare(`DELETE FROM ${table} WHERE id=?`).run(id);
+  r.json({ok:1});
+}));
 const SK=[
   'name','phone','hours','currency','fee','min_order','accepting','subscriptions_enabled',
   'hero_title','hero_text','logo_url','whatsapp','facebook','instagram',
@@ -1627,14 +1646,8 @@ app.put('/api/admin/announcements/:id',admin,w((q,r)=>{
   savePromotion();
   r.json({ok:1,voucherCodeChanged});
 }));
-app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,p.title,COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code) AS voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
-app.delete('/api/admin/announcements/:id',admin,w((q,r)=>{
-  const row=one('SELECT image FROM announcements WHERE id=?',q.params.id);
-  if(!row)throw new Error('Announcement not found');
-  if(row.image?.startsWith('/uploads/'))fs.unlink(path.join(UP,path.basename(row.image)),()=>{});
-  db.prepare('DELETE FROM announcements WHERE id=?').run(q.params.id);
-  r.json({ok:1});
-}));
+app.get('/api/admin/promotion-redemptions',admin,w((q,r)=>r.json(db.prepare(`SELECT pr.id,pr.created,pr.status,pr.released_at,COALESCE(NULLIF(pr.voucher_title,''),p.title,'Deleted voucher #'||pr.announcement_id) AS title,COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code,'') AS voucher_code,c.name AS customer_name,c.phone,o.id AS order_id,o.status AS order_status,o.total AS order_total FROM promotion_redemption_history pr LEFT JOIN announcements p ON p.id=pr.announcement_id JOIN customers c ON c.id=pr.customer_id JOIN orders o ON o.id=pr.order_id ORDER BY pr.id DESC LIMIT 500`).all())));
+
 app.get('/api/admin/regional-dishes',admin,w((q,r)=>{inventory.refreshDailyInventory(db,'regional_dishes',kuwaitToday());r.json(db.prepare('SELECT * FROM regional_dishes ORDER BY sort_order,id').all())}));
 app.post('/api/admin/regional-dishes',admin,w((q,r)=>{
   need(q.body,'name','region');
