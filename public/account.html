@@ -92,6 +92,11 @@
         <section id="email-verification-card" hidden class="card" style="margin:20px 0;padding:18px;border:1px solid #d8bd78;border-radius:14px">
           <h3>Email address verification</h3>
           <p id="email-verification-status"></p>
+          <button id="email-verification-change" class="btn o" type="button" onclick="toggleEmailEditor()">Add email address</button>
+          <form id="email-address-form" hidden onsubmit="saveAccountEmail(event)" style="margin-top:12px">
+            <label>Email address<input id="email-address-input" name="email" type="email" autocomplete="email" required maxlength="200" /></label>
+            <button id="email-address-save" class="btn" type="submit">Save and send verification</button>
+          </form>
           <button id="email-verification-resend" class="btn o" type="button" onclick="resendVerificationEmail()">Resend verification email</button>
         </section>
         <section id="welcome-voucher-card" hidden class="card" style="margin:20px 0;padding:18px;border:1px solid #d8bd78;background:#fff8e8;border-radius:14px">
@@ -232,6 +237,39 @@
           button.disabled = false;
         }
       }
+      function toggleEmailEditor() {
+        const form = $("#email-address-form");
+        const toggle = $("#email-verification-change");
+        const input = $("#email-address-input");
+        if (!form || !toggle) return;
+        form.hidden = !form.hidden;
+        if (form.hidden) {
+          toggle.textContent = input?.value.trim() ? "Change email address" : "Add email address";
+        } else {
+          toggle.textContent = "Cancel";
+          input?.focus();
+        }
+      }
+
+      async function saveAccountEmail(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = $("#email-address-save");
+        button.disabled = true;
+        try {
+          const result = await api("/customer/email", "POST", {
+            email: $("#email-address-input").value.trim(),
+          });
+          toast(result.message || "Verification email sent.");
+          form.hidden = true;
+          await load();
+        } catch (error) {
+          toast(error.message || "Could not save this email address.");
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       async function resendVerificationEmail() {
         const button = $("#email-verification-resend");
         const status = $("#email-verification-status");
@@ -476,18 +514,32 @@
           const emailVerificationCard = $("#email-verification-card");
           const emailVerificationStatus = $("#email-verification-status");
           const emailVerificationButton = $("#email-verification-resend");
-          if (m.email && emailVerificationCard) {
+          const emailChangeButton = $("#email-verification-change");
+          const emailAddressForm = $("#email-address-form");
+          const emailAddressInput = $("#email-address-input");
+          if (emailVerificationCard) {
             emailVerificationCard.hidden = false;
-            if (Number(m.email_verified) === 1) {
-              emailVerificationStatus.textContent = m.email + " is verified.";
-              emailVerificationButton.hidden = true;
+            if (m.email) {
+              emailAddressInput.value = m.email;
+              emailAddressForm.hidden = true;
+              emailChangeButton.hidden = false;
+              emailChangeButton.textContent = "Change email address";
+              if (Number(m.email_verified) === 1) {
+                emailVerificationStatus.textContent = m.email + " is verified.";
+                emailVerificationButton.hidden = true;
+              } else {
+                emailVerificationStatus.textContent =
+                  "Verify " + m.email + " to confirm it belongs to you. Check your inbox and spam folder for the verification email.";
+                emailVerificationButton.hidden = false;
+              }
             } else {
+              emailAddressInput.value = "";
               emailVerificationStatus.textContent =
-                "Verify " + m.email + " to confirm it belongs to you. Check your inbox and spam folder for the verification email.";
-              emailVerificationButton.hidden = false;
+                "No email address is saved on this account. Add one to receive email notifications and verify it.";
+              emailAddressForm.hidden = false;
+              emailChangeButton.hidden = true;
+              emailVerificationButton.hidden = true;
             }
-          } else if (emailVerificationCard) {
-            emailVerificationCard.hidden = true;
           }
 
           const welcomeCard = $("#welcome-voucher-card");

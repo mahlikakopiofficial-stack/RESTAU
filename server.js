@@ -554,6 +554,27 @@ app.post('/api/register',lim(8),w((q,r)=>{
   r.json({token:mk({r:'c',id,v:version}),name:b.name,emailVerificationRequired:Boolean(registeredCustomer?.email&&Number(registeredCustomer.email_verified)!==1)});
 }));
 app.post('/api/login',lim(8),w((q,r)=>{const c=one('SELECT * FROM customers WHERE phone=?',String(q.body.phone||'').trim());if(!c||!chk(q.body.password||'',c.pw))return r.status(401).json({error:'Wrong phone or password'});r.json({token:mk({r:'c',id:c.id,v:c.auth_version||0}),name:c.name})}));
+app.post('/api/customer/email',lim(5),cust,async(q,r)=>{
+  const email=String(q.body.email||'').trim().toLowerCase();
+  if(!/^\S+@\S+\.\S+$/.test(email))return r.status(400).json({error:'Enter a valid email address.'});
+  const customer=one('SELECT id,name,email,email_verified FROM customers WHERE id=?',q.cid);
+  if(!customer)return r.status(404).json({error:'Customer account not found.'});
+  const owner=one("SELECT id FROM customers WHERE lower(trim(COALESCE(email,'')))=lower(trim(?)) AND id<>? LIMIT 1",email,q.cid);
+  if(owner)return r.status(409).json({error:'That email is already linked to another customer account.'});
+  const currentEmail=String(customer.email||'').trim().toLowerCase();
+  if(email===currentEmail&&Number(customer.email_verified)===1)return r.json({ok:1,verified:true,message:'This email address is already verified.'});
+  if(email!==currentEmail)db.prepare('UPDATE customers SET email=?,email_verified=0 WHERE id=?').run(email,q.cid);
+  let issued;
+  try{
+    issued=issueEmailVerification(customer.id,email);
+    await notifyEmailVerification({email,name:customer.name,verificationUrl:issued.verificationUrl});
+    r.json({ok:1,message:'Verification email sent. Check your inbox and spam folder.'});
+  }catch(error){
+    if(issued?.tokenHash)db.prepare('UPDATE email_verification_tokens SET used_at=? WHERE token_hash=? AND used_at IS NULL').run(Date.now(),issued.tokenHash);
+    console.error('CUSTOMER_EMAIL_UPDATE_FAILED',error.message);
+    r.status(502).json({error:'Your email was saved, but we could not send its verification link. Please retry verification from your account.'});
+  }
+});
 app.post('/api/email/verification/send',lim(5),cust,async(q,r)=>{
   const customer=one('SELECT id,name,email,email_verified FROM customers WHERE id=?',q.cid);
   if(!customer?.email)return r.status(400).json({error:'Add an email address to your account before verifying it.'});
