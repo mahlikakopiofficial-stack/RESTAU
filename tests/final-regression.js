@@ -490,13 +490,18 @@ t('voucher first-order eligibility is separate from welcome email delivery',()=>
   assert(index.includes('First eligible order only. Sign in to redeem; one use per customer.'));
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v46'"));
 });
-t('editing a voucher code resets eligibility for that code while preserving redemption history',()=>{
-  assert(server.includes("ensureColumn('promotion_redemption_history','voucher_code'"));
-  assert(server.includes("const voucherCodeChanged=previousVoucherCode!==nextVoucherCode;"));
-  assert(server.includes("if(voucherCodeChanged)db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(q.params.id);"));
-  assert(server.includes("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,voucher_code) VALUES(?,?,?,'Applied',?)"));
-  assert(server.includes("COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code) AS voucher_code"));
-  assert(server.includes('r.json({ok:1,voucherCodeChanged})'));
+t('voucher codes are one-use per signed-in customer even when the campaign code changes',()=>{
+  assert(server.includes("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1"));
+  assert((server.match(/SELECT id FROM promotion_redemption_history WHERE upper\(trim\(COALESCE\(voucher_code/g)||[]).length>=2);
+  assert(server.includes("voucher_code,voucher_title) VALUES(?,?,?,'Applied',?,?)"));
+  assert(server.includes("ensureColumn('promotion_redemption_history','voucher_title'"));
+  assert(server.includes("COALESCE(NULLIF(pr.voucher_title,''),p.title,'Deleted voucher #'||pr.announcement_id) AS title"));
+});
+t('expired voucher validation and campaign deletion preserve redemption audit',()=>{
+  assert(server.includes("ends_at>=datetime('now')"));
+  assert(server.includes("DELETE FROM promotion_redemptions WHERE announcement_id=?"));
+  assert(server.includes("r.json({ok:1,historyPreserved:true})"));
+  assert(server.includes("LEFT JOIN announcements p ON p.id=pr.announcement_id"));
 });
 t('welcome vouchers are hidden from existing customers and general vouchers remain usable',()=>{
   assert(server.includes('const hasEligibleOrder=token&&one("SELECT id FROM orders WHERE customer_id=? AND status!=\'Cancelled\' AND payment_status!=\'Failed\' LIMIT 1",token.id)?1:0;'));
