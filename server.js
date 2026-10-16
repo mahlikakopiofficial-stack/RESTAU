@@ -499,7 +499,7 @@ app.post('/api/register',lim(8),w((q,r)=>{
     id=Number(db.prepare('INSERT INTO customers(name,phone,email,address,paci,birthday,nationality,pw,whatsapp_opt_in) VALUES(?,?,?,?,?,?,?,?,?)').run(...values,hash(b.password),b.whatsapp_opt_in?1:0).lastInsertRowid);
   }
   const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
-  const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=?) ORDER BY priority DESC,id DESC LIMIT 1",id);
+  const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1",id);
   if(registeredCustomer?.email)Promise.resolve(notifyRegistration(registeredCustomer,welcomeOffer||null)).catch(error=>console.error('REGISTRATION_EMAIL_FAILED',error.message));
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
@@ -725,7 +725,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
       if(one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',candidate.id,customerId))throw new Error('This voucher has already been used by this customer.');
       if(Number(candidate.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',candidate.id).n>=Number(candidate.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
       if(rewardThreshold&&Number(candidate.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
-      if(Number(candidate.welcome_enabled)===1&&one("SELECT id FROM orders WHERE customer_id=? LIMIT 1",customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
+      if(Number(candidate.welcome_enabled)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
       const value=Math.max(0,Number(candidate.discount_value)||0);
       discount=candidate.discount_type==='percent'?Math.min(sub,sub*value/100):Math.min(sub,value);
       if(Number(candidate.discount_cap||0)>0)discount=Math.min(discount,Number(candidate.discount_cap));
@@ -753,7 +753,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   if(promotion&&one('SELECT id FROM promotion_redemptions WHERE announcement_id=? AND customer_id=?',promotion.id,customerId))throw new Error('This voucher has already been used by this customer.');
   if(promotion&&Number(promotion.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',promotion.id).n>=Number(promotion.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
   if(promotion&&rewardThreshold&&Number(promotion.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
-  if(promotion&&Number(promotion.welcome_enabled)===1&&one('SELECT id FROM orders WHERE customer_id=? LIMIT 1',customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
+  if(promotion&&Number(promotion.welcome_enabled)===1&&one('SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1',customerId))throw new Error('This registration welcome voucher is valid only on the first order.');
   inventory.reserveOrderInventory(db,its,kuwaitToday());
   const id=db.prepare(`
     INSERT INTO orders(
