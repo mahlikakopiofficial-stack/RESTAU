@@ -94,13 +94,13 @@ t('customer email delivery hardening',()=>{
 
 t('registration, password reset and order email wiring',()=>{
   assert(notifications.includes('notifyRegistration'));
-  assert(server.includes('notifyRegistration(registeredCustomer,welcomeOffer||null)'));
+  assert(server.includes("safeNotification('registration',notifyRegistration,registeredCustomer,welcomeOffer||null)"));
   assert(server.includes('sendPasswordResetEmail({to:customer.email,name:customer.name,resetUrl})'));
   assert(server.includes("app.post('/api/password-reset'"));
   assert(server.includes("app.post('/api/password-reset/confirm'"));
-  assert(server.includes('notifyOrderReceived(savedOrder)'));
-  assert(server.includes('notifyOrderStatus(after,before.status)'));
-  assert(server.includes('notifyAdminOrder(savedOrder)'));
+  assert(server.includes("safeNotification('order-receipt',notifyOrderReceived,savedOrder)"));
+  assert(server.includes("safeNotification('order-status',notifyOrderStatus,after,before.status)"));
+  assert(server.includes("safeNotification('admin-order',notifyAdminOrder,savedOrder)"));
   assert(server.includes('GMAIL_REFRESH_TOKEN'));
   assert(server.includes("app.get('/api/admin/notification-status'"));
 });
@@ -113,7 +113,8 @@ t('admin report selected date/range',()=>{
   assert(admin.includes('window._reportFrom'));
   assert(admin.includes('window._reportTo'));
   assert(admin.includes('/report-range?from='));
-});t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('notifyAdminCustomerMessage'));assert(notifications.includes('sendPasswordResetEmail'));assert(/notifyAdminCustomerMessage,/.test(notifications));assert(server.includes("SELECT status FROM notification_log WHERE event_key=?"));assert(server.includes("['Sent','Pending']"))});
+});t('promotion redemption email export and OAuth protections',()=>{const exported=require('../lib/notifications');assert.strictEqual(typeof exported.notifyPromotionRedeemed,'function');assert(server.includes("safeNotification('promotion-redemption',notifyPromotionRedeemed,savedOrder,promotion)"));assert(server.includes("app.get('/api/gmail/oauth/start',admin"));assert(server.includes("app.post('/api/admin/gmail/oauth/start',admin"));assert(master.includes('masterStartGmailOAuth'));assert(server.includes('gmailOAuthStates.delete(state)'));assert(gmail.includes('A valid one-time Gmail OAuth state is required'));});
+t('notifications',()=>{assert(notifications.includes('notifyOrderReceived'));assert(notifications.includes('notifyOrderStatus'));assert(notifications.includes('notifySubscriptionStatus'));assert(notifications.includes('notifyAdminCustomerMessage'));assert(notifications.includes('sendPasswordResetEmail'));assert(/notifyAdminCustomerMessage,/.test(notifications));assert(server.includes("SELECT status FROM notification_log WHERE event_key=?"));assert(server.includes("['Sent','Pending']"))});
 t('regional cart + floating cart',()=>{assert(index.includes('window.addRegionalToCart'));assert(index.includes('regionalKey'));assert(master.includes('addRegionalToCart'));assert(server.includes("SELECT id,name,region,price FROM regional_dishes WHERE id=? AND active=1"));assert(index.includes('id="cart-fab"'));assert(style.includes('#cart-fab{'));assert(style.includes('input[type="checkbox"]'));assert(style.includes('#cart-fab'));assert(style.includes('#menu{padding:34px 0}'));});
 t('website service images render from saved content',()=>{assert(index.includes('content_service_regular_image'));assert(index.includes('resolveMediaUrl(raw)'));assert(index.includes('service-image-filled'));assert(style.includes('.service-image{'));assert(server.includes("websiteServiceImageKeys={regular:'content_service_regular_image'"));assert(server.includes("target==='service'"));});
 t('menu add button uses shared app alignment',()=>{assert(master.includes('menu-add'));assert(enhancements.includes('menu-add'));assert(index.includes('menu-add'));assert(style.includes('.menu-card-actions .menu-add'));assert(style.includes('.menu-card .menu-add'));assert(index.includes('window.addMenuToCart'));assert(master.includes('window.addMenuToCart'));assert(enhancements.includes('window.addMenuToCart'));assert(index.includes('Add to cart'));assert(master.includes('Add to cart'));});
@@ -226,7 +227,7 @@ t('admin menu category search',()=>{assert(admin.includes('id="admin-menu-catego
 t('master enhancement backend',()=>{assert(server.includes('CREATE TABLE IF NOT EXISTS announcements'));assert(server.includes('CREATE TABLE IF NOT EXISTS regional_dishes'));assert(server.includes('CREATE TABLE IF NOT EXISTS heritage'));assert(server.includes('/api/admin/whatsapp/status'));assert(server.includes('whatsapp_opt_in'));assert(server.includes('duration_days'));});
 t('master enhancement customer UX',()=>{assert(index.includes('master-enhancements.js'));assert(admin.includes('master-enhancements.js'));assert(master.includes('menu_default_icon'));assert(master.includes('master-promo'));assert(master.includes('Regional Filipino Favorites'));assert(master.includes('Ancient Script &amp; Filipino Heritage'));assert(master.includes('whatsapp_opt_in'));assert(master.includes('master-carousel'));assert(master.includes('receipt_logo_url'));});
 t('announcement active toggle and refresh',()=>{assert(master.includes('masterSetAnnouncementActive'));assert(master.includes("setInterval(()=>{if(!document.hidden)addPromos()},5000)"));assert(master.includes('announcementToApiDateTime'));assert(master.includes('announcementFromApiDateTime'));assert(master.includes('saveAnnouncement'));assert(master.includes('createAnnouncement'));assert(master.includes('toggleAnnouncement'));assert(master.includes('deleteAnnouncement'));assert(master.includes('addAnnouncementImage'));assert(master.includes('removeAnnouncementImage'));assert(master.includes('pa-announcement-refresh'));assert(server.includes('announcementDateTime'));assert(server.includes('announcementPayload'));assert(server.includes("['announcements','updated_at','TEXT']"));assert(server.includes("if(starts&&ends&&starts>ends)"));assert(master.includes("if(!bannerRows.length){bar?.remove()}"));assert(server.includes("WHERE active=1 AND (starts_at=''"));assert(!server.includes("Mabuhay! New PinoyAmbula updates"));assert(!server.includes("Orders, subscriptions and delivery updates are ready. Salamat po!"))});
-t('subscription submit uses Kuwait date and admin notification',()=>{assert(server.includes("const kuwaitToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait'"));assert(server.includes('if(b.start<kuwaitToday())'));assert(server.includes('notifySubscriptionReceived(savedSub)'));assert(server.includes('notifyAdminSubscription(savedSub)'));assert(notifications.includes('notifyAdminSubscription'));assert(notifications.includes("fire('admin-subscription-received'"));});
+t('subscription submit uses Kuwait date and admin notification',()=>{assert(server.includes("const kuwaitToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait'"));assert(server.includes('if(b.start<kuwaitToday())'));assert(server.includes("safeNotification('subscription-receipt',notifySubscriptionReceived,savedSub)"));assert(server.includes("safeNotification('admin-subscription',notifyAdminSubscription,savedSub)"));assert(notifications.includes('notifyAdminSubscription'));assert(notifications.includes("fire('admin-subscription-received'"));});
 
 t('subscription schedule and WhatsApp consent are admin-managed',()=>{const startField=index.match(/<input\b[^>]*\bname="start"[^>]*>/s);assert(startField&&!/type="date"/.test(startField[0]));assert(!index.includes('id="sub-end"'));assert(!master.includes('Send subscription updates on WhatsApp'));assert(!master.includes('setInterval(addCartOptIn,1200)'));assert(master.includes('Customer consent recorded'));assert(master.includes('masterSaveSub'))});
 t('enhanced customer UX v2',()=>{
@@ -479,7 +480,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(server.includes('This promotion has reached its redemption limit.'));
   assert(server.includes('This voucher cannot be combined with a loyalty reward.'));
   assert(server.includes("status='Released',released_at=CURRENT_TIMESTAMP"));
-  assert(server.includes('notifyPromotionRedeemed(savedOrder,promotion)'));
+  assert(server.includes("safeNotification('promotion-redemption',notifyPromotionRedeemed,savedOrder,promotion)"));
   assert(master.includes('paPromoRise'));
   assert(master.includes('Use this voucher'));
   assert(master.includes('name="max_redemptions"'));

@@ -259,6 +259,9 @@ const chk=(pw,h)=>{if(!h)return false;const[s,x]=h.split(':');return crypto.scry
 const w=f=>(q,r)=>{try{f(q,r)}catch(e){r.status(400).json({error:e.message})}};
 const need=(o,...k)=>k.forEach(x=>{if(!String(o[x]||'').trim())throw new Error(x+' is required')});
 const admin=(q,r,n)=>rd(q)?.r==='admin'?n():r.status(401).json({error:'Admin login required'});
+const safeNotification=(label,fn,...args)=>Promise.resolve().then(()=>fn(...args)).catch(error=>{console.error('EMAIL_NOTIFICATION_FAILED',label,error?.message||String(error));return {sent:false,error:true};});
+const gmailOAuthStates=new Map();
+const GMAIL_OAUTH_STATE_TTL_MS=10*60*1000;
 const customerToken=q=>{const token=rd(q);if(token?.r!=='c')return null;const customer=one('SELECT auth_version FROM customers WHERE id=?',token.id);return customer&&+(token.v||0)===(customer.auth_version||0)?token:null};
 const cust=(q,r,n)=>{const t=customerToken(q);if(!t)return r.status(401).json({error:'Login required'});q.cid=t.id;n()};
 const one=(s,...a)=>db.prepare(s).get(...a);
@@ -477,8 +480,8 @@ app.post('/api/inquiry',lim(20),w((q,r)=>{
     msg:String(b.msg).slice(0,4000)
   };
   db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',inquiry.msg);
-  notifyInquiryReceived(inquiry);
-  notifyAdminInquiry(inquiry);
+  safeNotification('inquiry-receipt',notifyInquiryReceived,inquiry);
+  safeNotification('admin-inquiry',notifyAdminInquiry,inquiry);
   Promise.resolve(notifyAdminWhatsApp('inquiry:'+inquiry.id+':received',adminInquiryWhatsAppText(inquiry))).catch(()=>{});
   broadcastAdminInquiry(inquiry);
   queueAdminPush({key:'inquiry:'+Number(inquiry.id),type:'inquiry',id:Number(inquiry.id)});
@@ -501,15 +504,26 @@ app.post('/api/register',lim(8),w((q,r)=>{
   }
   const registeredCustomer=one('SELECT id,name,email,phone FROM customers WHERE id=?',id);
   const welcomeOffer=one("SELECT id,title,message,cta_url,voucher_code,discount_type,discount_value,min_order,starts_at,ends_at,welcome_subject,welcome_message FROM announcements WHERE active=1 AND welcome_enabled=1 AND audience IN ('all','registered') AND discount_type IN ('percent','fixed') AND voucher_code<>'' AND (starts_at='' OR starts_at IS NULL OR starts_at<=datetime('now')) AND (ends_at='' OR ends_at IS NULL OR ends_at>=datetime('now')) AND NOT EXISTS(SELECT 1 FROM orders WHERE orders.customer_id=? AND orders.status!='Cancelled' AND orders.payment_status!='Failed') ORDER BY priority DESC,id DESC LIMIT 1",id);
-  if(registeredCustomer?.email)Promise.resolve(notifyRegistration(registeredCustomer,welcomeOffer||null)).catch(error=>console.error('REGISTRATION_EMAIL_FAILED',error.message));
+  if(registeredCustomer?.email)safeNotification('registration',notifyRegistration,registeredCustomer,welcomeOffer||null);
   if(b.whatsapp_opt_in)Promise.resolve(notificationOnce('customer:'+id+':registered',phone,restaurantName()+': Welcome, '+String(b.name).slice(0,80)+'! Your PinoyAmbula account is ready.')).catch(()=>{});
   const version=one('SELECT auth_version FROM customers WHERE id=?',id)?.auth_version||0;
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
 }));
 app.post('/api/login',lim(8),w((q,r)=>{const c=one('SELECT * FROM customers WHERE phone=?',String(q.body.phone||'').trim());if(!c||!chk(q.body.password||'',c.pw))return r.status(401).json({error:'Wrong phone or password'});r.json({token:mk({r:'c',id:c.id,v:c.auth_version||0}),name:c.name})}));
-app.get('/api/gmail/oauth/start',(q,r)=>{
+app.post('/api/admin/gmail/oauth/start',admin,w((q,r)=>{
+  const state=crypto.randomBytes(32).toString('base64url');
+  gmailOAuthStates.set(state,Date.now()+GMAIL_OAUTH_STATE_TTL_MS);
+  for(const [key,expiresAt] of gmailOAuthStates){if(expiresAt<=Date.now())gmailOAuthStates.delete(key)}
+  r.set('Cache-Control','no-store');
+  r.json({url:getAuthorizationUrl(state)});
+}));
+app.get('/api/gmail/oauth/start',admin,(q,r)=>{
   try{
-    r.redirect(getAuthorizationUrl());
+    const state=crypto.randomBytes(32).toString('base64url');
+    gmailOAuthStates.set(state,Date.now()+GMAIL_OAUTH_STATE_TTL_MS);
+    for(const [key,expiresAt] of gmailOAuthStates){if(expiresAt<=Date.now())gmailOAuthStates.delete(key)}
+    r.set('Cache-Control','no-store');
+    r.redirect(getAuthorizationUrl(state));
   }catch(error){
     console.error('GMAIL_OAUTH_START_FAILED',error.message);
     r.status(500).send('Gmail authorization is not configured yet.');
@@ -517,10 +531,16 @@ app.get('/api/gmail/oauth/start',(q,r)=>{
 });
 app.get('/api/gmail/oauth/callback',async(q,r)=>{
   try{
-    const expected=String(E.GMAIL_OAUTH_STATE||'');
-    if(!expected||String(q.query.state||'')!==expected)return r.status(400).send('Invalid OAuth state.');
-    if(!q.query.code)return r.status(400).send('Google authorization was not completed.');
+    const state=String(q.query.state||'');
+    const expiresAt=gmailOAuthStates.get(state);
+    if(!state||!expiresAt||expiresAt<=Date.now()){
+      gmailOAuthStates.delete(state);
+      return r.status(400).send('Invalid or expired Gmail authorization request. Return to the admin dashboard and start Gmail authorization again.');
+    }
+    gmailOAuthStates.delete(state);
+    if(!q.query.code)return r.status(400).send('Google authorization was not completed. Return to the admin dashboard and try again.');
     await exchangeCode(String(q.query.code));
+    r.set('Cache-Control','no-store');
     r.type('html').send('<!doctype html><meta charset="utf-8"><title>Gmail connected</title><h2>Gmail connected successfully.</h2><p>You can close this window and return to PinoyAmbula.</p>');
   }catch(error){
     console.error('GMAIL_OAUTH_CALLBACK_FAILED',error.message);
@@ -603,7 +623,7 @@ app.post('/api/customer/orders/:id/chat',lim(20),cust,w((q,r)=>{
     db.prepare("UPDATE inquiries SET status='New',msg=? WHERE id=?").run(message,inquiry.id);
   }
   const messageId=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'customer',message).lastInsertRowid);
-  notifyAdminCustomerMessage(inquiry,message);
+  safeNotification('admin-customer-message',notifyAdminCustomerMessage,inquiry,message);
   Promise.resolve(notifyAdminWhatsApp('message:'+messageId,adminMessageWhatsAppText(inquiry,message))).catch(()=>{});
   broadcastAdminMessage(inquiry,message,messageId);
   r.json({ok:1,id:inquiry.id,orderId:Number(q.params.id)});
@@ -801,11 +821,11 @@ app.post('/api/order',lim(30),w((q,r)=>{
   // must never delay the dashboard's live order delivery.
   broadcastAdminOrder(savedOrder);
   broadcastCustomerOrder(savedOrder);
-  notifyOrderReceived(savedOrder);
-  if(promotion&&Number(promotion.redemption_email_enabled)===1)Promise.resolve(notifyPromotionRedeemed(savedOrder,promotion)).catch(error=>console.error('PROMOTION_REDEMPTION_EMAIL_FAILED',error.message));
+  safeNotification('order-receipt',notifyOrderReceived,savedOrder);
+  if(promotion&&Number(promotion.redemption_email_enabled)===1)safeNotification('promotion-redemption',notifyPromotionRedeemed,savedOrder,promotion);
   if(savedOrder.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+id+':received',savedOrder.phone,orderWhatsAppText(savedOrder,'received'))).catch(()=>{});
   Promise.resolve(notifyAdminWhatsApp('order:'+id+':received',adminOrderWhatsAppText(savedOrder))).catch(()=>{});
-  notifyAdminOrder(savedOrder);
+  safeNotification('admin-order',notifyAdminOrder,savedOrder);
 
   r.json({
     id:Number(id),
@@ -840,8 +860,8 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
     .run(custId(b,q),String(b.name).slice(0,100),String(b.nickname||'').slice(0,60),String(b.phone).slice(0,40),String(b.address).slice(0,400),String(b.paci||'').slice(0,80),p.name,date(start),date(end),p.price,String(b.email).slice(0,200),payment,'Pending',duration,b.whatsapp_opt_in?1:0).lastInsertRowid;
   const savedSub=one('SELECT * FROM subs WHERE id=?',id);
   if(b.whatsapp_opt_in)db.prepare('UPDATE customers SET whatsapp_opt_in=1 WHERE id=?').run(savedSub.customer_id);
-  notifySubscriptionReceived(savedSub);
-  notifyAdminSubscription(savedSub);
+  safeNotification('subscription-receipt',notifySubscriptionReceived,savedSub);
+  safeNotification('admin-subscription',notifyAdminSubscription,savedSub);
   queueAdminPush({key:'subscription:'+Number(id),type:'subscription',id:Number(id)});
   if(savedSub.whatsapp_opt_in)Promise.resolve(notificationOnce('subscription:'+id+':received',savedSub.phone,subscriptionWhatsAppText(savedSub,'received'))).catch(()=>{});
   r.json({id:Number(id),start:date(start),end:date(end),duration_days:duration,price:p.price,payment_method:payment,payment_status:'Pending'});
@@ -946,7 +966,7 @@ app.post('/api/admin/orders/:id/chat',admin,w((q,r)=>{
     const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(Number(inquiry.id),'admin',message).lastInsertRowid);
     db.prepare("UPDATE inquiries SET status='Replied',msg=? WHERE id=?").run(message,Number(inquiry.id));
     broadcastCustomerMessage(Number(order.customer_id),{id,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
-    if(inquiry.email)Promise.resolve(notifyInquiryReply(inquiry,message)).catch(error=>console.error('ADMIN_ORDER_REPLY_EMAIL_FAILED',error.message));
+    if(inquiry.email)safeNotification('admin-order-reply',notifyInquiryReply,inquiry,message);
     return r.json({ok:1,inquiryId:Number(inquiry.id),id,emailQueued:!!inquiry.email});
   }
   const sentRow=db.prepare('SELECT MAX(id) id FROM inquiry_messages WHERE inquiry_id=?').get(Number(inquiry.id));
@@ -964,7 +984,7 @@ app.post('/api/admin/inquiries/:id/messages',admin,w((q,r)=>{
   const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(q.params.id,'admin',message).lastInsertRowid);
   db.prepare("UPDATE inquiries SET status='Replied' WHERE id=?").run(q.params.id);
   broadcastCustomerMessage(inquiry.customer_id,{id,inquiry_id:Number(q.params.id),message,created:new Date().toISOString()});
-  notifyInquiryReply(inquiry,message);
+  safeNotification('inquiry-reply',notifyInquiryReply,inquiry,message);
   r.json({ok:1,id,emailQueued:!!inquiry.email});
 }));
 app.post('/api/admin/customers/:id/messages',admin,w((q,r)=>{
@@ -983,7 +1003,7 @@ app.post('/api/admin/customers/:id/messages',admin,w((q,r)=>{
   }
   const id=Number(db.prepare('INSERT INTO inquiry_messages(inquiry_id,author,message) VALUES(?,?,?)').run(inquiry.id,'admin',message).lastInsertRowid);
   broadcastCustomerMessage(customer.id,{id,inquiry_id:Number(inquiry.id),message,created:new Date().toISOString()});
-  if(inquiry.email)notifyInquiryReply(inquiry,message);
+  if(inquiry.email)safeNotification('inquiry-reply',notifyInquiryReply,inquiry,message);
   r.json({ok:1,inquiryId:Number(inquiry.id),id,emailQueued:!!inquiry.email});
 }));
 app.post('/api/admin/newsletter/send',admin,w((q,r)=>{
@@ -1187,7 +1207,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     })();
     const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
     broadcastCustomerOrderStatus(after);
-    notifyOrderStatus(after,before.status);
+    safeNotification('order-status',notifyOrderStatus,after,before.status);
     if(after.whatsapp_opt_in)Promise.resolve(notificationOnce('order:'+after.id+':'+after.status,after.phone,orderWhatsAppText(after,after.status))).catch(()=>{});
     return r.json({ok:1,status});
   }
@@ -1199,7 +1219,7 @@ app.put('/api/admin/status/:t/:id',admin,w((q,r)=>{
     if(!before)throw new Error('Subscription not found');
     db.prepare('UPDATE subs SET status=? WHERE id=?').run(status,q.params.id);
     const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
-    notifySubscriptionStatus(after,before.status);
+    safeNotification('subscription-status',notifySubscriptionStatus,after,before.status);
     if(after.whatsapp_opt_in)Promise.resolve(notificationOnce('subscription:'+after.id+':'+after.status,after.phone,subscriptionWhatsAppText(after,after.status))).catch(()=>{});
     return r.json({ok:1,status});
   }
@@ -1220,7 +1240,7 @@ app.put('/api/admin/payment/:id',admin,w((q,r)=>{
     db.prepare('UPDATE orders SET payment_status=? WHERE id=?').run(status,q.params.id);
   })();
   const after=one('SELECT * FROM orders WHERE id=?',q.params.id);
-  notifyPaymentStatus(after,before.payment_status);
+  safeNotification('payment-status',notifyPaymentStatus,after,before.payment_status);
   r.json({ok:1,status});
 }));
 app.put('/api/admin/orders/:id',admin,w((q,r)=>{
@@ -1269,7 +1289,7 @@ app.put('/api/admin/subs/:id',admin,w((q,r)=>{
     .run(...keys.map(key=>key==='payment_method'?String(b[key]).toUpperCase():String(b[key]).slice(0,500)),q.params.id);
   if(!result.changes)throw new Error('Subscription not found');
   const after=one('SELECT * FROM subs WHERE id=?',q.params.id);
-  if(keys.includes('payment_status'))notifySubscriptionPaymentStatus(after,before.payment_status);
+  if(keys.includes('payment_status'))safeNotification('subscription-payment-status',notifySubscriptionPaymentStatus,after,before.payment_status);
   if(keys.includes('whatsapp_opt_in'))db.prepare('UPDATE customers SET whatsapp_opt_in=? WHERE id=?').run(after.whatsapp_opt_in?1:0,after.customer_id);
   r.json({ok:1});
 }));

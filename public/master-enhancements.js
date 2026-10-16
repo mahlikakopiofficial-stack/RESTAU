@@ -434,8 +434,8 @@ function masterSettingsFields(base,s){
     '<label>Receipt logo URL<input name="receipt_logo_url" value="'+escm(s.receipt_logo_url||'/icons/pinoyambula.svg')+'"></label>'+
     '<label>No refund policy<textarea name="receipt_no_refund" rows="2">'+escm(s.receipt_no_refund||'No refund after order confirmation.')+'</textarea></label>'+
     '<label>Exchange policy<textarea name="receipt_exchange_policy" rows="2">'+escm(s.receipt_exchange_policy||'Exchange only for verified order issues reported promptly.')+'</textarea></label>'+
-    '<h3 style="margin-top:22px">Email notifications</h3><p id="masterEmailStatus">Checking Gmail delivery status…</p>'+
-    '<p>Customer emails, admin order alerts, inquiry replies and newsletter broadcasts use Gmail OAuth credentials on the server.</p>'+
+    '<h3 style="margin-top:22px">Email notifications</h3><p id="masterEmailStatus">Checking Gmail delivery status…</p><button type="button" class="btn" onclick="window.masterStartGmailOAuth()">Connect / Re-authorize Gmail</button><p>Customer emails, admin order alerts, inquiry replies and newsletter broadcasts use Gmail OAuth credentials on the server.</p>'+
+    
     '<h3 style="margin-top:22px">WhatsApp notifications</h3><p id="masterWaStatus">Checking provider status…</p>'+
     '<h3 style="margin-top:22px">Theme</h3>'+
     '<select name="theme_style"><option value="filipino-heritage" '+(s.theme_style!=='plain'?'selected':'')+'>Filipino heritage</option><option value="plain" '+(s.theme_style==='plain'?'selected':'')+'>Classic</option></select>';
@@ -648,6 +648,18 @@ function adminBoot(){
       if(email)email.innerHTML=status.emailConfigured&&status.adminEmailConfigured?'<span class="master-status-ok">Gmail OAuth is configured for customer and admin email.</span>':'<span class="master-status-off">Email notifications are not fully configured. Set GMAIL_USER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN and GMAIL_ADMIN_NOTIFY_TO (or GMAIL_USER).</span>';
     };
     return out;
+  };
+  window.masterStartGmailOAuth=async()=>{
+    const popup=window.open('about:blank','pinoyambula-gmail-oauth');
+    if(!popup){toast('Allow pop-ups to connect Gmail');return;}
+    try{
+      const result=await A('/gmail/oauth/start','POST',{});
+      if(!result?.url)throw new Error('Gmail authorization URL was not returned');
+      popup.location.href=result.url;
+    }catch(error){
+      popup.close();
+      toast('Could not start Gmail authorization: '+(error.message||'Unknown error'));
+    }
   };
   window.masterAddAnnouncement=async form=>{
     const d=Object.fromEntries(new FormData(form));
