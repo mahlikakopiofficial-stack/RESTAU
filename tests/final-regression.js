@@ -145,7 +145,7 @@ t('admin order live delivery',()=>{
   assert(!notify.includes('setInterval(poll,1000)'));
   assert(!notify.includes('startFallback'));
   assert(!master.includes('setInterval(pollAdminNotifications,12000)'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v42'"));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
   assert(sw.includes('/app.js?v=20261007-live7'));
 });
@@ -174,7 +174,7 @@ t('customer and admin order chatbox stays available',()=>{
   assert(adminFixes.includes("d.addEventListener('close'"));
   assert(adminFixes.includes("window.__adminOrderChatId=null"));
   assert(admin.includes('admin-fixes.js?v=20261007-live8'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v42'"));
   assert(sw.includes("const CACHE_VERSION='v41'"));
   assert(sw.includes('/admin-fixes.js?v=20261007-live8'));
   assert(sw.includes('/admin-notify.js?v=20261007-live7'));
@@ -469,6 +469,25 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(server.includes("'announcements','welcome_enabled'"));
   assert(server.includes("audience IN ('all','registered')"));
   assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemptions'));
+  assert(server.includes('CREATE TABLE IF NOT EXISTS promotion_redemption_history'));
+  assert(server.includes("'announcements','max_redemptions'"));
+  assert(server.includes("'announcements','discount_cap'"));
+  assert(server.includes("'announcements','allow_stack'"));
+  assert(server.includes("'announcements','redemption_email_enabled'"));
+  assert(server.includes('This promotion has reached its redemption limit.'));
+  assert(server.includes('This voucher cannot be combined with a loyalty reward.'));
+  assert(server.includes("status='Released',released_at=CURRENT_TIMESTAMP"));
+  assert(server.includes('notifyPromotionRedeemed(savedOrder,promotion)'));
+  assert(master.includes('paPromoRise'));
+  assert(master.includes('Use this voucher'));
+  assert(master.includes('name="max_redemptions"'));
+  assert(master.includes('name="discount_cap"'));
+  assert(master.includes('name="redemption_email_enabled"'));
+  assert(master.includes('name="redemption_email_subject"'));
+  assert(notifications.includes('function notifyPromotionRedeemed(order,offer)'));
+  assert(index.includes('campaignStackBlocked'));
+  assert(index.includes('campaignVoucher.discount_cap'));
+
   assert(server.includes("app.get('/api/admin/promotion-redemptions'"));
   assert(server.includes('UNIQUE(announcement_id,customer_id)'));
   assert(server.includes('This voucher has already been used by this customer.'));
@@ -481,7 +500,7 @@ t('admin-configurable announcement popups and single-use vouchers',()=>{
   assert(notifications.includes('YOUR WELCOME VOUCHER'));
   assert(notifications.includes("parsed.searchParams.set('voucher'"));
   assert(notifications.includes('welcome_subject'));
-  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v41'"));
+  assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v42'"));
 });
 
 if(tests.length){console.error('\\nTEST RESULT: FAIL');process.exit(1)}else console.log('\\nTEST RESULT: PASS');
