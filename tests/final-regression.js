@@ -78,7 +78,25 @@ t('loyalty rewards apply correctly across repeat 10-order cycles',()=>{
 });
 t('promos + payments',()=>{assert(server.includes('promo_code'));assert(server.includes('promo_type'));assert(server.includes('payment_card'));assert(index.includes('name="promo_code"'));assert(admin.includes('promo_value'))});
 t('subscription nickname/autofill',()=>{assert(server.includes("'subs','nickname'"));assert(fixes.includes('Nickname (optional)'));assert(fixes.includes('auto-fill from logged-in customer profile'))});
-t('admin customer email composer',()=>{assert(server.includes("app.post('/api/admin/email-customer'"));assert(fixes.includes('Customer Email'));assert(fixes.includes('/api/admin/email-customer'))});
+t('admin customer email composer validates real addresses',()=>{
+  assert(server.includes("app.post('/api/admin/email-customer'"));
+  assert(fixes.includes('Customer Email'));
+  assert(fixes.includes('/api/admin/email-customer'));
+  const route=server.match(/app\.post\('\/api\/admin\/email-customer',admin,w\(async\(q,r\)=>\{([\s\S]*?)\n\}\)\);/);
+  assert(route,'email customer route found');
+  const validator=route[1].match(/if\(!\/(.*?)\/\.test\(to\)\)/);
+  assert(validator,'email validation expression found');
+  const emailPattern=new RegExp(validator[1]);
+  assert(emailPattern.test('customer@example.com'),'normal email must be accepted');
+  assert(!emailPattern.test('not-an-email'),'invalid email must be rejected');
+});
+t('admin push token validation rejects whitespace',()=>{
+  const validator=server.match(/if\(token\.length<20\|\|token\.length>4096\|\|\/(.*?)\/\.test\(token\)\)/);
+  assert(validator,'push token whitespace validation expression found');
+  const whitespacePattern=new RegExp(validator[1]);
+  assert(whitespacePattern.test('token with whitespace 123456789'));
+  assert(!whitespacePattern.test('firebase_token_1234567890ABCD'));
+});
 t('navigation UX',()=>{assert(index.includes('id="burger"'));assert(master.includes('window.togglePublicNav=function'));assert(master.includes('setupPublicNavigation'));assert(style.includes('@media(max-width:1000px)'));assert(master.includes('AUTHORITATIVE PUBLIC NAV v2'));assert(master.includes('@media(max-width:1180px)'));assert(!pwa.includes('nav #nl{display:none!important}'));assert(!fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes("R.Announcements=async function"));assert(index.includes('home-nav-link'));assert(index.includes('togglePublicNav'));assert(server.includes('cod_cash_collected'));assert(fs.readFileSync(path.join(root,'public','admin-fixes.js'),'utf8').includes('Cash collected by driver'));assert(fixes.includes('Mobile pull-to-refresh'));assert(!fixes.includes('Auto-hide the public/admin navigation'));assert(!fixes.includes('Keep every admin navigation control visually consistent'));assert(admin.includes('admin-nav.css'));assert(admin.includes('admin-dashboard.css'));assert(!index.includes('navigation-final.js'));});
 t('public admin link hidden',()=>{assert(fixes.includes('Public pages must not expose an admin navigation link'))});
 t('web/mobile shared runtime',()=>{assert(fs.existsSync(path.join(root,'public','runtime-config.js')));assert(app.includes('PINOY_RUNTIME?.apiOrigin'));assert(runtime.includes("'https://pinoyambula.com'"));assert(runtime.includes("'pinoyambulakw.duckdns.org'"));assert(runtime.includes("'admin.pinoyambula.com'"));assert(runtime.includes("s.src='/media-runtime-fix.js?v=20261003-android1'"));assert(!runtime.includes("document.createElement('base')"));assert(pwa.includes('isNativePlatform'));assert(pwa.includes('if (isNative) return'));assert(fs.existsSync(path.join(root,'public','manifest.json')));assert(envExample.includes('GMAIL_REDIRECT_URI=https://pinoyambula.com/api/gmail/oauth/callback'));assert(gmail.includes("REDIRECT_DEFAULT='https://pinoyambula.com/api/gmail/oauth/callback'"));assert(gmail.includes('GMAIL_FROM_EMAIL||user'));assert(server.includes("'https://pinoyambula.com'"));assert(server.includes("'https://www.pinoyambula.com'"));assert(server.includes("'https://admin.pinoyambula.com'"));assert(server.includes("app.listen(PORT,'127.0.0.1'"));});

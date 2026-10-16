@@ -871,7 +871,7 @@ app.post('/api/subscribe',lim(20),w((q,r)=>{
 app.post('/api/admin/login',lim(8),(q,r)=>safeEq(q.body.password,ADMIN_PW)?r.json({token:mk({r:'admin'})}):r.status(401).json({error:'Wrong password'}));
 app.post('/api/admin/push/register',admin,w((q,r)=>{
   const token=String(q.body.token||'').trim();
-  if(token.length<20||token.length>4096||/\\s/.test(token))throw new Error('Invalid push registration token');
+  if(token.length<20||token.length>4096||/\s/.test(token))throw new Error('Invalid push registration token');
   const deviceName=String(q.body.device||'PinoyAmbula Admin Android').trim().slice(0,80)||'PinoyAmbula Admin Android';
   db.prepare(`INSERT INTO admin_push_tokens(token,device_name,active,updated_at,last_seen)
     VALUES(?,?,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
@@ -918,7 +918,7 @@ app.post('/api/admin/customers/:id/reset-password',admin,async(q,r)=>{
 });
 app.post('/api/admin/email-customer',admin,w(async(q,r)=>{
   const to=String(q.body.to||'').trim().toLowerCase(),subject=String(q.body.subject||'').trim(),text=String(q.body.text||'').trim();
-  if(!/^\\S+@\\S+\\.\\S+$/.test(to))throw new Error('Valid customer email required');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to))throw new Error('Valid customer email required');
   if(!subject)throw new Error('Subject is required');
   if(!text)throw new Error('Message is required');
   if(subject.length>160||text.length>5000)throw new Error('Subject or message is too long');
