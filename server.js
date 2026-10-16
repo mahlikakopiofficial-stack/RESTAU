@@ -750,7 +750,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
       if(!token)throw new Error('Sign in or register to use this voucher.');
       if(Number(token.id)!==Number(customerId))throw new Error('Sign in to the account that owns this order to use the voucher.');
       if(sub<Number(candidate.min_order||0))throw new Error('This voucher requires a minimum eligible subtotal of '+Number(candidate.min_order||0).toFixed(3)+' '+(st.currency||'KWD')+'.');
-      if(one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer; each voucher code can be redeemed once per customer.');
+      if(one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
       if(Number(candidate.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',candidate.id).n>=Number(candidate.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
       if(rewardThreshold&&Number(candidate.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
       if(Number(candidate.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
@@ -778,7 +778,7 @@ app.post('/api/order',lim(30),w((q,r)=>{
   const status=approval==='ADMIN'?'Pending':'Confirmed';
 
   const saveOrder=db.transaction(()=>{
-  if(promotion&&one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer; each voucher code can be redeemed once per customer.');
+  if(promotion&&one("SELECT id FROM promotion_redemption_history WHERE upper(trim(COALESCE(voucher_code,'')))=? AND customer_id=? LIMIT 1",promoCode,customerId))throw new Error('This voucher has already been used by this customer. Each voucher code can be redeemed once per customer.');
   if(promotion&&Number(promotion.max_redemptions||0)>0&&one('SELECT COUNT(*) n FROM promotion_redemptions WHERE announcement_id=?',promotion.id).n>=Number(promotion.max_redemptions))throw new Error('This promotion has reached its redemption limit.');
   if(promotion&&rewardThreshold&&Number(promotion.allow_stack||0)!==1)throw new Error('This voucher cannot be combined with a loyalty reward.');
   if(promotion&&Number(promotion.first_order_only)===1&&one("SELECT id FROM orders WHERE customer_id=? AND status!='Cancelled' AND payment_status!='Failed' LIMIT 1",customerId))throw new Error('This voucher is restricted to the first eligible order for this customer. Use a general promotion voucher if this is a returning-customer offer.');
