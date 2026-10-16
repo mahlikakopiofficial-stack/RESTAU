@@ -99,7 +99,7 @@ t('registration, password reset and order email wiring',()=>{
   assert(server.includes("app.post('/api/password-reset'"));
   assert(server.includes("app.post('/api/password-reset/confirm'"));
   assert(server.includes("safeNotification('order-receipt',notifyOrderReceived,savedOrder)"));
-  assert(server.includes('notifyOrderStatus(after,before.status)'));
+  assert(server.includes("safeNotification('order-status',notifyOrderStatus,after,before.status)"));
   assert(server.includes("safeNotification('admin-order',notifyAdminOrder,savedOrder)"));
   assert(server.includes('GMAIL_REFRESH_TOKEN'));
   assert(server.includes("app.get('/api/admin/notification-status'"));
