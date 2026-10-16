@@ -490,6 +490,14 @@ t('voucher first-order eligibility is separate from welcome email delivery',()=>
   assert(index.includes('First eligible order only. Sign in to redeem; one use per customer.'));
   assert(sw.includes("const CACHE_NAME='pinoyambula-shell-v46'"));
 });
+t('editing a voucher code resets eligibility for that code while preserving redemption history',()=>{
+  assert(server.includes("ensureColumn('promotion_redemption_history','voucher_code'"));
+  assert(server.includes("const voucherCodeChanged=previousVoucherCode!==nextVoucherCode;"));
+  assert(server.includes("if(voucherCodeChanged)db.prepare('DELETE FROM promotion_redemptions WHERE announcement_id=?').run(q.params.id);"));
+  assert(server.includes("INSERT INTO promotion_redemption_history(announcement_id,customer_id,order_id,status,voucher_code) VALUES(?,?,?,'Applied',?)"));
+  assert(server.includes("COALESCE(NULLIF(pr.voucher_code,''),p.voucher_code) AS voucher_code"));
+  assert(server.includes('r.json({ok:1,voucherCodeChanged})'));
+});
 t('welcome vouchers are hidden from existing customers and general vouchers remain usable',()=>{
   assert(server.includes('const hasEligibleOrder=token&&one("SELECT id FROM orders WHERE customer_id=? AND status!=\'Cancelled\' AND payment_status!=\'Failed\' LIMIT 1",token.id)?1:0;'));
   assert(server.includes('welcome_enabled,first_order_only,discount_cap,allow_stack'));
