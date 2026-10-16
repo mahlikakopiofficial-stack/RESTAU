@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Verify Email — PinoyAmbula</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7b2d26" />
+    <script src="/runtime-config.js"></script>
+    <script src="/pwa.js"></script>
+  </head>
+  <body>
+    <div class="banig"></div>
+    <nav>
+      <div class="wrap">
+        <a class="logo brand-logo" data-brand-logo href="index.html" aria-label="PinoyAmbula home">
+          <img src="/icons/pinoyambula.svg" alt="" width="40" height="40" />
+          <span>PinoyAmbula</span>
+        </a>
+      </div>
+    </nav>
+    <main class="wrap">
+      <section class="box" style="max-width:520px;margin:50px auto">
+        <h2>Verify your email address</h2>
+        <p id="verify-message">Confirm your email address to complete verification for your PinoyAmbula account.</p>
+        <form id="verify-form" onsubmit="verifyEmail(event)">
+          <button id="verify-button" class="btn" type="submit">Verify email address</button>
+        </form>
+        <p><a href="account.html">Return to My Account</a></p>
+      </section>
+    </main>
+    <script src="app.js"></script>
+    <script>
+      const verificationToken = new URLSearchParams(location.search).get("token") || "";
+      if (!verificationToken) {
+        document.getElementById("verify-form").hidden = true;
+        document.getElementById("verify-message").textContent =
+          "This verification link is missing or invalid. Sign in to your account to request a new one.";
+      }
+
+      async function verifyEmail(event) {
+        event.preventDefault();
+        const form = document.getElementById("verify-form");
+        const button = document.getElementById("verify-button");
+        const message = document.getElementById("verify-message");
+        if (!verificationToken) return;
+        button.disabled = true;
+        button.textContent = "Verifying...";
+        message.textContent = "Checking your one-time verification link...";
+        try {
+          const result = await api("/email/verify/confirm", "POST", { token: verificationToken }, "none");
+          form.hidden = true;
+          message.textContent = result.message || "Your email address has been verified.";
+        } catch (error) {
+          message.textContent = error.message || "This verification link is invalid or expired. Request a new one.";
+          button.textContent = "Try verification again";
+        } finally {
+          button.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
