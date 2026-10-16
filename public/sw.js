@@ -1,10 +1,11 @@
-const CACHE_NAME='pinoyambula-shell-v48';
-const CACHE_VERSION='v47';
+const CACHE_NAME='pinoyambula-shell-v49';
+const CACHE_VERSION='v48';
 const SHELL=[
   '/index.html',
   '/account.html',
   '/admin.html',
   '/reset-password.html',
+  '/verify-email.html',
   '/style.css',
   '/app.js?v=20261007-live7',
   '/loyalty.js?v=20261009-loyalty1',
@@ -43,6 +44,7 @@ self.addEventListener('fetch',event=>{
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
   if(url.pathname.startsWith('/api/'))return;
+  if(url.pathname==='/verify-email.html'&&url.searchParams.has('token')){event.respondWith(fetch(request));return;}
   if(request.method!=='GET')return;
   event.respondWith(fetch(request).then(response=>{
     if(response.ok){const copy=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));}

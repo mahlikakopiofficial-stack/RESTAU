@@ -89,6 +89,11 @@
           <button class="btn s o" onclick="out()">Logout</button>
           <a class="btn s" href="index.html#menu">Order food</a>
         </p>
+        <section id="email-verification-card" hidden class="card" style="margin:20px 0;padding:18px;border:1px solid #d8bd78;border-radius:14px">
+          <h3>Email address verification</h3>
+          <p id="email-verification-status"></p>
+          <button id="email-verification-resend" class="btn o" type="button" onclick="resendVerificationEmail()">Resend verification email</button>
+        </section>
         <section id="welcome-voucher-card" hidden class="card" style="margin:20px 0;padding:18px;border:1px solid #d8bd78;background:#fff8e8;border-radius:14px">
           <h3 id="welcome-voucher-title">Your welcome voucher</h3>
           <p id="welcome-voucher-message"></p>
@@ -223,6 +228,23 @@
           await loadChats();
         } catch (x) {
           toast(x.message);
+        } finally {
+          button.disabled = false;
+        }
+      }
+      async function resendVerificationEmail() {
+        const button = $("#email-verification-resend");
+        const status = $("#email-verification-status");
+        if (!button) return;
+        button.disabled = true;
+        try {
+          const result = await api("/email/verification/send", "POST", {});
+          if (status) status.textContent = result.message || "Verification email sent.";
+          if (result.verified) button.hidden = true;
+          toast(result.message || "Verification email sent.");
+        } catch (error) {
+          if (status) status.textContent = error.message || "Could not send the verification email.";
+          toast(error.message || "Could not send the verification email.");
         } finally {
           button.disabled = false;
         }
@@ -451,6 +473,23 @@
           $("#me").hidden = false;
           $("#hi").textContent = "Mabuhay, " + m.name + "!";
           const welcomeVoucher = m.welcomeVoucher;
+          const emailVerificationCard = $("#email-verification-card");
+          const emailVerificationStatus = $("#email-verification-status");
+          const emailVerificationButton = $("#email-verification-resend");
+          if (m.email && emailVerificationCard) {
+            emailVerificationCard.hidden = false;
+            if (Number(m.email_verified) === 1) {
+              emailVerificationStatus.textContent = m.email + " is verified.";
+              emailVerificationButton.hidden = true;
+            } else {
+              emailVerificationStatus.textContent =
+                "Verify " + m.email + " to confirm it belongs to you. Check your inbox and spam folder for the verification email.";
+              emailVerificationButton.hidden = false;
+            }
+          } else if (emailVerificationCard) {
+            emailVerificationCard.hidden = true;
+          }
+
           const welcomeCard = $("#welcome-voucher-card");
           if (welcomeVoucher && welcomeVoucher.voucher_code && welcomeCard) {
             const code = String(welcomeVoucher.voucher_code).trim().toUpperCase();
