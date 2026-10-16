@@ -595,7 +595,9 @@
               ? "This voucher requires a minimum subtotal of " + money(campaignVoucher.min_order) + "."
               : campaignStackBlocked
                 ? "This voucher cannot be combined with a loyalty reward. Remove the reward or choose another voucher."
-                : "Voucher discount estimated. Sign in to redeem; one use per customer."
+                : (Number(campaignVoucher.first_order_only || campaignVoucher.welcome_enabled) === 1
+                    ? "First eligible order only. Sign in to redeem; one use per customer."
+                    : "Voucher discount estimated. Sign in to redeem; one use per customer.")
             : validPromo
               ? "Promo code applied."
               : "Promo code not recognized."
@@ -949,6 +951,6 @@
     </script>
     <script src="enhancements.js?v=20261007-cart1"></script>
     <script src="final-fixes.js"></script>
-    <script src="master-enhancements.js?v=20261016-promotions-vouchers5"></script>
+    <script src="master-enhancements.js?v=20261016-promotions-vouchers6"></script>
   </body>
 </html>
