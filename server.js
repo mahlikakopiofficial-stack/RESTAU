@@ -510,6 +510,13 @@ app.post('/api/register',lim(8),w((q,r)=>{
   r.json({token:mk({r:'c',id,v:version}),name:b.name});
 }));
 app.post('/api/login',lim(8),w((q,r)=>{const c=one('SELECT * FROM customers WHERE phone=?',String(q.body.phone||'').trim());if(!c||!chk(q.body.password||'',c.pw))return r.status(401).json({error:'Wrong phone or password'});r.json({token:mk({r:'c',id:c.id,v:c.auth_version||0}),name:c.name})}));
+app.post('/api/admin/gmail/oauth/start',admin,w((q,r)=>{
+  const state=crypto.randomBytes(32).toString('base64url');
+  gmailOAuthStates.set(state,Date.now()+GMAIL_OAUTH_STATE_TTL_MS);
+  for(const [key,expiresAt] of gmailOAuthStates){if(expiresAt<=Date.now())gmailOAuthStates.delete(key)}
+  r.set('Cache-Control','no-store');
+  r.json({url:getAuthorizationUrl(state)});
+}));
 app.get('/api/gmail/oauth/start',admin,(q,r)=>{
   try{
     const state=crypto.randomBytes(32).toString('base64url');
