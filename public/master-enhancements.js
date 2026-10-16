@@ -79,6 +79,7 @@ function masterCss(){
     '#main .promotion-audience-field{grid-column:1/-1;display:block;border:2px solid var(--pa-maroon);background:#fffaf0;padding:12px 14px;border-radius:12px;font-weight:800}',
     '#main .promotion-audience-field select{display:block;width:100%;margin-top:8px;font-weight:400}',
     '#main .promotion-audience-field small{display:block;margin-top:4px;font-size:.82rem;font-weight:400;color:#53655b}',
+    '#main .voucher-eligibility-field{display:block;border:1px solid #d8bd78;background:#fff8e8;padding:10px 12px;border-radius:10px;font-weight:700}',
     '.announcement-manager h3{margin:0}',
     '.announcement-manager-head{display:flex;align-items:center;justify-content:space-between;gap:12px}',
     '.announcement-manager-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -472,6 +473,8 @@ function adminBoot(){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
     data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
+    data.first_order_only=form.elements.first_order_only?.checked?1:0;
+    if(data.welcome_enabled)data.first_order_only=1;
     data.allow_stack=form.elements.allow_stack?.checked?1:0;
     data.redemption_email_enabled=form.elements.redemption_email_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
@@ -492,6 +495,8 @@ function adminBoot(){
     const data=Object.fromEntries(new FormData(form));
     data.active=form.elements.active?.checked?1:0;
     data.welcome_enabled=form.elements.welcome_enabled?.checked?1:0;
+    data.first_order_only=form.elements.first_order_only?.checked?1:0;
+    if(data.welcome_enabled)data.first_order_only=1;
     data.allow_stack=form.elements.allow_stack?.checked?1:0;
     data.redemption_email_enabled=form.elements.redemption_email_enabled?.checked?1:0;
     data.priority=Math.trunc(+data.priority||0);
@@ -569,8 +574,11 @@ function adminBoot(){
       '<label>Maximum redemptions (0 = unlimited)<input name="max_redemptions" type="number" min="0" step="1" value="'+(Number(a.max_redemptions)||0)+'"></label>'+
       '<label>Voucher code<input name="voucher_code" maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" value="'+announcementInputEsc(a.voucher_code||'')+'" placeholder="WELCOME10"></label></div>'+
       '<p class="small">Audience controls who sees the announcement. Voucher redemption requires sign-in. Codes are unique; a maximum discount caps the offer value; a redemption limit caps total active uses. Cancelled orders release the voucher with a retained audit record; failed payments keep it reserved while the order remains open.</p>'+
+      '<label class="voucher-eligibility-field"><input type="checkbox" name="first_order_only" value="1" '+(Number(a.first_order_only||a.welcome_enabled)?'checked':'')+' style="width:auto"> Restrict this voucher to the first eligible order only</label>'+
+      '<p class="small">For an occasional voucher that returning customers can use, leave “First eligible order only” unchecked.</p>'+
       '<label><input type="checkbox" name="allow_stack" value="1" '+(Number(a.allow_stack)?'checked':'')+' style="width:auto"> Allow this voucher to stack with loyalty rewards</label>'+
-      '<h4>Registration welcome email</h4><label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this offer to new registrations (first eligible order only)</label>'+
+      '<h4>Registration welcome email</h4><label><input type="checkbox" name="welcome_enabled" value="1" '+(Number(a.welcome_enabled)?'checked':'')+' style="width:auto"> Send this voucher by email to eligible new registrations</label>'+
+      '<p class="small">Enabling the registration welcome email automatically restricts this voucher to the first eligible order. For an existing-customer campaign, keep this unchecked.</p>'+
       '<label>Welcome email subject<input name="welcome_subject" maxlength="160" value="'+announcementInputEsc(a.welcome_subject||'')+'" placeholder="Your welcome voucher is here"></label>'+
       '<label>Welcome email message<textarea name="welcome_message" rows="2" maxlength="1000" placeholder="Enjoy a special welcome discount on your first eligible order.">'+announcementInputEsc(a.welcome_message||'')+'</textarea></label>'+
       '<h4>Voucher redemption email</h4><label><input type="checkbox" name="redemption_email_enabled" value="1" '+(Number(a.redemption_email_enabled)?'checked':'')+' style="width:auto"> Email customer after this voucher is accepted for an order</label>'+
