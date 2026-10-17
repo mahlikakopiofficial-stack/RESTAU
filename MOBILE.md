@@ -21,7 +21,7 @@ Restaurant information is entered once in Admin.
 
 public/runtime-config.js contains the API origin used by browser and mobile clients.
 
-When the proper production domain replaces the temporary DuckDNS hostname, update that file once and redeploy the web/PWA. A native package must then be rebuilt so its bundled runtime configuration matches the new domain.
+When the production hostname changes, update that file once and redeploy the web/PWA. A native package must then be rebuilt so its bundled runtime configuration matches the new domain.
 
 ## PWA
 
