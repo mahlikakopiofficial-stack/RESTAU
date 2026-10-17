@@ -1,9 +1,7 @@
 const PINOY_SAME_ORIGIN_HOSTS = new Set([
   'pinoyambula.com',
   'www.pinoyambula.com',
-  'admin.pinoyambula.com',
-  'pinoyambulakw.duckdns.org',
-  'admin-pinoy-ambula.duckdns.org'
+  'admin.pinoyambula.com'
 ]);
 const PINOY_API_ORIGIN = PINOY_SAME_ORIGIN_HOSTS.has(location.hostname)
   ? ''
@@ -29,7 +27,7 @@ window.PINOY_RUNTIME = Object.freeze({
 // Admin-only navigation shell. Loaded here so the existing admin page logic
 // remains untouched while the navigation becomes responsive and functional.
 (function loadAdminNavigation(){
-  if(!['admin.pinoyambula.com','admin-pinoy-ambula.duckdns.org'].includes(location.hostname) && !location.pathname.startsWith('/admin')) return;
+  if(location.hostname!=='admin.pinoyambula.com' && !location.pathname.startsWith('/admin')) return;
   const css=document.createElement('link');
   css.rel='stylesheet';
   css.href='/admin-nav.css?v=20261005-nav1';
