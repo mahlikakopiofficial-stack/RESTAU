@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const isAdmin=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||(location.hostname==='admin.pinoyambula.com'||location.hostname==='admin-pinoy-ambula.duckdns.org');
+const isAdmin=location.pathname.endsWith('/admin.html')||location.pathname==='/admin.html'||location.hostname==='admin.pinoyambula.com';
 const css=`
 /* FINAL NAV SYSTEM — one responsive layout, no competing legacy rules */
 nav .wrap{width:min(1320px,100%);margin:0 auto;min-height:72px;display:flex!important;align-items:center!important;gap:10px!important;padding:0 18px!important}

@@ -5,7 +5,7 @@ Node + Express + SQLite. Pages: `index.html` (customer site), `account.html` (cu
 - Customer site: `https://pinoyambula.com`
 - Admin portal: `https://admin.pinoyambula.com`
 
-The admin hostname is intentionally separate from the customer hostname. Legacy DuckDNS endpoints may remain temporarily for older installed APKs; retire them only after the new APK is built and verified.
+The admin hostname is intentionally separate from the customer hostname. Only the customer and admin hosts listed above are supported.
 
 ## Production status
 The current production deployment has been verified with:
@@ -21,7 +21,7 @@ The current production deployment has been verified with:
 ## One-command deploy/update
 Run as root on the DigitalOcean Ubuntu droplet:
 
-    REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambulakw.duckdns.org ADMIN_HOST=admin-pinoy-ambula.duckdns.org EMAIL=you@mail.com bash deploy.sh
+    REPO=https://github.com/mahlikakopiofficial-stack/RESTAU.git DOMAIN=pinoyambula.com ADMIN_HOST=admin.pinoyambula.com EMAIL=you@mail.com bash deploy.sh
 
 The deployment script installs/keeps Node 22+, pulls `origin/main`, runs syntax checks and the regression suite, starts PM2, configures Nginx for both hosts, and attempts HTTPS when DNS resolves. Re-run it after a GitHub update to synchronize production with `main`.
 
@@ -41,7 +41,7 @@ Important production values include:
 
     RESTO_NAME=PinoyAmbula
     PUBLIC_BASE_URL=https://pinoyambula.com
-    ADMIN_HOST=admin-pinoy-ambula.duckdns.org
+    ADMIN_HOST=admin.pinoyambula.com
     GMAIL_FROM_NAME=PinoyAmbula
     GMAIL_FROM_EMAIL=info@pinoyambula.com
     GMAIL_REDIRECT_URI=https://pinoyambula.com/api/gmail/oauth/callback

@@ -423,9 +423,7 @@ const allowedOrigins = new Set([
   'http://localhost',
   'https://pinoyambula.com',
   'https://www.pinoyambula.com',
-  'https://admin.pinoyambula.com',
-  'https://pinoyambulakw.duckdns.org',
-  'https://admin-pinoy-ambula.duckdns.org'
+  'https://admin.pinoyambula.com'
 ]);
 
 app.use((q,r,n)=>{
